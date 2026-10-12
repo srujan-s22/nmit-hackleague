@@ -1,32 +1,67 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Surfaces & Backgrounds */
+  --color-surface-canvas: #FFFFFF;
+  --color-surface-subtle: #F5F6F4;
+  --color-surface-muted: #ECEFEA;
+  --color-surface-inverse: #252825;
+
+  /* Borders & Dividers */
+  --color-border-subtle: #E6E9E5;
+  --color-border-default: #D8DDD6;
+  --color-border-interactive: #858C82;
+  --color-border-focus: #252825;
+
+  /* Typography & Text */
+  --color-text-primary: #252825;
+  --color-text-secondary: #575B56;
+  --color-text-helper: #5C635B;
+  --color-text-disabled: #8A9188;
+  --color-text-inverse: #FFFFFF;
+
+  /* Semantic Status Tokens */
+  --color-status-success-bg: #E3F1E6;
+  --color-status-success-text: #1B5E20;
+  --color-status-success-border: #C8E6C9;
+
+  --color-status-error-bg: #F8E8E6;
+  --color-status-error-text: #B71C1C;
+  --color-status-error-border: #FFCDD2;
+
+  --color-status-warning-bg: #FFF8E1;
+  --color-status-warning-text: #7A5E00;
+  --color-status-warning-border: #FFE082;
+
+  --color-status-info-bg: #E8F0FE;
+  --color-status-info-text: #1A56A2;
+  --color-status-info-border: #C2D7FA;
+
+  /* Institutional Accents */
+  --color-brand-nmit-blue: #2E3690;
+  --color-brand-hackleague-mint: #00FF95;
+
+  /* Backward-compatible Phase 1 aliases */
+  --color-background: #FFFFFF;
+  --color-foreground: #252825;
   --color-surface-light: #F5F6F4;
   --color-surface-border: #E6E9E5;
   --color-institutional-green: #E3F1E6;
   --color-institutional-red: #F8E8E6;
   --color-institutional-charcoal: #252825;
-
-  --color-brand-white: #FFFFFF;
-  --color-brand-offwhite: #F5F6F4;
-  --color-brand-charcoal: #252825;
-  --color-brand-grey: #E6E9E5;
-  --color-brand-green: #E3F1E6;
-  --color-brand-green-text: #1B5E20;
-  --color-brand-red: #F8E8E6;
-  --color-brand-red-text: #B71C1C;
 }
 
 :root {
   --background: #FFFFFF;
   --foreground: #252825;
-  --surface-light: #F5F6F4;
-  --surface-border: #E6E9E5;
-  --institutional-green: #E3F1E6;
-  --institutional-red: #F8E8E6;
-  --institutional-charcoal: #252825;
+  --surface-canvas: #FFFFFF;
+  --surface-subtle: #F5F6F4;
+  --surface-muted: #ECEFEA;
+  --border-subtle: #E6E9E5;
+  --border-interactive: #858C82;
+  --text-primary: #252825;
+  --text-secondary: #575B56;
+  --text-helper: #5C635B;
 }
 
 body {
@@ -36,4 +71,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Accessible Native Dialog Backdrop */
+dialog::backdrop {
+  background-color: rgba(37, 40, 37, 0.45);
+  backdrop-filter: blur(2px);
+}
+
 
