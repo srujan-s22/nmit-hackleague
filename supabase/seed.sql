@@ -37,8 +37,8 @@ VALUES
     'superadmin@nmit-dev.local',
     extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
-    '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"NMIT Super Admin"}'::jsonb,
+    '{"provider":"email","providers":["email"],"claims_admin":true}'::jsonb,
+    '{"full_name":"NMIT Super Admin","role":"admin"}'::jsonb,
     now(),
     now()
   ),
@@ -50,8 +50,8 @@ VALUES
     'verifier.admin@nmit-dev.local',
     extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
-    '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Verifier Admin"}'::jsonb,
+    '{"provider":"email","providers":["email"],"claims_admin":true}'::jsonb,
+    '{"full_name":"Verifier Admin","role":"admin"}'::jsonb,
     now(),
     now()
   ),
@@ -64,7 +64,7 @@ VALUES
     extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Aarav Sharma"}'::jsonb,
+    '{"full_name":"Aarav Sharma","usn":"1NT21CS001","phone":"+919876543210","branch":"CSE","academic_year":4,"sex":"Male","date_of_birth":"2003-05-15"}'::jsonb,
     now(),
     now()
   ),
@@ -77,7 +77,7 @@ VALUES
     extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Diya Patel"}'::jsonb,
+    '{"full_name":"Diya Patel","usn":"1NT21CS002","phone":"+919876543211","branch":"CSE","academic_year":4,"sex":"Female","date_of_birth":"2003-08-20"}'::jsonb,
     now(),
     now()
   ),
@@ -90,7 +90,7 @@ VALUES
     extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Rohan Verma"}'::jsonb,
+    '{"full_name":"Rohan Verma","usn":"1NT22IS050","phone":"+919876543212","branch":"ISE","academic_year":3,"sex":"Male","date_of_birth":"2004-02-10"}'::jsonb,
     now(),
     now()
   ),
@@ -103,11 +103,18 @@ VALUES
     extensions.crypt('password123', extensions.gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Kavya Nair"}'::jsonb,
+    '{"full_name":"Kavya Nair","usn":"1NT23EC099","phone":"+919876543213","branch":"ECE","academic_year":2,"sex":"Female","date_of_birth":"2005-11-25"}'::jsonb,
     now(),
     now()
   )
 ON CONFLICT (id) DO NOTHING;
+
+-- Initialize empty tokens required by GoTrue user scanner
+UPDATE auth.users
+SET confirmation_token = COALESCE(confirmation_token, ''),
+    recovery_token = COALESCE(recovery_token, ''),
+    email_change_token_new = COALESCE(email_change_token_new, ''),
+    email_change = COALESCE(email_change, '');
 
 -- 2. Admin Profiles
 INSERT INTO public.admin_profiles (id, email, full_name, is_super_admin, is_active)
@@ -127,7 +134,7 @@ ON CONFLICT (admin_id, permission) DO NOTHING;
 
 -- 4. Student Profiles
 INSERT INTO public.profiles (
-  id, email, full_name, usn, phone, branch, academic_year, registration_status, rejection_reason, reviewed_by, reviewed_at
+  id, email, full_name, usn, phone, branch, academic_year, sex, date_of_birth, registration_status, rejection_reason, reviewed_by, reviewed_at
 )
 VALUES
   (
@@ -138,6 +145,8 @@ VALUES
     '+919876543210',
     'CSE',
     4,
+    'Male'::public.gender,
+    '2003-05-15'::date,
     'approved',
     NULL,
     '00000000-0000-0000-0000-000000000002',
@@ -151,6 +160,8 @@ VALUES
     '+919876543211',
     'CSE',
     4,
+    'Female'::public.gender,
+    '2003-08-20'::date,
     'approved',
     NULL,
     '00000000-0000-0000-0000-000000000002',
@@ -164,6 +175,8 @@ VALUES
     '+919876543212',
     'ISE',
     3,
+    'Male'::public.gender,
+    '2004-02-10'::date,
     'under_review',
     NULL,
     NULL,
@@ -177,12 +190,20 @@ VALUES
     '+919876543213',
     'ECE',
     2,
+    'Female'::public.gender,
+    '2005-11-25'::date,
     'rejected',
     'Invalid ID card image: text unreadable',
     '00000000-0000-0000-0000-000000000002',
     now()
   )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  registration_status = EXCLUDED.registration_status,
+  rejection_reason = EXCLUDED.rejection_reason,
+  reviewed_by = EXCLUDED.reviewed_by,
+  reviewed_at = EXCLUDED.reviewed_at,
+  sex = EXCLUDED.sex,
+  date_of_birth = EXCLUDED.date_of_birth;
 
 -- 5. Milestone Point Configurations
 INSERT INTO public.point_configurations (

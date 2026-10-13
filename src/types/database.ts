@@ -199,6 +199,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"profile_action_authorizations": {
+                  Row: {
+                    "action_type": string,"created_at": string,"id": string,"new_value": string | null,"old_value": string | null,"student_id": string,"xact_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action_type": string,"created_at"?: string,"id"?: string,"new_value"?: string | null,"old_value"?: string | null,"student_id": string,"xact_id": string
+                  }
+                  Update: {
+                    "action_type"?: string,"created_at"?: string,"id"?: string,"new_value"?: string | null,"old_value"?: string | null,"student_id"?: string,"xact_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "profile_action_authorizations_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profile_change_requests": {
                   Row: {
                     "created_at": string,"field_name": string,"id": string,"new_value": string,"old_value": string,"reason": string,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"status": string,"student_id": string,"updated_at": string
@@ -227,14 +247,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "academic_year": number,"branch": string,"college_id_deleted_at": string | null,"college_id_path": string | null,"created_at": string,"email": string,"full_name": string,"id": string,"phone": string,"profile_photo_path": string | null,"registration_status": string,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"updated_at": string,"usn": string
+                    "academic_year": number,"branch": string,"college_id_deleted_at": string | null,"college_id_path": string | null,"created_at": string,"date_of_birth": string | null,"email": string,"full_name": string,"id": string,"phone": string,"profile_photo_path": string | null,"registration_status": string,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"sex": Database["public"]['Enums']["gender"] | null,"updated_at": string,"usn": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "academic_year": number,"branch": string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"email": string,"full_name": string,"id": string,"phone": string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"updated_at"?: string,"usn": string
+                    "academic_year": number,"branch": string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"email": string,"full_name": string,"id": string,"phone": string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sex"?: Database["public"]['Enums']["gender"] | null,"updated_at"?: string,"usn": string
                   }
                   Update: {
-                    "academic_year"?: number,"branch"?: string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"phone"?: string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"updated_at"?: string,"usn"?: string
+                    "academic_year"?: number,"branch"?: string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"email"?: string,"full_name"?: string,"id"?: string,"phone"?: string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sex"?: Database["public"]['Enums']["gender"] | null,"updated_at"?: string,"usn"?: string
                   }
                   Relationships: [
                     {
@@ -244,6 +264,20 @@ isOneToOne: false
       referencedRelation: "admin_profiles"
       referencedColumns: ["id"]
     }
+                  ]
+                },"rate_limit_buckets": {
+                  Row: {
+                    "action": string,"bucket_key": string,"request_count": number,"window_start": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"bucket_key": string,"request_count"?: number,"window_start": string
+                  }
+                  Update: {
+                    "action"?: string,"bucket_key"?: string,"request_count"?: number,"window_start"?: string
+                  }
+                  Relationships: [
+
                   ]
                 },"results": {
                   Row: {
@@ -433,6 +467,9 @@ isOneToOne: false
 "complete_storage_deletion_job":
 { Args: { "p_job_id": string,"p_lease_token": string }; Returns: undefined
                            },
+"consume_rate_limit":
+{ Args: { "p_action": string,"p_custom_key"?: string }; Returns: boolean
+                           },
 "create_team":
 { Args: { "p_hackathon_id": string,"p_team_name": string }; Returns: Json
                            },
@@ -460,15 +497,27 @@ isOneToOne: false
 "lock_team_roster":
 { Args: { "p_team_id": string }; Returns: undefined
                            },
+"prune_rate_limit_buckets":
+{ Args: { "p_batch_size"?: number }; Returns: number
+                           },
+"replace_college_id":
+{ Args: { "p_new_storage_path": string }; Returns: Json
+                           },
 "reverse_points_award":
 { Args: { "p_original_ledger_id": string,"p_reason": string }; Returns: string
+                           },
+"review_student_registration":
+{ Args: { "p_decision": string,"p_rejection_reason"?: string,"p_student_id": string }; Returns: Json
+                           },
+"submit_profile_for_review":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "transfer_team_leadership":
 { Args: { "p_new_leader_id": string,"p_team_id": string }; Returns: undefined
                            }
           }
           Enums: {
-            [_ in never]: never
+            "gender": "Male"|"Female"|"Other"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -588,7 +637,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            
+            "gender": ["Male", "Female", "Other"]
           }
         }
 } as const
