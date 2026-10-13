@@ -1,0 +1,594 @@
+
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export type Database = {
+  
+  "graphql_public": {
+          Tables: {
+            [_ in never]: never
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "graphql":
+{ Args: { "extensions"?: Json,"operationName"?: string,"query"?: string,"variables"?: Json }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"public": {
+          Tables: {
+            "admin_permissions": {
+                  Row: {
+                    "admin_id": string,"granted_at": string,"granted_by": string,"id": string,"permission": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "admin_id": string,"granted_at"?: string,"granted_by": string,"id"?: string,"permission": string
+                  }
+                  Update: {
+                    "admin_id"?: string,"granted_at"?: string,"granted_by"?: string,"id"?: string,"permission"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "admin_permissions_admin_id_fkey"
+      columns: ["admin_id"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "admin_permissions_granted_by_fkey"
+      columns: ["granted_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"admin_profiles": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"email": string,"full_name": string,"id": string,"is_active": boolean,"is_super_admin": boolean,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"email": string,"full_name": string,"id": string,"is_active"?: boolean,"is_super_admin"?: boolean,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"email"?: string,"full_name"?: string,"id"?: string,"is_active"?: boolean,"is_super_admin"?: boolean,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "admin_profiles_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"audit_logs": {
+                  Row: {
+                    "action": string,"actor_id": string | null,"actor_role": string,"created_at": string,"details": NonNullable<Json>,"id": string,"ip_address": unknown,"target_id": string | null,"target_type": string,"user_agent": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"actor_id"?: string | null,"actor_role": string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"ip_address"?: unknown,"target_id"?: string | null,"target_type": string,"user_agent"?: string | null
+                  }
+                  Update: {
+                    "action"?: string,"actor_id"?: string | null,"actor_role"?: string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"ip_address"?: unknown,"target_id"?: string | null,"target_type"?: string,"user_agent"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"hackathon_rounds": {
+                  Row: {
+                    "created_at": string,"description": string | null,"end_at": string,"hackathon_id": string,"id": string,"is_final_round": boolean,"name": string,"round_number": number,"start_at": string,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"description"?: string | null,"end_at": string,"hackathon_id": string,"id"?: string,"is_final_round"?: boolean,"name": string,"round_number": number,"start_at": string,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"description"?: string | null,"end_at"?: string,"hackathon_id"?: string,"id"?: string,"is_final_round"?: boolean,"name"?: string,"round_number"?: number,"start_at"?: string,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hackathon_rounds_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"hackathons": {
+                  Row: {
+                    "community_url": string | null,"created_at": string,"created_by": string,"description": string,"event_end_at": string,"event_start_at": string,"external_registration_url": string | null,"id": string,"is_solo_allowed": boolean,"max_team_size": number,"min_team_size": number,"mode": string,"organizer": string,"prizes_summary": string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status": string,"timezone": string,"title": string,"updated_at": string,"venue": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "community_url"?: string | null,"created_at"?: string,"created_by": string,"description": string,"event_end_at": string,"event_start_at": string,"external_registration_url"?: string | null,"id"?: string,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode": string,"organizer": string,"prizes_summary"?: string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status"?: string,"timezone"?: string,"title": string,"updated_at"?: string,"venue"?: string | null
+                  }
+                  Update: {
+                    "community_url"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string,"event_end_at"?: string,"event_start_at"?: string,"external_registration_url"?: string | null,"id"?: string,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode"?: string,"organizer"?: string,"prizes_summary"?: string | null,"registration_end_at"?: string,"registration_start_at"?: string,"slug"?: string,"status"?: string,"timezone"?: string,"title"?: string,"updated_at"?: string,"venue"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hackathons_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"point_configurations": {
+                  Row: {
+                    "id": string,"is_active": boolean,"milestone_type": string,"regular_member_points": number,"team_leader_points": number,"updated_at": string,"updated_by": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"is_active"?: boolean,"milestone_type": string,"regular_member_points": number,"team_leader_points": number,"updated_at"?: string,"updated_by": string
+                  }
+                  Update: {
+                    "id"?: string,"is_active"?: boolean,"milestone_type"?: string,"regular_member_points"?: number,"team_leader_points"?: number,"updated_at"?: string,"updated_by"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "point_configurations_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"points_ledger": {
+                  Row: {
+                    "awarded_by": string,"created_at": string,"hackathon_id": string,"id": string,"idempotency_key": string,"milestone_type": string,"points": number,"reason": string,"result_id": string | null,"reversal_of_id": string | null,"role_at_award": string,"round_id": string | null,"student_id": string,"team_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "awarded_by": string,"created_at"?: string,"hackathon_id": string,"id"?: string,"idempotency_key": string,"milestone_type": string,"points": number,"reason": string,"result_id"?: string | null,"reversal_of_id"?: string | null,"role_at_award": string,"round_id"?: string | null,"student_id": string,"team_id": string
+                  }
+                  Update: {
+                    "awarded_by"?: string,"created_at"?: string,"hackathon_id"?: string,"id"?: string,"idempotency_key"?: string,"milestone_type"?: string,"points"?: number,"reason"?: string,"result_id"?: string | null,"reversal_of_id"?: string | null,"role_at_award"?: string,"round_id"?: string | null,"student_id"?: string,"team_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_points_ledger_team_member"
+      columns: ["team_id","student_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "team_members"
+      referencedColumns: ["team_id","student_id","hackathon_id"]
+    },{
+      foreignKeyName: "fk_points_result_composite"
+      columns: ["result_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "results"
+      referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "fk_points_round_composite"
+      columns: ["round_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathon_rounds"
+      referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "points_ledger_awarded_by_fkey"
+      columns: ["awarded_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "points_ledger_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "points_ledger_reversal_of_id_fkey"
+      columns: ["reversal_of_id"]
+isOneToOne: false
+      referencedRelation: "points_ledger"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "points_ledger_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"profile_change_requests": {
+                  Row: {
+                    "created_at": string,"field_name": string,"id": string,"new_value": string,"old_value": string,"reason": string,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"status": string,"student_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"field_name": string,"id"?: string,"new_value": string,"old_value": string,"reason": string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: string,"student_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"field_name"?: string,"id"?: string,"new_value"?: string,"old_value"?: string,"reason"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: string,"student_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "profile_change_requests_reviewed_by_fkey"
+      columns: ["reviewed_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "profile_change_requests_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"profiles": {
+                  Row: {
+                    "academic_year": number,"branch": string,"college_id_deleted_at": string | null,"college_id_path": string | null,"created_at": string,"email": string,"full_name": string,"id": string,"phone": string,"profile_photo_path": string | null,"registration_status": string,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"updated_at": string,"usn": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "academic_year": number,"branch": string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"email": string,"full_name": string,"id": string,"phone": string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"updated_at"?: string,"usn": string
+                  }
+                  Update: {
+                    "academic_year"?: number,"branch"?: string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"phone"?: string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"updated_at"?: string,"usn"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "profiles_reviewed_by_fkey"
+      columns: ["reviewed_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"results": {
+                  Row: {
+                    "created_at": string,"hackathon_id": string,"id": string,"is_published": boolean,"milestone_type": string,"notes": string | null,"placement": string | null,"round_id": string | null,"team_id": string,"updated_at": string,"verified_at": string,"verified_by": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"hackathon_id": string,"id"?: string,"is_published"?: boolean,"milestone_type": string,"notes"?: string | null,"placement"?: string | null,"round_id"?: string | null,"team_id": string,"updated_at"?: string,"verified_at"?: string,"verified_by": string
+                  }
+                  Update: {
+                    "created_at"?: string,"hackathon_id"?: string,"id"?: string,"is_published"?: boolean,"milestone_type"?: string,"notes"?: string | null,"placement"?: string | null,"round_id"?: string | null,"team_id"?: string,"updated_at"?: string,"verified_at"?: string,"verified_by"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_results_round_composite"
+      columns: ["round_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathon_rounds"
+      referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "fk_results_team_composite"
+      columns: ["team_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "results_verified_by_fkey"
+      columns: ["verified_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"storage_deletion_queue": {
+                  Row: {
+                    "bucket_id": string,"completed_at": string | null,"created_at": string,"id": string,"last_error": string | null,"lease_token": string | null,"leased_by": string | null,"leased_until": string | null,"max_retries": number,"next_retry_at": string,"object_path": string,"retry_count": number,"status": string,"target_id": string,"target_type": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bucket_id": string,"completed_at"?: string | null,"created_at"?: string,"id"?: string,"last_error"?: string | null,"lease_token"?: string | null,"leased_by"?: string | null,"leased_until"?: string | null,"max_retries"?: number,"next_retry_at"?: string,"object_path": string,"retry_count"?: number,"status"?: string,"target_id": string,"target_type": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "bucket_id"?: string,"completed_at"?: string | null,"created_at"?: string,"id"?: string,"last_error"?: string | null,"lease_token"?: string | null,"leased_by"?: string | null,"leased_until"?: string | null,"max_retries"?: number,"next_retry_at"?: string,"object_path"?: string,"retry_count"?: number,"status"?: string,"target_id"?: string,"target_type"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"submission_reviews": {
+                  Row: {
+                    "decision": string,"feedback": string | null,"id": string,"reviewed_at": string,"reviewer_id": string,"score": number | null,"submission_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "decision": string,"feedback"?: string | null,"id"?: string,"reviewed_at"?: string,"reviewer_id": string,"score"?: number | null,"submission_id": string
+                  }
+                  Update: {
+                    "decision"?: string,"feedback"?: string | null,"id"?: string,"reviewed_at"?: string,"reviewer_id"?: string,"score"?: number | null,"submission_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "submission_reviews_reviewer_id_fkey"
+      columns: ["reviewer_id"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "submission_reviews_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submissions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"submissions": {
+                  Row: {
+                    "created_at": string,"demo_url": string | null,"description": string | null,"evidence_deleted_at": string | null,"evidence_path": string | null,"hackathon_id": string,"id": string,"repo_url": string | null,"round_id": string,"status": string,"submitted_by": string,"team_id": string,"title": string,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_deleted_at"?: string | null,"evidence_path"?: string | null,"hackathon_id": string,"id"?: string,"repo_url"?: string | null,"round_id": string,"status"?: string,"submitted_by": string,"team_id": string,"title": string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_deleted_at"?: string | null,"evidence_path"?: string | null,"hackathon_id"?: string,"id"?: string,"repo_url"?: string | null,"round_id"?: string,"status"?: string,"submitted_by"?: string,"team_id"?: string,"title"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_submissions_round_composite"
+      columns: ["round_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathon_rounds"
+      referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "fk_submissions_team_composite"
+      columns: ["team_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "submissions_submitted_by_fkey"
+      columns: ["submitted_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"team_members": {
+                  Row: {
+                    "hackathon_id": string,"id": string,"joined_at": string,"role": string,"student_id": string,"team_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "hackathon_id": string,"id"?: string,"joined_at"?: string,"role"?: string,"student_id": string,"team_id": string
+                  }
+                  Update: {
+                    "hackathon_id"?: string,"id"?: string,"joined_at"?: string,"role"?: string,"student_id"?: string,"team_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_team_members_team_composite"
+      columns: ["team_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "team_members_student_id_fkey"
+      columns: ["student_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"teams": {
+                  Row: {
+                    "created_at": string,"external_proof_path": string | null,"external_proof_reviewed_at": string | null,"external_proof_reviewed_by": string | null,"external_proof_submitted_at": string | null,"external_status": string,"hackathon_id": string,"id": string,"internal_status": string,"invitation_code": string,"invitation_code_expires_at": string,"leader_id": string,"name": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"external_proof_path"?: string | null,"external_proof_reviewed_at"?: string | null,"external_proof_reviewed_by"?: string | null,"external_proof_submitted_at"?: string | null,"external_status"?: string,"hackathon_id": string,"id"?: string,"internal_status"?: string,"invitation_code": string,"invitation_code_expires_at"?: string,"leader_id": string,"name": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"external_proof_path"?: string | null,"external_proof_reviewed_at"?: string | null,"external_proof_reviewed_by"?: string | null,"external_proof_submitted_at"?: string | null,"external_status"?: string,"hackathon_id"?: string,"id"?: string,"internal_status"?: string,"invitation_code"?: string,"invitation_code_expires_at"?: string,"leader_id"?: string,"name"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_teams_leader_member"
+      columns: ["id","leader_id"]
+isOneToOne: false
+      referencedRelation: "team_members"
+      referencedColumns: ["team_id","student_id"]
+    },{
+      foreignKeyName: "teams_external_proof_reviewed_by_fkey"
+      columns: ["external_proof_reviewed_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "teams_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "teams_leader_id_fkey"
+      columns: ["leader_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "adjust_student_points":
+{ Args: { "p_hackathon_id": string,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: string
+                           },
+"award_milestone_points":
+{ Args: { "p_hackathon_id": string,"p_milestone_type": string,"p_reason": string,"p_result_id": string,"p_round_id": string,"p_student_id": string,"p_team_id": string }; Returns: string
+                           },
+"claim_storage_deletion_jobs":
+{ Args: { "p_batch_size": number,"p_lease_seconds": number,"p_worker_id": string }; Returns: {
+              "bucket_id": string,"job_id": string,"lease_token": string,"leased_until": string,"object_path": string,"target_id": string,"target_type": string
+            }[]
+                           },
+"complete_storage_deletion_job":
+{ Args: { "p_job_id": string,"p_lease_token": string }; Returns: undefined
+                           },
+"create_team":
+{ Args: { "p_hackathon_id": string,"p_team_name": string }; Returns: Json
+                           },
+"current_has_permission":
+{ Args: { "p_permission_key": string }; Returns: boolean
+                           },
+"current_is_approved_student":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"current_is_super_admin":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"current_is_team_member":
+{ Args: { "p_team_id": string }; Returns: boolean
+                           },
+"enqueue_storage_deletion_job":
+{ Args: { "p_bucket_id": string,"p_object_path": string,"p_target_id": string,"p_target_type": string }; Returns: string
+                           },
+"fail_storage_deletion_job":
+{ Args: { "p_error": string,"p_job_id": string,"p_lease_token": string }; Returns: undefined
+                           },
+"join_team_with_code":
+{ Args: { "p_invitation_code": string }; Returns: Json
+                           },
+"lock_team_roster":
+{ Args: { "p_team_id": string }; Returns: undefined
+                           },
+"reverse_points_award":
+{ Args: { "p_original_ledger_id": string,"p_reason": string }; Returns: string
+                           },
+"transfer_team_leadership":
+{ Args: { "p_new_leader_id": string,"p_team_id": string }; Returns: undefined
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        }
+}
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
+
+export const Constants = {
+  "graphql_public": {
+          Enums: {
+            
+          }
+        },"public": {
+          Enums: {
+            
+          }
+        }
+} as const
