@@ -1,0 +1,23 @@
+{
+  "0": "NMIT HackLeague --- Development Phases",
+  "1": "NMIT HACKLEAGUE — PHASE 1 IMPLEMENTATION PLAN",
+  "2": "NMIT HackLeague --- Project Rules & Source of Truth",
+  "3": "compilerOptions",
+  "4": "devDependencies",
+  "5": "package.json",
+  "6": "7. Detailed Implementation Sequence",
+  "7": "NMIT HackLeague",
+  "8": "NMIT HackLeague — Phase 2 Implementation Plan",
+  "9": "admin-shell.tsx",
+  "10": "E.3 Content, Status & Feedback Primitives",
+  "11": "layout.tsx",
+  "12": "eslint.config.mjs",
+  "13": "next.config.ts",
+  "14": "postcss.config.mjs",
+  "15": "showcase/page.tsx",
+  "16": "tailwind.config.ts",
+  "17": "NMIT HackLeague --- Development Phases",
+  "18": "D.1 Color Token Architecture & Mathematically Verified Contrast Ratios",
+  "19": "select.tsx",
+  "20": "preview/layout.tsx"
+}
