@@ -277,7 +277,7 @@ isOneToOne: false
                     "action"?: string,"bucket_key"?: string,"request_count"?: number,"window_start"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"results": {
                   Row: {
@@ -459,6 +459,9 @@ isOneToOne: false
 "award_milestone_points":
 { Args: { "p_hackathon_id": string,"p_milestone_type": string,"p_reason": string,"p_result_id": string,"p_round_id": string,"p_student_id": string,"p_team_id": string }; Returns: string
                            },
+"bootstrap_super_admin":
+{ Args: { "p_auth_uid": string,"p_email": string,"p_full_name": string }; Returns: Json
+                           },
 "claim_storage_deletion_jobs":
 { Args: { "p_batch_size": number,"p_lease_seconds": number,"p_worker_id": string }; Returns: {
               "bucket_id": string,"job_id": string,"lease_token": string,"leased_until": string,"object_path": string,"target_id": string,"target_type": string
@@ -497,6 +500,12 @@ isOneToOne: false
 "lock_team_roster":
 { Args: { "p_team_id": string }; Returns: undefined
                            },
+"manage_admin_permissions":
+{ Args: { "p_permissions": (string)[],"p_target_admin_id": string }; Returns: Json
+                           },
+"provision_admin_profile":
+{ Args: { "p_auth_uid": string,"p_email": string,"p_full_name": string,"p_permissions": (string)[] }; Returns: Json
+                           },
 "prune_rate_limit_buckets":
 { Args: { "p_batch_size"?: number }; Returns: number
                            },
@@ -508,6 +517,9 @@ isOneToOne: false
                            },
 "review_student_registration":
 { Args: { "p_decision": string,"p_rejection_reason"?: string,"p_student_id": string }; Returns: Json
+                           },
+"set_admin_active_status":
+{ Args: { "p_is_active": boolean,"p_reason": string,"p_target_admin_id": string }; Returns: Json
                            },
 "submit_profile_for_review":
 { Args: Record<PropertyKey, never>; Returns: Json

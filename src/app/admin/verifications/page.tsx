@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminVerificationsPage() {
-  await requireAdmin('verify_students');
+  const { admin, permissions } = await requireAdmin('verify_students');
   const supabase = await createClient();
 
   const { data: students } = await supabase
@@ -21,7 +21,11 @@ export default async function AdminVerificationsPage() {
     .order('created_at', { ascending: true });
 
   return (
-    <AdminShell currentPath="/admin/verifications">
+    <AdminShell
+      currentPath="/admin/verifications"
+      adminProfile={admin}
+      permissions={permissions}
+    >
       <div className="space-y-6">
         <PageHeader
           title="Student Registration Verifications"

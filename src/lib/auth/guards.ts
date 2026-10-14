@@ -68,6 +68,7 @@ export async function requireApprovedStudent(): Promise<{ profile: StudentProfil
 export async function requireAdmin(requiredPermission?: string): Promise<{
   admin: AdminProfile;
   permissions: string[];
+  user: { id: string; email?: string };
 }> {
   const { supabase, user } = await requireAuth();
 
@@ -94,5 +95,88 @@ export async function requireAdmin(requiredPermission?: string): Promise<{
     }
   }
 
-  return { admin: admin as unknown as AdminProfile, permissions };
+  return {
+    admin: admin as unknown as AdminProfile,
+    permissions,
+    user: { id: user.id, email: user.email },
+  };
 }
+
+export async function requireSuperAdmin(): Promise<{
+  admin: AdminProfile;
+  user: { id: string; email?: string };
+}> {
+  const { supabase, user } = await requireAuth();
+
+  const { data: admin, error } = await supabase
+    .from('admin_profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (error || !admin || !admin.is_active || !admin.is_super_admin) {
+    redirect('/login');
+  }
+
+  return {
+    admin: admin as unknown as AdminProfile,
+    user: { id: user.id, email: user.email },
+  };
+}
+
+export async function getCurrentAdminProfile(): Promise<{
+  admin: AdminProfile;
+  permissions: string[];
+  user: { id: string; email?: string };
+} | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return null;
+    }
+
+    const { data: admin, error: adminError } = await supabase
+      .from('admin_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (adminError || !admin || !admin.is_active) {
+      return null;
+    }
+
+    const { data: permissionsData } = await supabase
+      .from('admin_permissions')
+      .select('permission')
+      .eq('admin_id', user.id);
+
+    const permissions = (permissionsData || []).map((p) => p.permission);
+
+    return {
+      admin: admin as unknown as AdminProfile,
+      permissions,
+      user: { id: user.id, email: user.email },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function checkAdminPermission(permission: string): Promise<boolean> {
+  const current = await getCurrentAdminProfile();
+  if (!current || !current.admin.is_active) {
+    return false;
+  }
+
+  if (current.admin.is_super_admin) {
+    return true;
+  }
+
+  return current.permissions.includes(permission);
+}
+

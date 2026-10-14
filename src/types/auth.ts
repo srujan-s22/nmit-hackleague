@@ -19,7 +19,27 @@ export type RateLimitAction =
   | 'submit_review'
   | 'replace_id'
   | 'review_action'
-  | 'view_college_id';
+  | 'view_college_id'
+  | 'admin_management';
+
+export type { AdminPermissionKey } from '@/lib/auth/permissions';
+
+export interface AdminCreationInput {
+  email: string;
+  fullName: string;
+  permissions: import('@/lib/auth/permissions').AdminPermissionKey[];
+}
+
+export interface AdminUpdateInput {
+  adminId: string;
+  permissions?: import('@/lib/auth/permissions').AdminPermissionKey[];
+  isActive?: boolean;
+  reason?: string;
+}
+
+export interface AdminWithPermissions extends AdminProfile {
+  permissions: import('@/lib/auth/permissions').AdminPermissionKey[];
+}
 
 export interface SignupInput {
   email: string;
