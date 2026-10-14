@@ -1,10 +1,14 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { requireApprovedStudent } from '@/lib/auth/guards';
+import { createClient } from '@/lib/supabase/server';
 import { StudentShell } from '@/components/shells/student-shell';
 import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EventCard } from '@/components/hackathons/event-card';
+import type { HackathonPublicView } from '@/types/hackathon';
 
 export const metadata: Metadata = {
   title: 'Student Workspace — NMIT HackLeague',
@@ -12,6 +16,16 @@ export const metadata: Metadata = {
 
 export default async function StudentPortalPage() {
   const { profile } = await requireApprovedStudent();
+  const supabase = await createClient();
+
+  // Query up to 3 upcoming/open hackathons via safe public projection view
+  const { data: upcomingEvents } = await supabase
+    .from('hackathons_public_view')
+    .select('*')
+    .order('event_start_at', { ascending: true })
+    .limit(3);
+
+  const events = (upcomingEvents as HackathonPublicView[]) || [];
 
   return (
     <StudentShell currentPath="/student">
@@ -56,20 +70,38 @@ export default async function StudentPortalPage() {
 
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle>Hackathon Participation</CardTitle>
-              <CardDescription>
-                Browse upcoming institutional competitions, form teams, and register.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Upcoming Competitions</CardTitle>
+                  <CardDescription>
+                    Explore active hackathons and start forming your team.
+                  </CardDescription>
+                </div>
+                <Link
+                  href="/student/hackathons"
+                  className="text-xs font-semibold text-brand-primary hover:underline"
+                >
+                  View All &rarr;
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-surface-subtle border border-border-subtle rounded-md p-6 text-center text-xs text-text-secondary">
-                <p className="font-medium text-text-primary mb-1">
-                  Team Formation & Event Registration
-                </p>
-                <p>
-                  Full hackathon event listings and team creation will become active during Phase 5.
-                </p>
-              </div>
+              {events.length === 0 ? (
+                <div className="bg-surface-subtle border border-border-subtle rounded-md p-6 text-center text-xs text-text-secondary">
+                  <p className="font-medium text-text-primary mb-1">
+                    No active competitions yet
+                  </p>
+                  <p>
+                    New departmental and college-wide hackathons will appear here once published.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {events.slice(0, 2).map((event) => (
+                    <EventCard key={event.id} hackathon={event} />
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

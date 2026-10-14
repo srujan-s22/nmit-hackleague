@@ -55,7 +55,7 @@ export const PERMISSION_DEFINITIONS: Record<AdminPermissionKey, PermissionDefini
     label: 'Hackathon Management',
     category: 'Event Operations',
     description: 'Create, edit, draft, publish, close, archive hackathons; configure rounds and deadlines.',
-    phaseAvailability: 'Reserved for Phase 6',
+    phaseAvailability: 'Active in Phase 6',
   },
   manage_teams: {
     key: 'manage_teams',

@@ -101,18 +101,24 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "hackathons"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hackathon_rounds_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons_public_view"
+      referencedColumns: ["id"]
     }
                   ]
                 },"hackathons": {
                   Row: {
-                    "community_url": string | null,"created_at": string,"created_by": string,"description": string,"event_end_at": string,"event_start_at": string,"external_registration_url": string | null,"id": string,"is_solo_allowed": boolean,"max_team_size": number,"min_team_size": number,"mode": string,"organizer": string,"prizes_summary": string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status": string,"timezone": string,"title": string,"updated_at": string,"venue": string | null
+                    "community_url": string | null,"created_at": string,"created_by": string,"description": string,"eligibility": string,"event_end_at": string,"event_start_at": string,"external_registration_url": string | null,"id": string,"is_solo_allowed": boolean,"max_team_size": number,"min_team_size": number,"mode": string,"organizer": string,"prizes_detail": NonNullable<Json>,"prizes_summary": string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status": string,"tagline": string | null,"timezone": string,"title": string,"updated_at": string,"venue": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "community_url"?: string | null,"created_at"?: string,"created_by": string,"description": string,"event_end_at": string,"event_start_at": string,"external_registration_url"?: string | null,"id"?: string,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode": string,"organizer": string,"prizes_summary"?: string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status"?: string,"timezone"?: string,"title": string,"updated_at"?: string,"venue"?: string | null
+                    "community_url"?: string | null,"created_at"?: string,"created_by": string,"description": string,"eligibility"?: string,"event_end_at": string,"event_start_at": string,"external_registration_url"?: string | null,"id"?: string,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode": string,"organizer": string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title": string,"updated_at"?: string,"venue"?: string | null
                   }
                   Update: {
-                    "community_url"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string,"event_end_at"?: string,"event_start_at"?: string,"external_registration_url"?: string | null,"id"?: string,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode"?: string,"organizer"?: string,"prizes_summary"?: string | null,"registration_end_at"?: string,"registration_start_at"?: string,"slug"?: string,"status"?: string,"timezone"?: string,"title"?: string,"updated_at"?: string,"venue"?: string | null
+                    "community_url"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string,"eligibility"?: string,"event_end_at"?: string,"event_start_at"?: string,"external_registration_url"?: string | null,"id"?: string,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode"?: string,"organizer"?: string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at"?: string,"registration_start_at"?: string,"slug"?: string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title"?: string,"updated_at"?: string,"venue"?: string | null
                   }
                   Relationships: [
                     {
@@ -174,6 +180,12 @@ isOneToOne: false
       referencedRelation: "hackathon_rounds"
       referencedColumns: ["id","hackathon_id"]
     },{
+      foreignKeyName: "fk_points_round_composite"
+      columns: ["round_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathon_rounds_public_view"
+      referencedColumns: ["id","hackathon_id"]
+    },{
       foreignKeyName: "points_ledger_awarded_by_fkey"
       columns: ["awarded_by"]
 isOneToOne: false
@@ -184,6 +196,12 @@ isOneToOne: false
       columns: ["hackathon_id"]
 isOneToOne: false
       referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "points_ledger_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons_public_view"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "points_ledger_reversal_of_id_fkey"
@@ -298,6 +316,12 @@ isOneToOne: false
       referencedRelation: "hackathon_rounds"
       referencedColumns: ["id","hackathon_id"]
     },{
+      foreignKeyName: "fk_results_round_composite"
+      columns: ["round_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathon_rounds_public_view"
+      referencedColumns: ["id","hackathon_id"]
+    },{
       foreignKeyName: "fk_results_team_composite"
       columns: ["team_id","hackathon_id"]
 isOneToOne: false
@@ -370,6 +394,12 @@ isOneToOne: false
       referencedRelation: "hackathon_rounds"
       referencedColumns: ["id","hackathon_id"]
     },{
+      foreignKeyName: "fk_submissions_round_composite"
+      columns: ["round_id","hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathon_rounds_public_view"
+      referencedColumns: ["id","hackathon_id"]
+    },{
       foreignKeyName: "fk_submissions_team_composite"
       columns: ["team_id","hackathon_id"]
 isOneToOne: false
@@ -440,6 +470,12 @@ isOneToOne: false
       referencedRelation: "hackathons"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "teams_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons_public_view"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "teams_leader_id_fkey"
       columns: ["leader_id"]
 isOneToOne: false
@@ -450,7 +486,47 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "hackathon_rounds_public_view": {
+                  Row: {
+                    "description": string | null,"end_at": string | null,"hackathon_id": string | null,"id": string | null,"is_final_round": boolean | null,"name": string | null,"round_number": number | null,"start_at": string | null,"status": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "description"?: string | null,"end_at"?: string | null,"hackathon_id"?: string | null,"id"?: string | null,"is_final_round"?: boolean | null,"name"?: string | null,"round_number"?: number | null,"start_at"?: string | null,"status"?: string | null
+                         }
+                        Update: {
+                           "description"?: string | null,"end_at"?: string | null,"hackathon_id"?: string | null,"id"?: string | null,"is_final_round"?: boolean | null,"name"?: string | null,"round_number"?: number | null,"start_at"?: string | null,"status"?: string | null
+                         }
+                        Relationships: [
+                    {
+      foreignKeyName: "hackathon_rounds_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hackathon_rounds_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons_public_view"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"hackathons_public_view": {
+                  Row: {
+                    "community_url": string | null,"description": string | null,"eligibility": string | null,"event_end_at": string | null,"event_start_at": string | null,"external_registration_url": string | null,"id": string | null,"is_solo_allowed": boolean | null,"max_team_size": number | null,"min_team_size": number | null,"mode": string | null,"organizer": string | null,"prizes_detail": Json | null,"prizes_summary": string | null,"registration_end_at": string | null,"registration_start_at": string | null,"slug": string | null,"status": string | null,"tagline": string | null,"timezone": string | null,"title": string | null,"venue": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "community_url"?: string | null,"description"?: string | null,"eligibility"?: string | null,"event_end_at"?: string | null,"event_start_at"?: string | null,"external_registration_url"?: string | null,"id"?: string | null,"is_solo_allowed"?: boolean | null,"max_team_size"?: number | null,"min_team_size"?: number | null,"mode"?: string | null,"organizer"?: string | null,"prizes_detail"?: Json | null,"prizes_summary"?: string | null,"registration_end_at"?: string | null,"registration_start_at"?: string | null,"slug"?: string | null,"status"?: string | null,"tagline"?: string | null,"timezone"?: string | null,"title"?: string | null,"venue"?: string | null
+                         }
+                        Update: {
+                           "community_url"?: string | null,"description"?: string | null,"eligibility"?: string | null,"event_end_at"?: string | null,"event_start_at"?: string | null,"external_registration_url"?: string | null,"id"?: string | null,"is_solo_allowed"?: boolean | null,"max_team_size"?: number | null,"min_team_size"?: number | null,"mode"?: string | null,"organizer"?: string | null,"prizes_detail"?: Json | null,"prizes_summary"?: string | null,"registration_end_at"?: string | null,"registration_start_at"?: string | null,"slug"?: string | null,"status"?: string | null,"tagline"?: string | null,"timezone"?: string | null,"title"?: string | null,"venue"?: string | null
+                         }
+                        Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "adjust_student_points":
@@ -470,8 +546,17 @@ isOneToOne: false
 "complete_storage_deletion_job":
 { Args: { "p_job_id": string,"p_lease_token": string }; Returns: undefined
                            },
+"compute_registration_state":
+{ Args: { "p_now"?: string,"p_reg_end": string,"p_reg_start": string,"p_status": string }; Returns: string
+                           },
+"configure_hackathon_rounds":
+{ Args: { "p_hackathon_id": string,"p_rounds": Json }; Returns: Json
+                           },
 "consume_rate_limit":
 { Args: { "p_action": string,"p_custom_key"?: string }; Returns: boolean
+                           },
+"create_hackathon_draft":
+{ Args: { "p_community_url"?: string,"p_description": string,"p_eligibility"?: string,"p_event_end_at": string,"p_event_start_at": string,"p_external_registration_url"?: string,"p_is_solo_allowed"?: boolean,"p_max_team_size"?: number,"p_min_team_size"?: number,"p_mode": string,"p_organizer": string,"p_prizes_detail"?: Json,"p_prizes_summary"?: string,"p_registration_end_at": string,"p_registration_start_at": string,"p_slug": string,"p_tagline"?: string,"p_title": string,"p_venue": string }; Returns: Json
                            },
 "create_team":
 { Args: { "p_hackathon_id": string,"p_team_name": string }; Returns: Json
@@ -503,6 +588,9 @@ isOneToOne: false
 "manage_admin_permissions":
 { Args: { "p_permissions": (string)[],"p_target_admin_id": string }; Returns: Json
                            },
+"override_hackathon_deadline":
+{ Args: { "p_hackathon_id": string,"p_new_deadline": string,"p_reason": string }; Returns: Json
+                           },
 "provision_admin_profile":
 { Args: { "p_auth_uid": string,"p_email": string,"p_full_name": string,"p_permissions": (string)[] }; Returns: Json
                            },
@@ -526,6 +614,12 @@ isOneToOne: false
                            },
 "transfer_team_leadership":
 { Args: { "p_new_leader_id": string,"p_team_id": string }; Returns: undefined
+                           },
+"transition_hackathon_lifecycle":
+{ Args: { "p_hackathon_id": string,"p_reason"?: string,"p_target_status": string }; Returns: Json
+                           },
+"update_hackathon_metadata":
+{ Args: { "p_community_url": string,"p_description": string,"p_eligibility": string,"p_event_end_at": string,"p_event_start_at": string,"p_external_registration_url": string,"p_hackathon_id": string,"p_is_solo_allowed": boolean,"p_max_team_size": number,"p_min_team_size": number,"p_mode": string,"p_organizer": string,"p_prizes_detail": Json,"p_prizes_summary": string,"p_registration_start_at": string,"p_slug": string,"p_tagline": string,"p_title": string,"p_venue": string }; Returns: Json
                            }
           }
           Enums: {
