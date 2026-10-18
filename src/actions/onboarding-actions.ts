@@ -5,6 +5,7 @@ import {
   uploadCollegeIdDocument,
   uploadProfilePhoto,
   getSignedPreviewUrl,
+  validateStorageObjectBinary,
 } from '@/lib/storage/upload-service';
 import type { ActionResult } from '@/actions/auth-actions';
 
@@ -173,6 +174,48 @@ export async function submitProfileForReviewAction(): Promise<
 
   if (authError || !user) {
     return { success: false, error: 'Unauthorized. Please sign in.' };
+  }
+
+  // Trusted Server-Side Binary Content Verification:
+  // Inspect the actual binary bytes of the stored College ID document and profile photo before transitioning to review.
+  // This unconditionally closes the direct Supabase Storage upload bypass where an attacker uploads an
+  // invalid or executable file directly to Supabase Storage and attempts to submit it.
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('college_id_path, profile_photo_path')
+    .eq('id', user.id)
+    .single();
+
+  if (profileErr || !profile?.college_id_path) {
+    return { success: false, error: 'Please upload a valid College ID document before submitting.' };
+  }
+
+  const binaryValidation = await validateStorageObjectBinary(
+    'college-ids',
+    profile.college_id_path,
+    'college-id'
+  );
+
+  if (!binaryValidation.valid) {
+    return {
+      success: false,
+      error: binaryValidation.error || 'College ID document failed binary content validation.',
+    };
+  }
+
+  // Authoritative binary signature check for optional profile photo
+  if (profile.profile_photo_path) {
+    const photoValidation = await validateStorageObjectBinary(
+      'profile-photos',
+      profile.profile_photo_path,
+      'profile-photo'
+    );
+    if (!photoValidation.valid) {
+      return {
+        success: false,
+        error: photoValidation.error || 'Profile photo failed binary content validation.',
+      };
+    }
   }
 
   const { data: rpcData, error: rpcError } = await supabase.rpc(

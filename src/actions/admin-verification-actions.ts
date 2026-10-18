@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/guards';
-import { getSignedPreviewUrl } from '@/lib/storage/upload-service';
+import { getSignedPreviewUrl, validateStorageObjectBinary } from '@/lib/storage/upload-service';
 import type { ActionResult } from '@/actions/auth-actions';
 import type { Database } from '@/types/database';
 import { revalidatePath } from 'next/cache';
@@ -103,6 +103,53 @@ export async function reviewStudentAction(
       success: false,
       error: 'A non-empty reason is required when rejecting or requesting correction.',
     };
+  }
+
+  // Trusted Server-Side Binary Content Verification before Approval:
+  // Ensures that an administrator cannot approve a student whose College ID document
+  // or Profile Photo is invalid, corrupted, or an executable disguised as an image/PDF.
+  if (decision === 'approved') {
+    const { data: profile, error: profErr } = await supabase
+      .from('profiles')
+      .select('college_id_path, profile_photo_path')
+      .eq('id', studentId)
+      .single();
+
+    if (profErr || !profile?.college_id_path) {
+      return {
+        success: false,
+        error: 'Cannot approve registration: Student does not have a College ID document linked.',
+      };
+    }
+
+    const binaryValidation = await validateStorageObjectBinary(
+      'college-ids',
+      profile.college_id_path,
+      'college-id'
+    );
+
+    if (!binaryValidation.valid) {
+      return {
+        success: false,
+        error: `Cannot approve registration: College ID document failed binary validation (${binaryValidation.error || 'Invalid or executable format'}).`,
+      };
+    }
+
+    // Authoritative binary signature check for profile photo if linked
+    if (profile.profile_photo_path) {
+      const photoValidation = await validateStorageObjectBinary(
+        'profile-photos',
+        profile.profile_photo_path,
+        'profile-photo'
+      );
+
+      if (!photoValidation.valid) {
+        return {
+          success: false,
+          error: `Cannot approve registration: Profile photo failed binary validation (${photoValidation.error || 'Invalid or executable format'}).`,
+        };
+      }
+    }
   }
 
   const { data: rpcData, error: rpcError } = await supabase.rpc(

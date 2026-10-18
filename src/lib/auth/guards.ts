@@ -44,11 +44,23 @@ export async function requireStudent(): Promise<{ profile: StudentProfile; user:
   return { profile, user };
 }
 
+export async function requirePushSubscription(userId: string, redirectTo = '/student') {
+  const supabase = await createClient();
+  const { data: isPushActive, error } = await supabase.rpc('is_push_registered' as never, {
+    p_user_id: userId,
+  } as never);
+
+  if (error || !isPushActive) {
+    redirect(`/enable-push?redirectTo=${encodeURIComponent(redirectTo)}`);
+  }
+}
+
 export async function requireApprovedStudent(): Promise<{ profile: StudentProfile; user: { id: string; email?: string } }> {
   const { profile, user } = await requireStudent();
 
   switch (profile.registration_status) {
     case 'approved':
+      await requirePushSubscription(user.id, '/student');
       return { profile, user };
     case 'draft':
       redirect('/onboarding');
@@ -95,6 +107,8 @@ export async function requireAdmin(requiredPermission?: string): Promise<{
     }
   }
 
+  await requirePushSubscription(user.id, '/admin/hackathons');
+
   return {
     admin: admin as unknown as AdminProfile,
     permissions,
@@ -117,6 +131,8 @@ export async function requireSuperAdmin(): Promise<{
   if (error || !admin || !admin.is_active || !admin.is_super_admin) {
     redirect('/login');
   }
+
+  await requirePushSubscription(user.id, '/admin/admins');
 
   return {
     admin: admin as unknown as AdminProfile,

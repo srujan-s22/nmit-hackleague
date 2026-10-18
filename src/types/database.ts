@@ -111,19 +111,25 @@ isOneToOne: false
                   ]
                 },"hackathons": {
                   Row: {
-                    "community_url": string | null,"created_at": string,"created_by": string,"description": string,"eligibility": string,"event_end_at": string,"event_start_at": string,"external_registration_url": string | null,"id": string,"is_solo_allowed": boolean,"max_team_size": number,"min_team_size": number,"mode": string,"organizer": string,"prizes_detail": NonNullable<Json>,"prizes_summary": string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status": string,"tagline": string | null,"timezone": string,"title": string,"updated_at": string,"venue": string | null
+                    "community_url": string | null,"created_at": string,"created_by": string,"description": string,"eligibility": string,"event_end_at": string,"event_start_at": string,"external_registration_url": string | null,"id": string,"in_charge_admin_id": string | null,"is_solo_allowed": boolean,"max_team_size": number,"min_team_size": number,"mode": string,"organizer": string,"prizes_detail": NonNullable<Json>,"prizes_summary": string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status": string,"tagline": string | null,"timezone": string,"title": string,"updated_at": string,"venue": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "community_url"?: string | null,"created_at"?: string,"created_by": string,"description": string,"eligibility"?: string,"event_end_at": string,"event_start_at": string,"external_registration_url"?: string | null,"id"?: string,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode": string,"organizer": string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title": string,"updated_at"?: string,"venue"?: string | null
+                    "community_url"?: string | null,"created_at"?: string,"created_by": string,"description": string,"eligibility"?: string,"event_end_at": string,"event_start_at": string,"external_registration_url"?: string | null,"id"?: string,"in_charge_admin_id"?: string | null,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode": string,"organizer": string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title": string,"updated_at"?: string,"venue"?: string | null
                   }
                   Update: {
-                    "community_url"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string,"eligibility"?: string,"event_end_at"?: string,"event_start_at"?: string,"external_registration_url"?: string | null,"id"?: string,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode"?: string,"organizer"?: string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at"?: string,"registration_start_at"?: string,"slug"?: string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title"?: string,"updated_at"?: string,"venue"?: string | null
+                    "community_url"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string,"eligibility"?: string,"event_end_at"?: string,"event_start_at"?: string,"external_registration_url"?: string | null,"id"?: string,"in_charge_admin_id"?: string | null,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode"?: string,"organizer"?: string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at"?: string,"registration_start_at"?: string,"slug"?: string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title"?: string,"updated_at"?: string,"venue"?: string | null
                   }
                   Relationships: [
                     {
       foreignKeyName: "hackathons_created_by_fkey"
       columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hackathons_in_charge_admin_id_fkey"
+      columns: ["in_charge_admin_id"]
 isOneToOne: false
       referencedRelation: "admin_profiles"
       referencedColumns: ["id"]
@@ -337,17 +343,29 @@ isOneToOne: false
                   ]
                 },"storage_deletion_queue": {
                   Row: {
-                    "bucket_id": string,"completed_at": string | null,"created_at": string,"id": string,"last_error": string | null,"lease_token": string | null,"leased_by": string | null,"leased_until": string | null,"max_retries": number,"next_retry_at": string,"object_path": string,"retry_count": number,"status": string,"target_id": string,"target_type": string,"updated_at": string
+                    "bucket_id": string,"completed_at": string | null,"cooldown_until": string | null,"created_at": string,"deletion_outcome": string | null,"dispatch_attempted_at": string | null,"event_id": string | null,"id": string,"last_error": string | null,"lease_token": string | null,"leased_by": string | null,"leased_until": string | null,"max_retries": number,"next_retry_at": string,"object_path": string,"retention_deadline_at": string | null,"retry_count": number,"status": string,"target_id": string,"target_type": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "bucket_id": string,"completed_at"?: string | null,"created_at"?: string,"id"?: string,"last_error"?: string | null,"lease_token"?: string | null,"leased_by"?: string | null,"leased_until"?: string | null,"max_retries"?: number,"next_retry_at"?: string,"object_path": string,"retry_count"?: number,"status"?: string,"target_id": string,"target_type": string,"updated_at"?: string
+                    "bucket_id": string,"completed_at"?: string | null,"cooldown_until"?: string | null,"created_at"?: string,"deletion_outcome"?: string | null,"dispatch_attempted_at"?: string | null,"event_id"?: string | null,"id"?: string,"last_error"?: string | null,"lease_token"?: string | null,"leased_by"?: string | null,"leased_until"?: string | null,"max_retries"?: number,"next_retry_at"?: string,"object_path": string,"retention_deadline_at"?: string | null,"retry_count"?: number,"status"?: string,"target_id": string,"target_type": string,"updated_at"?: string
                   }
                   Update: {
-                    "bucket_id"?: string,"completed_at"?: string | null,"created_at"?: string,"id"?: string,"last_error"?: string | null,"lease_token"?: string | null,"leased_by"?: string | null,"leased_until"?: string | null,"max_retries"?: number,"next_retry_at"?: string,"object_path"?: string,"retry_count"?: number,"status"?: string,"target_id"?: string,"target_type"?: string,"updated_at"?: string
+                    "bucket_id"?: string,"completed_at"?: string | null,"cooldown_until"?: string | null,"created_at"?: string,"deletion_outcome"?: string | null,"dispatch_attempted_at"?: string | null,"event_id"?: string | null,"id"?: string,"last_error"?: string | null,"lease_token"?: string | null,"leased_by"?: string | null,"leased_until"?: string | null,"max_retries"?: number,"next_retry_at"?: string,"object_path"?: string,"retention_deadline_at"?: string | null,"retry_count"?: number,"status"?: string,"target_id"?: string,"target_type"?: string,"updated_at"?: string
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "storage_deletion_queue_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "storage_deletion_queue_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "hackathons_public_view"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"submission_reviews": {
                   Row: {
@@ -377,14 +395,14 @@ isOneToOne: false
                   ]
                 },"submissions": {
                   Row: {
-                    "created_at": string,"demo_url": string | null,"description": string | null,"evidence_deleted_at": string | null,"evidence_path": string | null,"hackathon_id": string,"id": string,"repo_url": string | null,"round_id": string,"status": string,"submitted_by": string,"team_id": string,"title": string,"updated_at": string,"version": number
+                    "created_at": string,"demo_url": string | null,"description": string | null,"evidence_absence_recorded_at": string | null,"evidence_deleted_at": string | null,"evidence_lifecycle_state": string,"evidence_path": string | null,"evidence_sha256": string | null,"evidence_uploaded_at": string | null,"hackathon_id": string,"id": string,"repo_url": string | null,"round_id": string,"status": string,"submitted_by": string,"team_id": string,"title": string,"updated_at": string,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_deleted_at"?: string | null,"evidence_path"?: string | null,"hackathon_id": string,"id"?: string,"repo_url"?: string | null,"round_id": string,"status"?: string,"submitted_by": string,"team_id": string,"title": string,"updated_at"?: string,"version"?: number
+                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_absence_recorded_at"?: string | null,"evidence_deleted_at"?: string | null,"evidence_lifecycle_state"?: string,"evidence_path"?: string | null,"evidence_sha256"?: string | null,"evidence_uploaded_at"?: string | null,"hackathon_id": string,"id"?: string,"repo_url"?: string | null,"round_id": string,"status"?: string,"submitted_by": string,"team_id": string,"title": string,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_deleted_at"?: string | null,"evidence_path"?: string | null,"hackathon_id"?: string,"id"?: string,"repo_url"?: string | null,"round_id"?: string,"status"?: string,"submitted_by"?: string,"team_id"?: string,"title"?: string,"updated_at"?: string,"version"?: number
+                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_absence_recorded_at"?: string | null,"evidence_deleted_at"?: string | null,"evidence_lifecycle_state"?: string,"evidence_path"?: string | null,"evidence_sha256"?: string | null,"evidence_uploaded_at"?: string | null,"hackathon_id"?: string,"id"?: string,"repo_url"?: string | null,"round_id"?: string,"status"?: string,"submitted_by"?: string,"team_id"?: string,"title"?: string,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     {
@@ -483,6 +501,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"user_push_subscriptions": {
+                  Row: {
+                    "active": boolean,"auth": string,"created_at": string,"device_fingerprint": string,"endpoint": string,"id": string,"p256dh": string,"updated_at": string,"user_agent": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"auth": string,"created_at"?: string,"device_fingerprint": string,"endpoint": string,"id"?: string,"p256dh": string,"updated_at"?: string,"user_agent"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"auth"?: string,"created_at"?: string,"device_fingerprint"?: string,"endpoint"?: string,"id"?: string,"p256dh"?: string,"updated_at"?: string,"user_agent"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -538,6 +570,16 @@ isOneToOne: false
 "bootstrap_super_admin":
 { Args: { "p_auth_uid": string,"p_email": string,"p_full_name": string }; Returns: Json
                            },
+"claim_reconciliation_batch":
+{ Args: { "p_batch_size"?: number,"p_lease_seconds"?: number,"p_worker_id": string }; Returns: {
+              "bucket_id": string,"event_id": string,"job_id": string,"lease_token": string,"leased_until": string,"object_path": string,"target_id": string
+            }[]
+                           },
+"claim_storage_deletion_batch":
+{ Args: { "p_batch_size"?: number,"p_lease_seconds"?: number,"p_worker_id": string }; Returns: {
+              "bucket_id": string,"event_id": string,"job_id": string,"lease_token": string,"leased_until": string,"object_path": string,"target_id": string
+            }[]
+                           },
 "claim_storage_deletion_jobs":
 { Args: { "p_batch_size": number,"p_lease_seconds": number,"p_worker_id": string }; Returns: {
               "bucket_id": string,"job_id": string,"lease_token": string,"leased_until": string,"object_path": string,"target_id": string,"target_type": string
@@ -545,12 +587,19 @@ isOneToOne: false
                            },
 "complete_storage_deletion_job":
 { Args: { "p_job_id": string,"p_lease_token": string }; Returns: undefined
+                           } |
+{ Args: { "p_http_status": number,"p_job_id": string,"p_lease_token": string }; Returns: undefined
                            },
 "compute_registration_state":
 { Args: { "p_now"?: string,"p_reg_end": string,"p_reg_start": string,"p_status": string }; Returns: string
                            },
 "configure_hackathon_rounds":
 { Args: { "p_hackathon_id": string,"p_rounds": Json }; Returns: Json
+                           },
+"confirm_deletion_preflight":
+{ Args: { "p_job_id": string,"p_lease_token": string }; Returns: {
+              "bucket_id": string,"event_id": string,"job_id": string,"lease_token": string,"leased_until": string,"object_path": string,"target_id": string
+            }[]
                            },
 "consume_rate_limit":
 { Args: { "p_action": string,"p_custom_key"?: string }; Returns: boolean
@@ -573,11 +622,23 @@ isOneToOne: false
 "current_is_team_member":
 { Args: { "p_team_id": string }; Returns: boolean
                            },
+"deactivate_push_subscription":
+{ Args: { "p_device_fingerprint": string }; Returns: Json
+                           },
 "enqueue_storage_deletion_job":
 { Args: { "p_bucket_id": string,"p_object_path": string,"p_target_id": string,"p_target_type": string }; Returns: string
                            },
+"extend_hackathon_event_deadline":
+{ Args: { "p_hackathon_id": string,"p_new_event_end_at": string,"p_reason": string }; Returns: Json
+                           },
 "fail_storage_deletion_job":
 { Args: { "p_error": string,"p_job_id": string,"p_lease_token": string }; Returns: undefined
+                           },
+"finalize_submission_upload":
+{ Args: { "p_object_path": string,"p_sha256": string,"p_submission_id": string }; Returns: Json
+                           },
+"is_push_registered":
+{ Args: { "p_user_id"?: string }; Returns: boolean
                            },
 "join_team_with_code":
 { Args: { "p_invitation_code": string }; Returns: Json
@@ -597,8 +658,25 @@ isOneToOne: false
 "prune_rate_limit_buckets":
 { Args: { "p_batch_size"?: number }; Returns: number
                            },
+"quarantine_expired_dispatches":
+{ Args: { "p_batch_size"?: number,"p_cooldown_seconds"?: number }; Returns: {
+              "quarantined_count": number
+            }[]
+                           },
+"reassign_hackathon_in_charge_admin":
+{ Args: { "p_hackathon_id": string,"p_justification": string,"p_new_admin_id": string }; Returns: Json
+                           },
+"register_push_subscription":
+{ Args: { "p_auth": string,"p_device_fingerprint": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: Json
+                           },
 "replace_college_id":
 { Args: { "p_new_storage_path": string }; Returns: Json
+                           },
+"resolve_investigation_job":
+{ Args: { "p_action": string,"p_job_id": string,"p_justification": string,"p_ticket_reference"?: string }; Returns: Json
+                           },
+"resolve_reconciliation_job":
+{ Args: { "p_http_status": number,"p_job_id": string,"p_lease_token": string }; Returns: undefined
                            },
 "reverse_points_award":
 { Args: { "p_original_ledger_id": string,"p_reason": string }; Returns: string

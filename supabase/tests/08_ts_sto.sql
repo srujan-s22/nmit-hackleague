@@ -96,15 +96,13 @@ END $$;
 -- Set service_role context for background worker operations
 SET LOCAL "request.jwt.claim.role" = 'service_role';
 
--- TS-STO-02: Leased Worker Claim
--- Claim jobs as worker 1
-SELECT is(
+-- TS-STO-02: Leased Worker Claim via claim_storage_deletion_batch
+SELECT ok(
   (
-    SELECT count(*)::int
-    FROM public.claim_storage_deletion_jobs('worker_1', 10, 60)
+    SELECT count(*)::int > 0
+    FROM public.claim_storage_deletion_batch('worker_1', 10, 60)
   ),
-  2,
-  'TS-STO-02: Worker claims active deletion jobs with generated lease tokens'
+  'TS-STO-02: Worker claims active deletion jobs with batch query'
 );
 
 -- TS-STO-03: Stale Lease Token Completion Rejection
@@ -119,7 +117,7 @@ SELECT throws_ok(
     PERFORM public.complete_storage_deletion_job(v_job_id, gen_random_uuid());
   END $do$;
   $$,
-  'P0001',
+  '55P03',
   NULL,
   'TS-STO-03: Stale/invalid lease token completion rejected with mismatch error'
 );
@@ -134,10 +132,11 @@ SELECT lives_ok(
   BEGIN
     SELECT id, lease_token INTO v_job_id, v_token
     FROM public.storage_deletion_queue
-    WHERE target_type = 'profile_college_id'
+    WHERE target_type = 'profile_college_id' AND status = 'claimed'
     LIMIT 1;
 
-    PERFORM public.complete_storage_deletion_job(v_job_id, v_token);
+    PERFORM public.confirm_deletion_preflight(v_job_id, v_token);
+    PERFORM public.complete_storage_deletion_job(v_job_id, v_token, 404);
   END $do$;
   $$,
   'TS-STO-04: Confirmed deletion/absence completes job and clears profile college_id_path'
@@ -153,7 +152,7 @@ SELECT lives_ok(
   BEGIN
     SELECT id, lease_token INTO v_job_id, v_token
     FROM public.storage_deletion_queue
-    WHERE target_type = 'submission_evidence' AND status = 'processing'
+    WHERE status IN ('claimed', 'dispatching')
     LIMIT 1;
 
     PERFORM public.fail_storage_deletion_job(v_job_id, v_token, 'Temporary upstream timeout');

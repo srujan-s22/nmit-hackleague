@@ -215,7 +215,7 @@ async function runOnboardingTests() {
     // Step 7: Deletion Worker execution via atomic RPCs
     // ------------------------------------------------------------------------
     const workerId = `worker-${runId}`;
-    const { data: claimed, error: claimErr } = await adminClient.rpc('claim_storage_deletion_jobs', {
+    const { data: claimed, error: claimErr } = await adminClient.rpc('claim_storage_deletion_batch', {
       p_worker_id: workerId,
       p_batch_size: 10,
       p_lease_seconds: 60,
@@ -233,12 +233,17 @@ async function runOnboardingTests() {
 
     assert(!storageDeleteError1 && !storageDeleteError2, 'Step 7b: Storage deletion removes objects from storage');
 
-    // Complete jobs via complete_storage_deletion_job RPC
+    // Complete jobs via preflight -> complete_storage_deletion_job RPC
     for (const job of ((claimed as unknown) as Array<{ object_path: string; job_id: string; lease_token: string }>) || []) {
       if (job.object_path === storagePath1 || job.object_path === storagePath2) {
+        await adminClient.rpc('confirm_deletion_preflight', {
+          p_job_id: job.job_id,
+          p_lease_token: job.lease_token,
+        });
         await adminClient.rpc('complete_storage_deletion_job', {
           p_job_id: job.job_id,
           p_lease_token: job.lease_token,
+          p_http_status: 200,
         });
       }
     }
