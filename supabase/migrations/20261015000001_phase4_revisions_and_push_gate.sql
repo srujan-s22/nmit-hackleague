@@ -21,7 +21,7 @@ SET in_charge_admin_id = h.created_by
 WHERE in_charge_admin_id IS NULL
   AND EXISTS (SELECT 1 FROM public.admin_profiles a WHERE a.id = h.created_by);
 
--- RPC for Super Admin to reassign in-charge admin
+-- RPC for Super Admin to reassign in-charge admin (Hardened Phase 5 implementation)
 CREATE OR REPLACE FUNCTION public.reassign_hackathon_in_charge_admin(
   p_hackathon_id UUID,
   p_new_admin_id UUID,
@@ -31,14 +31,19 @@ RETURNS JSONB AS $$
 DECLARE
   v_caller_id UUID := auth.uid();
   v_is_super BOOLEAN;
+  v_target_is_super BOOLEAN;
+  v_target_is_active BOOLEAN;
+  v_is_eligible BOOLEAN;
   v_old_admin_id UUID;
   v_trimmed_justification TEXT;
 BEGIN
+  -- 1. Trust boundary: verify caller authentication
   IF v_caller_id IS NULL THEN
     RAISE EXCEPTION 'Access denied: authentication required.' USING ERRCODE = '42501';
   END IF;
 
-  SELECT is_super_admin INTO v_is_super
+  -- 2. Verify caller is an active Super Admin
+  SELECT (is_super_admin = true AND is_active = true) INTO v_is_super
   FROM public.admin_profiles
   WHERE id = v_caller_id;
 
@@ -46,15 +51,21 @@ BEGIN
     RAISE EXCEPTION 'Access denied: only Super Admins can reassign the in-charge admin.' USING ERRCODE = '42501';
   END IF;
 
+  -- 3. Fail-closed on input parameters
+  IF p_hackathon_id IS NULL THEN
+    RAISE EXCEPTION 'Invalid argument: hackathon ID cannot be null.' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_new_admin_id IS NULL THEN
+    RAISE EXCEPTION 'Invalid argument: target admin ID cannot be null.' USING ERRCODE = '22023';
+  END IF;
+
   v_trimmed_justification := TRIM(COALESCE(p_justification, ''));
   IF LENGTH(v_trimmed_justification) < 10 THEN
     RAISE EXCEPTION 'Invalid argument: a meaningful justification of at least 10 characters is mandatory.' USING ERRCODE = '22023';
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM public.admin_profiles WHERE id = p_new_admin_id AND is_active = true) THEN
-    RAISE EXCEPTION 'Invalid argument: target admin does not exist or is inactive.' USING ERRCODE = '22023';
-  END IF;
-
+  -- 4. Tier 1 Lock: lock target hackathon FOR UPDATE
   SELECT in_charge_admin_id INTO v_old_admin_id
   FROM public.hackathons
   WHERE id = p_hackathon_id
@@ -64,11 +75,64 @@ BEGIN
     RAISE EXCEPTION 'Hackathon not found.' USING ERRCODE = 'P0002';
   END IF;
 
+  -- 5. No-op check: if target admin is already assigned, return cleanly
+  IF v_old_admin_id = p_new_admin_id THEN
+    RETURN jsonb_build_object(
+      'success', true,
+      'hackathon_id', p_hackathon_id,
+      'in_charge_admin_id', p_new_admin_id,
+      'status_unchanged', true
+    );
+  END IF;
+
+  -- 6. Tier 2 Lock: lock relevant admin profiles in deterministic ascending order
+  IF v_old_admin_id IS NOT NULL THEN
+    PERFORM 1 FROM public.admin_profiles
+    WHERE id IN (v_old_admin_id, p_new_admin_id)
+    ORDER BY id ASC
+    FOR UPDATE;
+  ELSE
+    PERFORM 1 FROM public.admin_profiles
+    WHERE id = p_new_admin_id
+    FOR UPDATE;
+  END IF;
+
+  -- 7. Validate target admin active status & eligibility
+  SELECT is_super_admin, is_active
+  INTO v_target_is_super, v_target_is_active
+  FROM public.admin_profiles
+  WHERE id = p_new_admin_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invalid argument: target admin does not exist.' USING ERRCODE = '22023';
+  END IF;
+
+  IF v_target_is_active IS NOT TRUE THEN
+    RAISE EXCEPTION 'Invalid argument: target admin is inactive.' USING ERRCODE = '22023';
+  END IF;
+
+  -- Target must be Super Admin or hold manage_hackathons permission
+  IF v_target_is_super IS TRUE THEN
+    v_is_eligible := true;
+  ELSE
+    SELECT EXISTS (
+      SELECT 1 FROM public.admin_permissions
+      WHERE admin_id = p_new_admin_id
+        AND permission = 'manage_hackathons'
+    ) INTO v_is_eligible;
+  END IF;
+
+  IF v_is_eligible IS NOT TRUE THEN
+    RAISE EXCEPTION 'Invalid argument: target admin is not eligible to manage hackathons. Grant manage_hackathons permission first.' USING ERRCODE = '22023';
+  END IF;
+
+  -- 8. Execute assignment mutation
   UPDATE public.hackathons
   SET in_charge_admin_id = p_new_admin_id,
       updated_at = now()
   WHERE id = p_hackathon_id;
 
+  -- 9. Write immutable audit log
   INSERT INTO public.audit_logs (
     actor_id, actor_role, action, target_type, target_id, details
   ) VALUES (
@@ -87,12 +151,13 @@ BEGIN
   RETURN jsonb_build_object(
     'success', true,
     'hackathon_id', p_hackathon_id,
-    'in_charge_admin_id', p_new_admin_id
+    'in_charge_admin_id', p_new_admin_id,
+    'old_in_charge_admin_id', v_old_admin_id
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
-REVOKE ALL ON FUNCTION public.reassign_hackathon_in_charge_admin(UUID, UUID, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.reassign_hackathon_in_charge_admin(UUID, UUID, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.reassign_hackathon_in_charge_admin(UUID, UUID, TEXT) TO authenticated;
 
 -- ----------------------------------------------------------------------------

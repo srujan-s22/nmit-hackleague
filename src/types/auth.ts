@@ -37,8 +37,17 @@ export interface AdminUpdateInput {
   reason?: string;
 }
 
+export interface ActiveHackathonSummary {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+}
+
 export interface AdminWithPermissions extends AdminProfile {
   permissions: import('@/lib/auth/permissions').AdminPermissionKey[];
+  activeHackathons?: ActiveHackathonSummary[];
+  activeHackathonsCount?: number;
 }
 
 export interface SignupInput {

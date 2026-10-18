@@ -11,6 +11,7 @@ export const CANONICAL_PERMISSIONS = [
   'export_data',
   'view_audit_logs',
   'manage_points',
+  'manage_notifications',
 ] as const;
 
 export type AdminPermissionKey = (typeof CANONICAL_PERMISSIONS)[number];
@@ -18,7 +19,8 @@ export type AdminPermissionKey = (typeof CANONICAL_PERMISSIONS)[number];
 export type PermissionCategory =
   | 'Verification & Onboarding'
   | 'Event Operations'
-  | 'Reporting & Oversight';
+  | 'Reporting & Oversight'
+  | 'Platform Communications';
 
 export interface PermissionDefinition {
   key: AdminPermissionKey;
@@ -99,6 +101,13 @@ export const PERMISSION_DEFINITIONS: Record<AdminPermissionKey, PermissionDefini
     description: 'Configure point rules, manually award or reverse milestone points in the points ledger.',
     phaseAvailability: 'Reserved for Phase 9',
   },
+  manage_notifications: {
+    key: 'manage_notifications',
+    label: 'Notification Administration',
+    category: 'Platform Communications',
+    description: 'Compose, preview, publish, and manage in-app announcements and Web Push broadcasts to registered users.',
+    phaseAvailability: 'Defined in Phase 5',
+  },
 };
 
 export const PERMISSIONS_LIST = Object.values(PERMISSION_DEFINITIONS);
@@ -148,4 +157,14 @@ export const adminStatusSchema = z.object({
     .trim()
     .min(3, 'A non-empty reason of at least 3 characters is mandatory.')
     .max(500, 'Reason cannot exceed 500 characters.'),
+});
+
+export const adminReassignSchema = z.object({
+  hackathonId: z.string().uuid('Invalid hackathon UUID format.'),
+  newAdminId: z.string().uuid('Invalid target administrator UUID format.'),
+  justification: z
+    .string()
+    .trim()
+    .min(10, 'A meaningful justification of at least 10 characters is mandatory.')
+    .max(500, 'Justification cannot exceed 500 characters.'),
 });

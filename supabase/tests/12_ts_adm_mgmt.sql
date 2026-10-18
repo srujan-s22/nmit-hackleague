@@ -1,6 +1,6 @@
 -- Suite 12: Phase 5 Role-Based Authorization & Admin Management (TS-ADM-MGMT)
 BEGIN;
-SELECT plan(45);
+SELECT plan(66);
 
 -- ============================================================================
 -- Fixture Setup (Executed as Superuser / postgres)
@@ -462,6 +462,280 @@ SELECT is(
   (SELECT count(*)::int > 0 FROM public.audit_logs),
   true,
   'TS-ADM-45: RLS policies relying on current_has_permission grant access to active Super Admin with 0 permission rows'
+);
+
+-- ============================================================================
+-- Event-Scoped Authorization & Lifecycle Invariant Testing (TS-ADM-46 to TS-ADM-60)
+-- ============================================================================
+
+-- Setup fixtures for Event Authorization:
+SET LOCAL ROLE postgres;
+SET LOCAL "request.jwt.claim.role" = 'service_role';
+
+-- Ensure Admin 50 has manage_hackathons permission and verify_students
+INSERT INTO public.admin_permissions (admin_id, permission, granted_by)
+VALUES
+  ('00000000-0000-0000-0000-000000000050', 'manage_hackathons', '00000000-0000-0000-0000-000000000001')
+ON CONFLICT (admin_id, permission) DO NOTHING;
+
+-- Insert an active hackathon in charge of Admin 50
+INSERT INTO public.hackathons (
+  id, title, slug, description, organizer, mode,
+  registration_start_at, registration_end_at, event_start_at, event_end_at,
+  status, created_by, in_charge_admin_id
+) VALUES (
+  '00000000-0000-0000-0000-000000000091',
+  'Event Scoped Hackathon',
+  'event-scoped-hackathon-91',
+  'Test scoped authorization',
+  'CS Dept',
+  'offline',
+  now() - interval '1 day',
+  now() + interval '5 days',
+  now() + interval '6 days',
+  now() + interval '8 days',
+  'published',
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000050'
+) ON CONFLICT (id) DO UPDATE SET
+  in_charge_admin_id = EXCLUDED.in_charge_admin_id,
+  status = EXCLUDED.status;
+
+-- Provision Admin 51 as an inactive admin for testing deactivated caller / target
+INSERT INTO public.admin_profiles (id, email, full_name, is_super_admin, is_active)
+VALUES ('00000000-0000-0000-0000-000000000051', 'bootstrap.admin51@nmit-dev.local', 'Admin 51', false, false)
+ON CONFLICT (id) DO UPDATE SET is_active = false;
+
+-- TS-ADM-46: Non-existent hackathon in can_admin_manage_hackathon returns false fail-closed
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000001';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT is(
+  public.can_admin_manage_hackathon('ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid, 'manage_hackathons'),
+  false,
+  'TS-ADM-46: Non-existent hackathon in can_admin_manage_hackathon returns false fail-closed'
+);
+
+-- TS-ADM-47: Non-admin authenticated caller in can_admin_manage_hackathon returns false
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000003';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT is(
+  public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000091'::uuid, 'manage_hackathons'),
+  false,
+  'TS-ADM-47: Non-admin authenticated caller in can_admin_manage_hackathon returns false'
+);
+
+-- TS-ADM-48: Deactivated administrator in can_admin_manage_hackathon returns false
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000051';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT is(
+  public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000091'::uuid, 'manage_hackathons'),
+  false,
+  'TS-ADM-48: Deactivated administrator in can_admin_manage_hackathon returns false'
+);
+
+-- TS-ADM-49: Active Super Admin in can_admin_manage_hackathon returns true for existing hackathon
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000001';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT is(
+  public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000091'::uuid, 'manage_hackathons'),
+  true,
+  'TS-ADM-49: Active Super Admin in can_admin_manage_hackathon returns true for existing hackathon'
+);
+
+-- TS-ADM-50: Active ordinary Admin matching both feature permission AND in-charge returns true
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000050';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT is(
+  public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000091'::uuid, 'manage_hackathons'),
+  true,
+  'TS-ADM-50: Active ordinary Admin matching both feature permission AND in-charge returns true'
+);
+
+-- TS-ADM-51: Active ordinary Admin with permission but unassigned hackathon returns false
+SELECT is(
+  public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000010'::uuid, 'manage_hackathons'),
+  false,
+  'TS-ADM-51: Active ordinary Admin with permission but unassigned hackathon returns false'
+);
+
+-- TS-ADM-52: Active ordinary Admin assigned in-charge but lacking permission returns false
+SELECT is(
+  public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000091'::uuid, 'publish_announcements'),
+  false,
+  'TS-ADM-52: Active ordinary Admin assigned in-charge but lacking permission returns false'
+);
+
+-- TS-ADM-53: Canonical 11th key manage_notifications validated and grantable
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000001';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT lives_ok(
+  $$ SELECT public.manage_admin_permissions('00000000-0000-0000-0000-000000000050'::uuid, ARRAY['verify_students', 'manage_hackathons', 'manage_notifications']) $$,
+  'TS-ADM-53: Canonical 11th key manage_notifications validated and grantable'
+);
+
+-- TS-ADM-54: Deactivating Admin with active in-charge hackathons throws ERRCODE 55000
+SELECT throws_ok(
+  $$ SELECT public.set_admin_active_status('00000000-0000-0000-0000-000000000050'::uuid, false, 'Attempt deactivation with active event') $$,
+  '55000',
+  NULL,
+  'TS-ADM-54: Deactivating Admin with active in-charge hackathons throws ERRCODE 55000'
+);
+
+-- TS-ADM-55: Deactivating Admin with only completed/draft hackathons succeeds
+-- Provision Admin 52 with draft hackathon
+SET LOCAL ROLE postgres;
+SET LOCAL "request.jwt.claim.role" = 'service_role';
+INSERT INTO public.admin_profiles (id, email, full_name, is_super_admin, is_active)
+VALUES ('00000000-0000-0000-0000-000000000052', 'bootstrap.admin52@nmit-dev.local', 'Admin 52', false, true)
+ON CONFLICT (id) DO UPDATE SET is_active = true;
+
+INSERT INTO public.hackathons (
+  id, title, slug, description, organizer, mode,
+  registration_start_at, registration_end_at, event_start_at, event_end_at,
+  status, created_by, in_charge_admin_id
+) VALUES (
+  '00000000-0000-0000-0000-000000000092',
+  'Draft Only Hackathon',
+  'draft-only-hackathon-92',
+  'Draft description',
+  'CS Dept',
+  'offline',
+  now() + interval '1 day',
+  now() + interval '5 days',
+  now() + interval '6 days',
+  now() + interval '8 days',
+  'draft',
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000052'
+) ON CONFLICT (id) DO UPDATE SET
+  in_charge_admin_id = EXCLUDED.in_charge_admin_id,
+  status = EXCLUDED.status;
+
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000001';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT lives_ok(
+  $$ SELECT public.set_admin_active_status('00000000-0000-0000-0000-000000000052'::uuid, false, 'Deactivating admin with only draft hackathon') $$,
+  'TS-ADM-55: Deactivating Admin with only completed/draft hackathons succeeds'
+);
+
+-- TS-ADM-56: Super Admin reassigns active hackathon via reassign_hackathon_in_charge_admin
+SELECT lives_ok(
+  $$ SELECT public.reassign_hackathon_in_charge_admin(
+    '00000000-0000-0000-0000-000000000091'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'Mandatory transfer to super admin for testing'
+  ) $$,
+  'TS-ADM-56: Super Admin reassigns active hackathon via reassign_hackathon_in_charge_admin'
+);
+
+-- TS-ADM-57: Reassigning hackathon to admin lacking manage_hackathons fails closed
+-- Admin 2 lacks manage_hackathons
+SELECT throws_ok(
+  $$ SELECT public.reassign_hackathon_in_charge_admin(
+    '00000000-0000-0000-0000-000000000091'::uuid,
+    '00000000-0000-0000-0000-000000000002'::uuid,
+    'Transfer attempt to admin lacking manage_hackathons'
+  ) $$,
+  '22023',
+  NULL,
+  'TS-ADM-57: Reassigning hackathon to admin lacking manage_hackathons fails closed'
+);
+
+-- TS-ADM-58: Reassigning hackathon to deactivated admin fails closed
+-- Admin 51 is deactivated
+SELECT throws_ok(
+  $$ SELECT public.reassign_hackathon_in_charge_admin(
+    '00000000-0000-0000-0000-000000000091'::uuid,
+    '00000000-0000-0000-0000-000000000051'::uuid,
+    'Transfer attempt to deactivated admin'
+  ) $$,
+  '22023',
+  NULL,
+  'TS-ADM-58: Reassigning hackathon to deactivated admin fails closed'
+);
+
+-- TS-ADM-59: Ordinary Admin cannot reassign hackathon in-charge
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000050';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT throws_ok(
+  $$ SELECT public.reassign_hackathon_in_charge_admin(
+    '00000000-0000-0000-0000-000000000091'::uuid,
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'Unauthorized reassignment attempt by ordinary admin'
+  ) $$,
+  '42501',
+  'Access denied: only Super Admins can reassign the in-charge admin.',
+  'TS-ADM-59: Ordinary Admin cannot reassign hackathon in-charge'
+);
+
+-- TS-ADM-60: Immediate authorization transfer upon reassignment commit
+-- Hackathon 91 was reassigned to Super Admin in TS-ADM-56, so Admin 50 evaluates to false
+SELECT is(
+  public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000091'::uuid, 'manage_hackathons'),
+  false,
+  'TS-ADM-60: Immediate authorization transfer upon reassignment commit: previous admin evaluates to false'
+);
+
+-- ============================================================================
+-- Hardened Security Verification Tests (TS-ADM-61 to TS-ADM-66)
+-- ============================================================================
+
+-- TS-ADM-61: public.rate_limit_buckets has Row Level Security enabled
+SELECT ok(
+  (SELECT relrowsecurity FROM pg_class WHERE relname = 'rate_limit_buckets' AND relnamespace = 'public'::regnamespace),
+  'TS-ADM-61: public.rate_limit_buckets has Row Level Security enabled'
+);
+
+-- TS-ADM-62: Anonymous direct SELECT on rate_limit_buckets throws 42501 permission denied
+SET LOCAL ROLE anon;
+SELECT throws_ok(
+  'SELECT 1 FROM public.rate_limit_buckets',
+  '42501',
+  NULL,
+  'TS-ADM-62: Anonymous direct SELECT on rate_limit_buckets throws 42501 permission denied'
+);
+
+-- TS-ADM-63: Authenticated direct SELECT on rate_limit_buckets throws 42501 permission denied
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000003';
+SET LOCAL "request.jwt.claim.role" = 'authenticated';
+SELECT throws_ok(
+  'SELECT 1 FROM public.rate_limit_buckets',
+  '42501',
+  NULL,
+  'TS-ADM-63: Authenticated direct SELECT on rate_limit_buckets throws 42501 permission denied'
+);
+
+-- TS-ADM-64: consume_rate_limit executes cleanly via SECURITY DEFINER for authenticated caller
+SELECT is(
+  public.consume_rate_limit('submit_review'),
+  true,
+  'TS-ADM-64: consume_rate_limit executes cleanly via SECURITY DEFINER for authenticated caller'
+);
+
+-- TS-ADM-65: Anonymous caller cannot execute can_admin_manage_hackathon (42501)
+SET LOCAL ROLE anon;
+SELECT throws_ok(
+  $$ SELECT public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000091'::uuid, 'manage_hackathons') $$,
+  '42501',
+  NULL,
+  'TS-ADM-65: Anonymous caller cannot execute can_admin_manage_hackathon (42501)'
+);
+
+-- TS-ADM-66: Anonymous caller cannot execute current_has_permission (42501)
+SELECT throws_ok(
+  $$ SELECT public.current_has_permission('manage_hackathons') $$,
+  '42501',
+  NULL,
+  'TS-ADM-66: Anonymous caller cannot execute current_has_permission (42501)'
 );
 
 SELECT * FROM finish();

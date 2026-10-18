@@ -1,5 +1,18 @@
 -- Migration 13: Phase 5 Role-Based Authorization and Admin Management RPCs
--- Created: 2026-10-13
+-- Created: 2026-10-13 (Updated: Phase 5 Hardened Invariants)
+
+-- ============================================================================
+-- 0. SCHEMA ENHANCEMENT: in_charge_admin_id ON HACKATHONS
+-- ============================================================================
+
+ALTER TABLE public.hackathons
+ADD COLUMN IF NOT EXISTS in_charge_admin_id UUID REFERENCES public.admin_profiles(id) ON DELETE RESTRICT;
+
+-- Backfill existing hackathons created_by to in_charge_admin_id if eligible
+UPDATE public.hackathons h
+SET in_charge_admin_id = h.created_by
+WHERE in_charge_admin_id IS NULL
+  AND EXISTS (SELECT 1 FROM public.admin_profiles a WHERE a.id = h.created_by);
 
 -- ============================================================================
 -- 1. BI-DIRECTIONAL STUDENT / ADMIN MUTUAL EXCLUSIVITY TRIGGERS
@@ -168,7 +181,6 @@ BEGIN
   v_normalized_email := LOWER(TRIM(v_auth_email));
 
   -- 4.5. Acquire transaction-scoped exclusive advisory locks on UUID and normalized email in strict ascending order
-  -- Serializes RPC collision pre-checks under the identical protocol prior to table insertion
   FOR v_lock_key IN
     SELECT DISTINCT k
     FROM unnest(ARRAY[
@@ -199,7 +211,7 @@ BEGIN
     RAISE EXCEPTION 'Administrator conflict: email % is already registered to an administrator.', v_normalized_email;
   END IF;
 
-  -- 7. Validate permission keys against canonical catalog
+  -- 7. Validate permission keys against canonical catalog (11 keys)
   FOREACH v_perm IN ARRAY p_permissions LOOP
     IF v_perm IS NULL THEN
       RAISE EXCEPTION 'Invalid argument: permission list cannot contain null elements.';
@@ -215,7 +227,8 @@ BEGIN
       'view_analytics',
       'export_data',
       'view_audit_logs',
-      'manage_points'
+      'manage_points',
+      'manage_notifications'
     ) THEN
       RAISE EXCEPTION 'Invalid permission key: %', v_perm;
     END IF;
@@ -300,6 +313,8 @@ DECLARE
   v_added_perms TEXT[];
   v_removed_perms TEXT[];
   v_perm TEXT;
+  v_active_event_count INTEGER;
+  v_active_event_titles TEXT[];
 BEGIN
   -- 1. Validate caller authentication
   IF v_caller_id IS NULL THEN
@@ -340,7 +355,7 @@ BEGIN
     RAISE EXCEPTION 'Permission mutation blocked: Super Admin permissions are implicit and cannot be edited.';
   END IF;
 
-  -- 7. Validate elements and normalize (deduplicate and sort deterministically)
+  -- 7. Validate elements and normalize against canonical 11-key catalog
   FOREACH v_perm IN ARRAY p_permissions LOOP
     IF v_perm IS NULL THEN
       RAISE EXCEPTION 'Invalid argument: permission list cannot contain null elements.';
@@ -356,7 +371,8 @@ BEGIN
       'view_analytics',
       'export_data',
       'view_audit_logs',
-      'manage_points'
+      'manage_points',
+      'manage_notifications'
     ) THEN
       RAISE EXCEPTION 'Invalid permission key: %', v_perm;
     END IF;
@@ -387,6 +403,21 @@ BEGIN
       'permissions', v_normalized_perms,
       'status_unchanged', true
     );
+  END IF;
+
+  -- 10a. Guard against revoking manage_hackathons if admin is in charge of active hackathons
+  IF 'manage_hackathons' = ANY(v_removed_perms) THEN
+    SELECT count(*), COALESCE(array_agg(title ORDER BY title), ARRAY[]::TEXT[])
+    INTO v_active_event_count, v_active_event_titles
+    FROM public.hackathons
+    WHERE in_charge_admin_id = p_target_admin_id
+      AND status IN ('published', 'registration_closed', 'ongoing');
+
+    IF v_active_event_count > 0 THEN
+      RAISE EXCEPTION 'Cannot revoke manage_hackathons permission: admin is currently assigned as in-charge administrator for % active hackathon(s): %. Reassign these hackathons via reassign_hackathon_in_charge_admin before revoking this permission.',
+        v_active_event_count, array_to_string(v_active_event_titles, ', ')
+        USING ERRCODE = '55000';
+    END IF;
   END IF;
 
   -- 11. Synchronize permissions atomically
@@ -446,6 +477,8 @@ DECLARE
   v_is_super BOOLEAN;
   v_target_is_super BOOLEAN;
   v_old_active BOOLEAN;
+  v_active_count INTEGER;
+  v_active_hackathons TEXT[];
 BEGIN
   -- 1. Validate caller authentication
   IF v_caller_id IS NULL THEN
@@ -494,23 +527,38 @@ BEGIN
     RAISE EXCEPTION 'Action blocked: Super Admin account status cannot be modified via administrative RPC.';
   END IF;
 
-  -- 7. No-op check
+  -- 7. If deactivating (p_is_active = false), inspect assigned active hackathons
+  IF p_is_active = false THEN
+    SELECT count(*), COALESCE(array_agg(title ORDER BY title), ARRAY[]::TEXT[])
+    INTO v_active_count, v_active_hackathons
+    FROM public.hackathons
+    WHERE in_charge_admin_id = p_target_admin_id
+      AND status IN ('published', 'registration_closed', 'ongoing');
+
+    IF v_active_count > 0 THEN
+      RAISE EXCEPTION 'Cannot deactivate admin: assigned as in-charge administrator for % active hackathon(s): %. Reassign these hackathons via reassign_hackathon_in_charge_admin before deactivation.',
+        v_active_count, array_to_string(v_active_hackathons, ', ')
+        USING ERRCODE = '55000';
+    END IF;
+  END IF;
+
+  -- 8. No-op check
   IF v_old_active = p_is_active THEN
     RETURN jsonb_build_object('success', true, 'status_unchanged', true);
   END IF;
 
-  -- 8. Update status
+  -- 9. Update status
   UPDATE public.admin_profiles
   SET is_active = p_is_active,
       updated_at = now()
   WHERE id = p_target_admin_id;
 
-  -- 9. Write immutable audit log
+  -- 10. Write immutable audit log with dynamic action
   INSERT INTO public.audit_logs (actor_id, actor_role, action, target_type, target_id, details)
   VALUES (
     v_caller_id,
     'super_admin',
-    'admin.deactivated'::text,
+    CASE WHEN p_is_active THEN 'admin.reactivated' ELSE 'admin.deactivated' END,
     'admin_profile',
     p_target_admin_id::text,
     jsonb_build_object(
@@ -538,7 +586,6 @@ CREATE OR REPLACE FUNCTION public.bootstrap_super_admin(
 )
 RETURNS JSONB AS $$
 DECLARE
-  v_auth_email TEXT;
   v_normalized_email TEXT;
   v_trimmed_name TEXT;
   v_existing_super_id UUID;
@@ -547,44 +594,30 @@ DECLARE
   v_existing_target_is_active BOOLEAN;
   v_lock_key BIGINT;
 BEGIN
-  -- 1. Trust boundary: verify execution context is service_role or DB superuser
-  IF current_setting('request.jwt.claim.role', true) <> 'service_role'
-     AND session_user NOT IN ('postgres', 'supabase_admin') THEN
-    RAISE EXCEPTION 'Access denied: bootstrap_super_admin is restricted to service_role authority.';
+  -- 1. Trust boundary: verify execution context is strictly service_role or DB superuser
+  IF current_setting('request.jwt.claim.role', true) IS DISTINCT FROM 'service_role'
+     AND current_user NOT IN ('postgres', 'supabase_admin') THEN
+    RAISE EXCEPTION 'Access denied: bootstrap_super_admin is restricted to service_role and system administrator execution.'
+      USING ERRCODE = '42501';
   END IF;
 
-  -- 2. Validate arguments fail-closed
+  -- 2. Fail-closed on missing parameters
   IF p_auth_uid IS NULL THEN
     RAISE EXCEPTION 'Invalid argument: auth UID cannot be null.';
   END IF;
 
-  IF p_email IS NULL OR TRIM(p_email) = '' THEN
-    RAISE EXCEPTION 'Invalid argument: email cannot be null or empty.';
+  IF p_email IS NULL OR TRIM(p_email) = '' OR LOWER(TRIM(p_email)) !~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$' THEN
+    RAISE EXCEPTION 'Invalid argument: valid email address is mandatory.';
   END IF;
 
   v_trimmed_name := TRIM(COALESCE(p_full_name, ''));
   IF v_trimmed_name = '' THEN
-    RAISE EXCEPTION 'Invalid argument: full name cannot be empty.';
+    RAISE EXCEPTION 'Invalid argument: non-empty full name is mandatory.';
   END IF;
 
-  -- 3. Authoritative Auth identity and email verification
-  SELECT email INTO v_auth_email
-  FROM auth.users
-  WHERE id = p_auth_uid;
+  v_normalized_email := LOWER(TRIM(p_email));
 
-  IF NOT FOUND OR v_auth_email IS NULL THEN
-    RAISE EXCEPTION 'Identity binding failure: Auth user % does not exist in auth.users.', p_auth_uid;
-  END IF;
-
-  IF LOWER(TRIM(v_auth_email)) <> LOWER(TRIM(p_email)) THEN
-    RAISE EXCEPTION 'Identity binding violation: supplied email % does not match authoritative Auth email % for user %.',
-      LOWER(TRIM(p_email)), LOWER(TRIM(v_auth_email)), p_auth_uid;
-  END IF;
-
-  v_normalized_email := LOWER(TRIM(v_auth_email));
-
-  -- 4. Concurrency control: acquire transaction-scoped exclusive advisory locks in strict ascending numerical order
-  -- Includes dedicated system bootstrap lock, identity lock, and email lock
+  -- 3. Acquire transaction-scoped exclusive advisory locks in strict ascending order
   FOR v_lock_key IN
     SELECT DISTINCT k
     FROM unnest(ARRAY[
@@ -592,11 +625,18 @@ BEGIN
       ('x' || substr(md5('nmit_identity_lock:' || p_auth_uid::text), 1, 16))::bit(64)::bigint,
       ('x' || substr(md5('nmit_email_lock:' || v_normalized_email), 1, 16))::bit(64)::bigint
     ]) AS k
-    WHERE k IS NOT NULL
     ORDER BY k ASC
   LOOP
     PERFORM pg_advisory_xact_lock(v_lock_key);
   END LOOP;
+
+  -- 4. Authoritative Auth identity and email verification
+  IF NOT EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = p_auth_uid AND LOWER(TRIM(email)) = v_normalized_email
+  ) THEN
+    RAISE EXCEPTION 'Identity binding failure: target user % with email % does not exist in auth.users.', p_auth_uid, v_normalized_email;
+  END IF;
 
   -- 5. Inspect existing Super Admin state in the database
   SELECT id, is_active INTO v_existing_super_id, v_existing_super_active
@@ -605,10 +645,7 @@ BEGIN
   LIMIT 1;
 
   IF v_existing_super_id IS NOT NULL THEN
-    -- A Super Admin record already exists in the system
     IF v_existing_super_id = p_auth_uid AND v_existing_super_active = true THEN
-      -- Outcome 2: Retry after successful bootstrap with identical active identity
-      -- Return safe, explicit already-bootstrapped result WITHOUT modifying data or appending audit logs
       RETURN jsonb_build_object(
         'success', true,
         'status', 'already_bootstrapped',
@@ -617,25 +654,22 @@ BEGIN
         'message', 'Super Admin identity already established; no mutations applied.'
       );
     ELSIF v_existing_super_id = p_auth_uid AND v_existing_super_active = false THEN
-      -- Outcome 5: Existing inactive or demoted Super Admin cannot be recovered via bootstrap
       RAISE EXCEPTION 'Bootstrap denied: Super Admin identity % is inactive or demoted. Use recover_super_admin_identity for disaster recovery.', p_auth_uid;
     ELSE
-      -- A distinct Super Admin already exists in the system
       RAISE EXCEPTION 'Bootstrap denied: an active or initialized Super Admin already exists in the system (existing ID: %).', v_existing_super_id;
     END IF;
   END IF;
 
-  -- 6. Check if target p_auth_uid already exists in public.admin_profiles as an ordinary admin
+  -- 6. Check if target p_auth_uid already exists as an ordinary admin
   SELECT is_super_admin, is_active INTO v_existing_target_is_super, v_existing_target_is_active
   FROM public.admin_profiles
   WHERE id = p_auth_uid;
 
   IF FOUND THEN
-    -- Outcome 4: Existing ordinary admin must NEVER be elevated to Super Admin via bootstrap!
     RAISE EXCEPTION 'Privilege escalation blocked: identity % already exists as an ordinary administrator and cannot be elevated via bootstrap.', p_auth_uid;
   END IF;
 
-  -- 7. Check if target email already exists in public.admin_profiles under another ID
+  -- 7. Check if target email already exists under another ID
   IF EXISTS (SELECT 1 FROM public.admin_profiles WHERE LOWER(TRIM(email)) = v_normalized_email) THEN
     RAISE EXCEPTION 'Identity collision: email % is already registered to an existing administrator.', v_normalized_email;
   END IF;
@@ -649,9 +683,7 @@ BEGIN
     RAISE EXCEPTION 'Dual-identity collision: email % is already registered to an existing student participant.', v_normalized_email;
   END IF;
 
-  -- 9. Insert Super Admin profile (Outcome 1: First bootstrap)
-  -- Plain INSERT without ON CONFLICT DO UPDATE — guarantees zero accidental overwrite or elevation!
-  -- Note: Super Admin possesses implicit authorization for all platform capabilities; no rows are inserted into public.admin_permissions.
+  -- 9. Insert Super Admin profile
   INSERT INTO public.admin_profiles (
     id,
     email,
@@ -668,7 +700,7 @@ BEGIN
     NULL
   );
 
-  -- 10. Write structured audit log with actor_id = NULL and actor_role = 'system_bootstrap'
+  -- 10. Write structured audit log
   INSERT INTO public.audit_logs (
     actor_id,
     actor_role,
@@ -706,10 +738,6 @@ GRANT EXECUTE ON FUNCTION public.bootstrap_super_admin(UUID, TEXT, TEXT) TO serv
 -- 6. REPLACEMENT AUTHORIZATION HELPER: current_has_permission(TEXT)
 -- ============================================================================
 
--- Replaces the Phase 3 helper (which strictly joined admin_permissions) to grant
--- implicit authorization to active Super Admins without rows in admin_permissions,
--- while requiring an explicit matching permission row for ordinary active Admins,
--- and returning false for inactive administrators, students, and unauthenticated callers.
 CREATE OR REPLACE FUNCTION public.current_has_permission(p_permission_key TEXT)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -742,5 +770,299 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp;
 
-REVOKE ALL ON FUNCTION public.current_has_permission(TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.current_has_permission(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.current_has_permission(TEXT) TO authenticated;
+
+-- ============================================================================
+-- 7. UPDATE PERMISSION CHECK CONSTRAINT FOR 11TH KEY
+-- ============================================================================
+
+ALTER TABLE public.admin_permissions DROP CONSTRAINT IF EXISTS chk_admin_permissions_key;
+ALTER TABLE public.admin_permissions ADD CONSTRAINT chk_admin_permissions_key
+  CHECK (permission IN (
+    'verify_students',
+    'manage_password_resets',
+    'manage_hackathons',
+    'manage_teams',
+    'manage_followups',
+    'manage_students',
+    'view_analytics',
+    'export_data',
+    'view_audit_logs',
+    'manage_points',
+    'manage_notifications'
+  ));
+
+-- ============================================================================
+-- 8. HARDENED TWO-DIMENSIONAL EVENT AUTHORIZATION HELPER: can_admin_manage_hackathon
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.can_admin_manage_hackathon(
+  p_hackathon_id UUID,
+  p_permission_key TEXT
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_caller_id UUID := auth.uid();
+  v_is_super BOOLEAN;
+  v_is_active BOOLEAN;
+  v_event_exists BOOLEAN;
+BEGIN
+  -- 1. Fail closed on missing caller or hackathon ID
+  IF v_caller_id IS NULL OR p_hackathon_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  -- 2. Target event existence pre-check (fails closed even for Super Admin if hackathon does not exist)
+  SELECT EXISTS(SELECT 1 FROM public.hackathons WHERE id = p_hackathon_id)
+  INTO v_event_exists;
+
+  IF v_event_exists IS NOT TRUE THEN
+    RETURN false;
+  END IF;
+
+  -- 3. Caller administrative identity and active status check
+  SELECT is_super_admin, is_active
+  INTO v_is_super, v_is_active
+  FROM public.admin_profiles
+  WHERE id = v_caller_id;
+
+  IF v_is_active IS NOT TRUE THEN
+    RETURN false;
+  END IF;
+
+  -- 4. Active Super Admin has global platform authority across all existing hackathons
+  IF v_is_super IS TRUE THEN
+    RETURN true;
+  END IF;
+
+  -- 5. Ordinary Admin: check feature permission grant (if a specific permission was requested)
+  IF p_permission_key IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM public.admin_permissions
+      WHERE admin_id = v_caller_id
+        AND permission = p_permission_key
+    ) THEN
+      RETURN false;
+    END IF;
+  END IF;
+
+  -- 6. Ordinary Admin: verify matching event assignment (hackathons.in_charge_admin_id)
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.hackathons
+    WHERE id = p_hackathon_id
+      AND in_charge_admin_id = v_caller_id
+  );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp;
+
+REVOKE ALL ON FUNCTION public.can_admin_manage_hackathon(UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.can_admin_manage_hackathon(UUID, TEXT) TO authenticated;
+
+-- ============================================================================
+-- 9. HARDENED ATOMIC IN-CHARGE ADMIN REASSIGNMENT RPC
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.reassign_hackathon_in_charge_admin(
+  p_hackathon_id UUID,
+  p_new_admin_id UUID,
+  p_justification TEXT
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_caller_id UUID := auth.uid();
+  v_is_super BOOLEAN;
+  v_target_is_super BOOLEAN;
+  v_target_is_active BOOLEAN;
+  v_is_eligible BOOLEAN;
+  v_old_admin_id UUID;
+  v_trimmed_justification TEXT;
+BEGIN
+  -- 1. Trust boundary: verify caller authentication
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Access denied: authentication required.' USING ERRCODE = '42501';
+  END IF;
+
+  -- 2. Verify caller is an active Super Admin
+  SELECT (is_super_admin = true AND is_active = true) INTO v_is_super
+  FROM public.admin_profiles
+  WHERE id = v_caller_id;
+
+  IF v_is_super IS NOT TRUE THEN
+    RAISE EXCEPTION 'Access denied: only Super Admins can reassign the in-charge admin.' USING ERRCODE = '42501';
+  END IF;
+
+  -- 3. Fail-closed on input parameters
+  IF p_hackathon_id IS NULL THEN
+    RAISE EXCEPTION 'Invalid argument: hackathon ID cannot be null.' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_new_admin_id IS NULL THEN
+    RAISE EXCEPTION 'Invalid argument: target admin ID cannot be null.' USING ERRCODE = '22023';
+  END IF;
+
+  v_trimmed_justification := TRIM(COALESCE(p_justification, ''));
+  IF LENGTH(v_trimmed_justification) < 10 THEN
+    RAISE EXCEPTION 'Invalid argument: a meaningful justification of at least 10 characters is mandatory.' USING ERRCODE = '22023';
+  END IF;
+
+  -- 4. Tier 1 Lock: lock target hackathon FOR UPDATE
+  SELECT in_charge_admin_id INTO v_old_admin_id
+  FROM public.hackathons
+  WHERE id = p_hackathon_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Hackathon not found.' USING ERRCODE = 'P0002';
+  END IF;
+
+  -- 5. No-op check: if target admin is already assigned, return cleanly
+  IF v_old_admin_id = p_new_admin_id THEN
+    RETURN jsonb_build_object(
+      'success', true,
+      'hackathon_id', p_hackathon_id,
+      'in_charge_admin_id', p_new_admin_id,
+      'status_unchanged', true
+    );
+  END IF;
+
+  -- 6. Tier 2 Lock: lock relevant admin profiles in deterministic ascending order
+  IF v_old_admin_id IS NOT NULL THEN
+    PERFORM 1 FROM public.admin_profiles
+    WHERE id IN (v_old_admin_id, p_new_admin_id)
+    ORDER BY id ASC
+    FOR UPDATE;
+  ELSE
+    PERFORM 1 FROM public.admin_profiles
+    WHERE id = p_new_admin_id
+    FOR UPDATE;
+  END IF;
+
+  -- 7. Validate target admin active status & eligibility
+  SELECT is_super_admin, is_active
+  INTO v_target_is_super, v_target_is_active
+  FROM public.admin_profiles
+  WHERE id = p_new_admin_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invalid argument: target admin does not exist.' USING ERRCODE = '22023';
+  END IF;
+
+  IF v_target_is_active IS NOT TRUE THEN
+    RAISE EXCEPTION 'Invalid argument: target admin is inactive.' USING ERRCODE = '22023';
+  END IF;
+
+  -- Target must be Super Admin or hold manage_hackathons permission
+  IF v_target_is_super IS TRUE THEN
+    v_is_eligible := true;
+  ELSE
+    SELECT EXISTS (
+      SELECT 1 FROM public.admin_permissions
+      WHERE admin_id = p_new_admin_id
+        AND permission = 'manage_hackathons'
+    ) INTO v_is_eligible;
+  END IF;
+
+  IF v_is_eligible IS NOT TRUE THEN
+    RAISE EXCEPTION 'Invalid argument: target admin is not eligible to manage hackathons. Grant manage_hackathons permission first.' USING ERRCODE = '22023';
+  END IF;
+
+  -- 8. Execute assignment mutation
+  UPDATE public.hackathons
+  SET in_charge_admin_id = p_new_admin_id,
+      updated_at = now()
+  WHERE id = p_hackathon_id;
+
+  -- 9. Write immutable audit log
+  INSERT INTO public.audit_logs (
+    actor_id, actor_role, action, target_type, target_id, details
+  ) VALUES (
+    v_caller_id,
+    'super_admin',
+    'hackathon.in_charge_admin_reassigned',
+    'hackathon',
+    p_hackathon_id::text,
+    jsonb_build_object(
+      'old_in_charge_admin_id', v_old_admin_id,
+      'new_in_charge_admin_id', p_new_admin_id,
+      'justification', v_trimmed_justification
+    )
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'hackathon_id', p_hackathon_id,
+    'in_charge_admin_id', p_new_admin_id,
+    'old_in_charge_admin_id', v_old_admin_id
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+REVOKE ALL ON FUNCTION public.reassign_hackathon_in_charge_admin(UUID, UUID, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.reassign_hackathon_in_charge_admin(UUID, UUID, TEXT) TO authenticated;
+
+-- ============================================================================
+-- 10. ACTIVE HACKATHON IN-CHARGE VALIDATION TRIGGER
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.check_hackathon_in_charge_active()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_admin_is_super BOOLEAN;
+  v_admin_is_active BOOLEAN;
+  v_has_manage_perm BOOLEAN;
+BEGIN
+  -- Only evaluate when hackathon is or transitions to an active lifecycle state
+  IF NEW.status IN ('published', 'registration_closed', 'ongoing') THEN
+    IF NEW.in_charge_admin_id IS NULL AND NEW.created_by IS NOT NULL THEN
+      NEW.in_charge_admin_id := NEW.created_by;
+    END IF;
+
+    IF NEW.in_charge_admin_id IS NULL THEN
+      RAISE EXCEPTION 'Active hackathons must have an assigned in-charge administrator.'
+        USING ERRCODE = '55000';
+    END IF;
+
+    -- Tier 2 Lock: Acquire shared lock on assigned admin to prevent concurrent deactivation
+    SELECT is_super_admin, is_active
+    INTO v_admin_is_super, v_admin_is_active
+    FROM public.admin_profiles
+    WHERE id = NEW.in_charge_admin_id
+    FOR SHARE;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Assigned in-charge administrator does not exist in admin_profiles.'
+        USING ERRCODE = '55000';
+    END IF;
+
+    IF v_admin_is_active IS NOT TRUE THEN
+      RAISE EXCEPTION 'Active hackathons cannot be assigned to an inactive administrator.'
+        USING ERRCODE = '55000';
+    END IF;
+
+    IF v_admin_is_super IS NOT TRUE THEN
+      SELECT EXISTS (
+        SELECT 1 FROM public.admin_permissions
+        WHERE admin_id = NEW.in_charge_admin_id
+          AND permission = 'manage_hackathons'
+      ) INTO v_has_manage_perm;
+
+      IF v_has_manage_perm IS NOT TRUE THEN
+        RAISE EXCEPTION 'Assigned in-charge administrator lacks mandatory manage_hackathons permission.'
+          USING ERRCODE = '55000';
+      END IF;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+DROP TRIGGER IF EXISTS trg_enforce_hackathon_in_charge_active ON public.hackathons;
+CREATE TRIGGER trg_enforce_hackathon_in_charge_active
+  BEFORE INSERT OR UPDATE OF in_charge_admin_id, status
+  ON public.hackathons
+  FOR EACH ROW
+  EXECUTE FUNCTION public.check_hackathon_in_charge_active();

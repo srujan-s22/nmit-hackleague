@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { AppHeader } from '../layout/app-header';
 import { SidebarNav, NavSection } from '../layout/sidebar-nav';
 import { Badge } from '../ui/badge';
+import { WebPushGateModal } from './web-push-gate-modal';
 import type { AdminProfile } from '@/types/auth';
 
 export interface SuperAdminShellProps {
@@ -95,6 +96,8 @@ export function SuperAdminShell({
           {children}
         </main>
       </div>
+
+      <WebPushGateModal currentPath={currentPath} />
     </div>
   );
 }

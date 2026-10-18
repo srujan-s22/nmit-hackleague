@@ -14,6 +14,7 @@ interface DeactivateDialogProps {
   mode: 'deactivate' | 'reactivate';
   onClose: () => void;
   onSuccess: () => void;
+  onReassignClick?: () => void;
 }
 
 export function DeactivateDialog({
@@ -22,6 +23,7 @@ export function DeactivateDialog({
   mode,
   onClose,
   onSuccess,
+  onReassignClick,
 }: DeactivateDialogProps) {
   const [reason, setReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +32,7 @@ export function DeactivateDialog({
   if (!admin) return null;
 
   const isDeactivating = mode === 'deactivate';
+  const hasActiveEvents = isDeactivating && (admin.activeHackathonsCount || 0) > 0;
 
   const handleClose = () => {
     if (isLoading) return;
@@ -40,6 +43,11 @@ export function DeactivateDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasActiveEvents) {
+      setError('Cannot deactivate administrator: active hackathons must be reassigned first.');
+      return;
+    }
+
     if (reason.trim().length < 3) {
       setError('A mandatory reason of at least 3 characters is required.');
       return;
@@ -96,7 +104,7 @@ export function DeactivateDialog({
             type="submit"
             variant={isDeactivating ? 'destructive' : 'primary'}
             onClick={handleSubmit}
-            disabled={isLoading || reason.trim().length < 3}
+            disabled={isLoading || hasActiveEvents || reason.trim().length < 3}
           >
             {isLoading
               ? 'Processing...'
@@ -112,6 +120,45 @@ export function DeactivateDialog({
           <Alert variant="error" title="Status Change Failed">
             {error}
           </Alert>
+        )}
+
+        {/* Active Hackathon Warning & Reassignment CTA */}
+        {hasActiveEvents && (
+          <div className="space-y-3">
+            <Alert
+              variant="error"
+              title="Deactivation Blocked: Active Hackathons Assigned"
+            >
+              <div className="space-y-2 text-xs">
+                <p>
+                  This administrator is currently assigned as the in-charge administrator for{' '}
+                  <strong>{admin.activeHackathonsCount}</strong> active hackathon(s). Database safety
+                  triggers and authorization rules block deactivation until all active events are reassigned:
+                </p>
+                <ul className="list-disc list-inside space-y-1 font-medium">
+                  {admin.activeHackathons?.map((h) => (
+                    <li key={h.id}>
+                      {h.title} <span className="opacity-75 font-mono">({h.status})</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Alert>
+            {onReassignClick && (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  onClose();
+                  onReassignClick();
+                }}
+              >
+                Reassign In-Charge Hackathons Now
+              </Button>
+            )}
+          </div>
         )}
 
         <Alert

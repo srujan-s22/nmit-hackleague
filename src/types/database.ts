@@ -570,6 +570,18 @@ isOneToOne: false
 "bootstrap_super_admin":
 { Args: { "p_auth_uid": string,"p_email": string,"p_full_name": string }; Returns: Json
                            },
+"can_admin_manage_hackathon":
+{ Args: { "p_hackathon_id": string,"p_permission_key": string }; Returns: boolean
+                           },
+"can_upload_submission_evidence":
+{ Args: { "p_hackathon_id": string,"p_submission_id": string }; Returns: boolean
+                           },
+"can_upload_team_round_evidence":
+{ Args: { "p_round_id": string,"p_team_id": string }; Returns: boolean
+                           },
+"can_view_submission_evidence":
+{ Args: { "p_submission_id": string }; Returns: boolean
+                           },
 "claim_reconciliation_batch":
 { Args: { "p_batch_size"?: number,"p_lease_seconds"?: number,"p_worker_id": string }; Returns: {
               "bucket_id": string,"event_id": string,"job_id": string,"lease_token": string,"leased_until": string,"object_path": string,"target_id": string

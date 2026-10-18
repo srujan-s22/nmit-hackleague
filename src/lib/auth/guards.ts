@@ -44,7 +44,7 @@ export async function requireStudent(): Promise<{ profile: StudentProfile; user:
   return { profile, user };
 }
 
-export async function requirePushSubscription(userId: string, redirectTo = '/student') {
+export async function requirePushSubscription(userId: string, redirectTo = '/student'): Promise<{ hasActiveSubscription: boolean }> {
   const supabase = await createClient();
   const { data: isPushActive, error } = await supabase.rpc('is_push_registered' as never, {
     p_user_id: userId,
@@ -53,6 +53,8 @@ export async function requirePushSubscription(userId: string, redirectTo = '/stu
   if (error || !isPushActive) {
     redirect(`/enable-push?redirectTo=${encodeURIComponent(redirectTo)}`);
   }
+
+  return { hasActiveSubscription: true };
 }
 
 export async function requireApprovedStudent(): Promise<{ profile: StudentProfile; user: { id: string; email?: string } }> {
@@ -196,3 +198,32 @@ export async function checkAdminPermission(permission: string): Promise<boolean>
   return current.permissions.includes(permission);
 }
 
+export async function requireHackathonScope(
+  hackathonId: string,
+  requiredPermission?: string
+): Promise<{
+  admin: AdminProfile;
+  permissions: string[];
+  hackathonId: string;
+  isSuperAdmin: boolean;
+}> {
+  const { admin, permissions } = await requireAdmin(requiredPermission);
+  const supabase = await createClient();
+
+  const permKey = requiredPermission || 'manage_hackathons';
+  const { data: canManage, error } = await supabase.rpc('can_admin_manage_hackathon', {
+    p_hackathon_id: hackathonId,
+    p_permission_key: permKey,
+  });
+
+  if (error || !canManage) {
+    redirect('/admin/hackathons');
+  }
+
+  return {
+    admin,
+    permissions,
+    hackathonId,
+    isSuperAdmin: Boolean(admin.is_super_admin),
+  };
+}

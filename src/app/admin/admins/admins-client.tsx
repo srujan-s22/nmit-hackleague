@@ -11,6 +11,7 @@ import { Alert } from '@/components/ui/alert';
 import { CreateAdminDialog } from './create-admin-dialog';
 import { EditPermissionsDialog } from './edit-permissions-dialog';
 import { DeactivateDialog } from './deactivate-dialog';
+import { ReassignHackathonDialog } from './reassign-hackathon-dialog';
 import { PERMISSION_DEFINITIONS } from '@/lib/auth/permissions';
 import { fetchAdminsAction } from '@/actions/admin-management-actions';
 import type { AdminWithPermissions } from '@/types/auth';
@@ -34,6 +35,7 @@ export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClien
     admin: AdminWithPermissions;
     mode: 'deactivate' | 'reactivate';
   } | null>(null);
+  const [reassigningAdmin, setReassigningAdmin] = useState<AdminWithPermissions | null>(null);
 
   const refreshAdmins = async () => {
     try {
@@ -162,6 +164,7 @@ export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClien
               <tr className="border-b border-border-subtle bg-surface-subtle/50 text-[11px] font-semibold text-text-secondary uppercase tracking-wider text-left">
                 <th className="py-3 px-4">Administrator</th>
                 <th className="py-3 px-4">Role & Status</th>
+                <th className="py-3 px-4">In-Charge Events</th>
                 <th className="py-3 px-4">Assigned Permissions</th>
                 <th className="py-3 px-4">Established</th>
                 <th className="py-3 px-4 text-right">Actions</th>
@@ -206,6 +209,31 @@ export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClien
                           <Badge variant="error">Deactivated</Badge>
                         )}
                       </div>
+                    </td>
+
+                    {/* In-Charge Events */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      {(admin.activeHackathonsCount || 0) > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                            title={admin.activeHackathons?.map((h) => `${h.title} (${h.status})`).join('\n')}
+                          >
+                            {admin.activeHackathonsCount} active event{admin.activeHackathonsCount === 1 ? '' : 's'}
+                          </span>
+                          {!isSuper && (
+                            <button
+                              type="button"
+                              onClick={() => setReassigningAdmin(admin)}
+                              className="text-[11px] text-interactive-accent hover:underline font-semibold"
+                            >
+                              Reassign
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-text-secondary">0 active events</span>
+                      )}
                     </td>
 
                     {/* Permissions */}
@@ -329,6 +357,11 @@ export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClien
         admin={deactivatingAdmin?.admin || null}
         mode={deactivatingAdmin?.mode || 'deactivate'}
         onClose={() => setDeactivatingAdmin(null)}
+        onReassignClick={() => {
+          if (deactivatingAdmin?.admin) {
+            setReassigningAdmin(deactivatingAdmin.admin);
+          }
+        }}
         onSuccess={() => {
           setFeedback({
             type: 'success',
@@ -336,6 +369,20 @@ export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClien
               deactivatingAdmin?.mode === 'deactivate'
                 ? 'Administrator account deactivated.'
                 : 'Administrator account reactivated.',
+          });
+          refreshAdmins();
+        }}
+      />
+
+      {/* Reassign In-Charge Hackathon Dialog */}
+      <ReassignHackathonDialog
+        isOpen={Boolean(reassigningAdmin)}
+        incumbentAdmin={reassigningAdmin}
+        onClose={() => setReassigningAdmin(null)}
+        onSuccess={() => {
+          setFeedback({
+            type: 'success',
+            message: 'In-charge hackathon reassigned successfully. Authorization shifted immediately.',
           });
           refreshAdmins();
         }}

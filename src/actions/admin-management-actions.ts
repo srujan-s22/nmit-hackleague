@@ -8,6 +8,7 @@ import {
   adminCreationSchema,
   adminPermissionsUpdateSchema,
   adminStatusSchema,
+  adminReassignSchema,
 } from '@/lib/auth/permissions';
 import type {
   AdminCreationInput,
@@ -17,7 +18,7 @@ import type {
 } from '@/types/auth';
 
 /**
- * Fetch all administrator accounts with their explicit permissions.
+ * Fetch all administrator accounts with their explicit permissions and assigned active hackathons.
  * Restricted strictly to active Super Admin.
  */
 export async function fetchAdminsAction(): Promise<ActionResult<AdminWithPermissions[]>> {
@@ -42,6 +43,11 @@ export async function fetchAdminsAction(): Promise<ActionResult<AdminWithPermiss
       return { success: false, error: permError.message };
     }
 
+    const { data: activeHackathonsData } = await supabase
+      .from('hackathons')
+      .select('id, title, slug, status, in_charge_admin_id')
+      .in('status', ['published', 'registration_closed', 'ongoing']);
+
     const permMap = new Map<string, string[]>();
     for (const p of permissionsData || []) {
       const existing = permMap.get(p.admin_id) || [];
@@ -49,10 +55,29 @@ export async function fetchAdminsAction(): Promise<ActionResult<AdminWithPermiss
       permMap.set(p.admin_id, existing);
     }
 
-    const result: AdminWithPermissions[] = (admins || []).map((admin) => ({
-      ...admin,
-      permissions: (permMap.get(admin.id) || []) as AdminWithPermissions['permissions'],
-    }));
+    const hackathonMap = new Map<string, { id: string; title: string; slug: string; status: string }[]>();
+    for (const h of activeHackathonsData || []) {
+      if (h.in_charge_admin_id) {
+        const existing = hackathonMap.get(h.in_charge_admin_id) || [];
+        existing.push({
+          id: h.id,
+          title: h.title,
+          slug: h.slug,
+          status: h.status,
+        });
+        hackathonMap.set(h.in_charge_admin_id, existing);
+      }
+    }
+
+    const result: AdminWithPermissions[] = (admins || []).map((admin) => {
+      const activeEvents = hackathonMap.get(admin.id) || [];
+      return {
+        ...admin,
+        permissions: (permMap.get(admin.id) || []) as AdminWithPermissions['permissions'],
+        activeHackathons: activeEvents,
+        activeHackathonsCount: activeEvents.length,
+      };
+    });
 
     return { success: true, data: result };
   } catch (err: unknown) {
@@ -289,4 +314,99 @@ export async function setAdminActiveStatusAction(
     success: true,
     message: isActive ? 'Administrator account reactivated.' : 'Administrator account deactivated.',
   };
+}
+
+/**
+ * Atomically reassign the in-charge administrator of a hackathon.
+ * Restricted strictly to active Super Admin.
+ */
+export async function reassignHackathonInChargeAdminAction(input: {
+  hackathonId: string;
+  newAdminId: string;
+  justification: string;
+}): Promise<ActionResult<{ hackathonId: string; inChargeAdminId: string }>> {
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return { success: false, error: 'Unauthorized: Super Admin authority required' };
+  }
+
+  const parsed = adminReassignSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues.map((i) => i.message).join(', ') };
+  }
+
+  const { hackathonId, newAdminId, justification } = parsed.data;
+
+  try {
+    const allowed = await checkRateLimit('admin_management');
+    if (!allowed) {
+      return { success: false, error: 'Rate limit exceeded: maximum 10 administrative operations per minute.' };
+    }
+  } catch {
+    // Proceed if rate limiter throws in non-standard context
+  }
+
+  const supabase = await createClient();
+  const { error: rpcError } = await supabase.rpc('reassign_hackathon_in_charge_admin', {
+    p_hackathon_id: hackathonId,
+    p_new_admin_id: newAdminId,
+    p_justification: justification,
+  });
+
+  if (rpcError) {
+    return { success: false, error: rpcError.message };
+  }
+
+  return {
+    success: true,
+    message: 'Hackathon in-charge administrator reassigned successfully.',
+    data: {
+      hackathonId,
+      inChargeAdminId: newAdminId,
+    },
+  };
+}
+
+/**
+ * Fetch eligible administrators for in-charge assignment.
+ * Target must be active and either Super Admin or hold 'manage_hackathons'.
+ */
+export async function fetchEligibleAdminsForReassignmentAction(): Promise<
+  ActionResult<Array<{ id: string; full_name: string; email: string; is_super_admin: boolean }>>
+> {
+  try {
+    await requireSuperAdmin();
+    const supabase = await createClient();
+
+    // Query active admins
+    const { data: admins, error: adminsError } = await supabase
+      .from('admin_profiles')
+      .select('id, full_name, email, is_super_admin')
+      .eq('is_active', true);
+
+    if (adminsError) {
+      return { success: false, error: adminsError.message };
+    }
+
+    // Query who has manage_hackathons
+    const { data: permData, error: permError } = await supabase
+      .from('admin_permissions')
+      .select('admin_id')
+      .eq('permission', 'manage_hackathons');
+
+    if (permError) {
+      return { success: false, error: permError.message };
+    }
+
+    const permittedSet = new Set((permData || []).map((p) => p.admin_id));
+    const eligible = (admins || []).filter(
+      (a) => a.is_super_admin || permittedSet.has(a.id)
+    );
+
+    return { success: true, data: eligible };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch eligible administrators.';
+    return { success: false, error: message };
+  }
 }
