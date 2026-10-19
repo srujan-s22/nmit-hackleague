@@ -79,6 +79,7 @@ export async function uploadCollegeIdDocument(
   // Derive authoritative extension from detected binary signature, preventing spoofing
   let ext = 'png';
   if (binaryValidation.detectedMime === 'image/jpeg') ext = 'jpg';
+  else if (binaryValidation.detectedMime === 'image/webp') ext = 'webp';
   else if (binaryValidation.detectedMime === 'application/pdf') ext = 'pdf';
 
   const filePath = generateCollegeIdStoragePath(userId, ext);
@@ -107,7 +108,7 @@ export async function uploadCollegeIdDocument(
 
 /**
  * Validates and uploads a profile photo to the private 'profile-photos' bucket.
- * Enforces genuine binary signature check (PNG, JPEG) before uploading.
+ * Enforces genuine binary signature check (PNG, JPEG, WebP) before uploading.
  */
 export async function uploadProfilePhoto(
   userId: string,
@@ -121,13 +122,13 @@ export async function uploadProfilePhoto(
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  // Authoritative binary signature check: inspect raw bytes for genuine PNG/JPEG magic bytes
+  // Authoritative binary signature check: inspect raw bytes for genuine PNG/JPEG/WebP magic bytes
   const binaryValidation = validateStorageFileBinary(buffer, 'profile-photo', file.name, file.type);
   if (!binaryValidation.valid) {
     return { success: false, error: binaryValidation.error };
   }
 
-  const ext = binaryValidation.detectedMime === 'image/jpeg' ? 'jpg' : 'png';
+  const ext = binaryValidation.detectedMime === 'image/jpeg' ? 'jpg' : binaryValidation.detectedMime === 'image/webp' ? 'webp' : 'png';
   const filePath = generateProfilePhotoStoragePath(userId, ext);
 
   const supabase = await createClient();

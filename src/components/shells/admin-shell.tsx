@@ -26,6 +26,10 @@ export function AdminShell({
     adminProfile?.is_super_admin || permissions.includes('verify_students');
   const hasManageHackathons =
     adminProfile?.is_super_admin || permissions.includes('manage_hackathons');
+  const hasExportData =
+    adminProfile?.is_super_admin || permissions.includes('export_data');
+  const hasManageNotifications =
+    adminProfile?.is_super_admin || permissions.includes('manage_notifications');
   const isSuperAdmin = adminProfile?.is_super_admin;
 
   const eventOpItems = [];
@@ -50,6 +54,31 @@ export function AdminShell({
           <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
           <polyline points="16 11 18 13 22 9" />
+        </svg>
+      ),
+    });
+  }
+  if (hasManageNotifications) {
+    eventOpItems.push({
+      label: 'Broadcasts & Alerts',
+      href: '/admin/notifications',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      ),
+    });
+  }
+  if (hasExportData) {
+    eventOpItems.push({
+      label: 'Reports & Exports',
+      href: '/admin/reports',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
       ),
     });

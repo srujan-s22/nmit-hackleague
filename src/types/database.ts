@@ -69,6 +69,52 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"announcement_reads": {
+                  Row: {
+                    "announcement_id": string,"read_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "announcement_id": string,"read_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "announcement_id"?: string,"read_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "announcement_reads_announcement_id_fkey"
+      columns: ["announcement_id"]
+isOneToOne: false
+      referencedRelation: "announcements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "announcement_reads_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"announcements": {
+                  Row: {
+                    "body": string,"created_at": string,"created_by": string,"id": string,"push_dispatched_count": number,"push_failed_count": number,"target_role": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"created_by": string,"id"?: string,"push_dispatched_count"?: number,"push_failed_count"?: number,"target_role"?: string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"created_by"?: string,"id"?: string,"push_dispatched_count"?: number,"push_failed_count"?: number,"target_role"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "announcements_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"audit_logs": {
                   Row: {
                     "action": string,"actor_id": string | null,"actor_role": string,"created_at": string,"details": NonNullable<Json>,"id": string,"ip_address": unknown,"target_id": string | null,"target_type": string,"user_agent": string | null
@@ -459,14 +505,14 @@ isOneToOne: false
                   ]
                 },"teams": {
                   Row: {
-                    "created_at": string,"external_proof_path": string | null,"external_proof_reviewed_at": string | null,"external_proof_reviewed_by": string | null,"external_proof_submitted_at": string | null,"external_status": string,"hackathon_id": string,"id": string,"internal_status": string,"invitation_code": string,"invitation_code_expires_at": string,"leader_id": string,"name": string,"updated_at": string
+                    "cdc_declaration_accepted": boolean,"cdc_declaration_accepted_at": string | null,"cdc_declaration_text_version": string | null,"created_at": string,"external_proof_path": string | null,"external_proof_reviewed_at": string | null,"external_proof_reviewed_by": string | null,"external_proof_submitted_at": string | null,"external_status": string,"hackathon_id": string,"id": string,"internal_status": string,"invitation_code": string,"invitation_code_expires_at": string,"leader_id": string,"name": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"external_proof_path"?: string | null,"external_proof_reviewed_at"?: string | null,"external_proof_reviewed_by"?: string | null,"external_proof_submitted_at"?: string | null,"external_status"?: string,"hackathon_id": string,"id"?: string,"internal_status"?: string,"invitation_code": string,"invitation_code_expires_at"?: string,"leader_id": string,"name": string,"updated_at"?: string
+                    "cdc_declaration_accepted"?: boolean,"cdc_declaration_accepted_at"?: string | null,"cdc_declaration_text_version"?: string | null,"created_at"?: string,"external_proof_path"?: string | null,"external_proof_reviewed_at"?: string | null,"external_proof_reviewed_by"?: string | null,"external_proof_submitted_at"?: string | null,"external_status"?: string,"hackathon_id": string,"id"?: string,"internal_status"?: string,"invitation_code": string,"invitation_code_expires_at"?: string,"leader_id": string,"name": string,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"external_proof_path"?: string | null,"external_proof_reviewed_at"?: string | null,"external_proof_reviewed_by"?: string | null,"external_proof_submitted_at"?: string | null,"external_status"?: string,"hackathon_id"?: string,"id"?: string,"internal_status"?: string,"invitation_code"?: string,"invitation_code_expires_at"?: string,"leader_id"?: string,"name"?: string,"updated_at"?: string
+                    "cdc_declaration_accepted"?: boolean,"cdc_declaration_accepted_at"?: string | null,"cdc_declaration_text_version"?: string | null,"created_at"?: string,"external_proof_path"?: string | null,"external_proof_reviewed_at"?: string | null,"external_proof_reviewed_by"?: string | null,"external_proof_submitted_at"?: string | null,"external_status"?: string,"hackathon_id"?: string,"id"?: string,"internal_status"?: string,"invitation_code"?: string,"invitation_code_expires_at"?: string,"leader_id"?: string,"name"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -524,10 +570,10 @@ isOneToOne: false
                   }
                   ComputedFields: never
                   Insert: {
-                           "description"?: string | null,"end_at"?: string | null,"hackathon_id"?: string | null,"id"?: string | null,"is_final_round"?: boolean | null,"name"?: string | null,"round_number"?: number | null,"start_at"?: string | null,"status"?: string | null
+                           "description"?: string | null,"end_at"?: string | null,"hackathon_id"?: string | null,"id"?: string | null,"is_final_round"?: boolean | null,"name"?: string | null,"round_number"?: number | null,"start_at"?: string | null,"status"?: never
                          }
                         Update: {
-                           "description"?: string | null,"end_at"?: string | null,"hackathon_id"?: string | null,"id"?: string | null,"is_final_round"?: boolean | null,"name"?: string | null,"round_number"?: number | null,"start_at"?: string | null,"status"?: string | null
+                           "description"?: string | null,"end_at"?: string | null,"hackathon_id"?: string | null,"id"?: string | null,"is_final_round"?: boolean | null,"name"?: string | null,"round_number"?: number | null,"start_at"?: string | null,"status"?: never
                          }
                         Relationships: [
                     {
@@ -563,6 +609,12 @@ isOneToOne: false
           Functions: {
             "adjust_student_points":
 { Args: { "p_hackathon_id": string,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: string
+                           },
+"audit_data_export":
+{ Args: { "p_dataset": string,"p_filters"?: Json,"p_format": string,"p_hackathon_id"?: string }; Returns: undefined
+                           },
+"auto_pause_expired_rounds":
+{ Args: { "p_hackathon_id"?: string }; Returns: number
                            },
 "award_milestone_points":
 { Args: { "p_hackathon_id": string,"p_milestone_type": string,"p_reason": string,"p_result_id": string,"p_round_id": string,"p_student_id": string,"p_team_id": string }; Returns: string
@@ -664,6 +716,9 @@ isOneToOne: false
 "manage_admin_permissions":
 { Args: { "p_permissions": (string)[],"p_target_admin_id": string }; Returns: Json
                            },
+"mark_announcement_read":
+{ Args: { "p_announcement_id": string }; Returns: undefined
+                           },
 "override_hackathon_deadline":
 { Args: { "p_hackathon_id": string,"p_new_deadline": string,"p_reason": string }; Returns: Json
                            },
@@ -678,6 +733,9 @@ isOneToOne: false
                            },
 "prune_rate_limit_buckets":
 { Args: { "p_batch_size"?: number }; Returns: number
+                           },
+"publish_announcement":
+{ Args: { "p_body": string,"p_target_role"?: string,"p_title": string }; Returns: Json
                            },
 "quarantine_expired_dispatches":
 { Args: { "p_batch_size"?: number,"p_cooldown_seconds"?: number }; Returns: {
@@ -705,6 +763,9 @@ isOneToOne: false
 "reverse_points_award":
 { Args: { "p_original_ledger_id": string,"p_reason": string }; Returns: string
                            },
+"review_round_advancement":
+{ Args: { "p_decision": string,"p_feedback"?: string,"p_submission_id": string }; Returns: Json
+                           },
 "review_student_registration":
 { Args: { "p_decision": string,"p_rejection_reason"?: string,"p_student_id": string }; Returns: Json
                            },
@@ -716,6 +777,9 @@ isOneToOne: false
                            },
 "submit_profile_for_review":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"submit_registration_proof":
+{ Args: { "p_cdc_declaration_accepted": boolean,"p_cdc_declaration_text": string,"p_proof_path": string,"p_team_id": string }; Returns: Json
                            },
 "transfer_team_leadership":
 { Args: { "p_new_leader_id": string,"p_team_id": string }; Returns: undefined

@@ -75,6 +75,21 @@ export async function POST(request: NextRequest) {
   }
 
   // --------------------------------------------------------------------------
+  // STEP 1.6: Auto-Pause Expired Rounds Reaching Configured Deadlines
+  // --------------------------------------------------------------------------
+  let autoPausedRounds = 0;
+  try {
+    const { data: pausedData, error: pauseError } = await adminClient.rpc(
+      'auto_pause_expired_rounds' as never
+    );
+    if (!pauseError && pausedData !== null && pausedData !== undefined) {
+      autoPausedRounds = Number(pausedData) || 0;
+    }
+  } catch (err) {
+    console.warn('[process-deletions] Auto-pause expired rounds warning:', err);
+  }
+
+  // --------------------------------------------------------------------------
   // STEP 2: Claim & Dispatch Deletions (Phase 4 Root-First Leased Batch)
   // --------------------------------------------------------------------------
   const { data: claimedData, error: claimError } = await adminClient.rpc(
@@ -242,6 +257,7 @@ export async function POST(request: NextRequest) {
     success: true,
     quarantinedCount,
     enqueuedEvidenceJobs,
+    autoPausedRounds,
     dispatched: {
       claimed: claimedJobs.length,
       completed: dispatchedCompletedCount,

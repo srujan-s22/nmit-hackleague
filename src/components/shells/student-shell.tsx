@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { AppHeader } from '../layout/app-header';
 import { SidebarNav, NavSection } from '../layout/sidebar-nav';
 import { Badge } from '../ui/badge';
+import { WebPushGateModal } from './web-push-gate-modal';
 
 export interface StudentShellProps {
   children: React.ReactNode;
@@ -107,6 +108,8 @@ export function StudentShell({
           {children}
         </main>
       </div>
+
+      <WebPushGateModal currentPath={currentPath} />
     </div>
   );
 }

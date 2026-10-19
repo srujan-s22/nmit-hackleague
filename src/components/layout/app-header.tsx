@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { BrandLogo } from '../ui/brand-logo';
 import { IconButton } from '../ui/icon-button';
+import { NotificationCenter } from './notification-center';
 
 export interface AppHeaderProps {
   roleTitle: string;
@@ -79,6 +80,9 @@ export function AppHeader({
         <div className="hidden md:flex items-center border-r border-border-subtle pr-6">
           <BrandLogo asset="nmit" size="sm" />
         </div>
+
+        {/* In-App Notification Center */}
+        <NotificationCenter />
 
         {/* User profile capsule (Demo Presentation) */}
         <div className="flex items-center gap-2.5">

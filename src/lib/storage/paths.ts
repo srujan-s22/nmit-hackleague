@@ -1,11 +1,11 @@
 import crypto from 'crypto';
 
-export const ALLOWED_DOCUMENT_TYPES = ['image/png', 'image/jpeg', 'application/pdf'] as const;
-export const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg'] as const;
+export const ALLOWED_DOCUMENT_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'] as const;
+export const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
 
 /**
  * Authoritative allowed MIME types for submission-evidence matching storage.buckets configuration:
- * ARRAY['application/pdf', 'image/jpeg', 'image/png', 'application/zip']
+ * ARRAY['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'application/zip']
  */
 export const ALLOWED_EVIDENCE_TYPES = [
   'application/pdf',
@@ -13,6 +13,7 @@ export const ALLOWED_EVIDENCE_TYPES = [
   'application/x-zip-compressed',
   'image/png',
   'image/jpeg',
+  'image/webp',
 ] as const;
 
 /**
@@ -176,6 +177,24 @@ export function inspectBinaryMagicBytes(buffer: Buffer): BinarySignatureInspecti
     };
   }
 
+  // WebP: RIFF....WEBP (52 49 46 46 .. .. .. .. 57 45 42 50)
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return {
+      detectedMime: 'image/webp',
+      isExecutable: false,
+    };
+  }
+
   // ZIP / Office Open XML: 50 4B 03 04, 50 4B 05 06, 50 4B 07 08 (PK..)
   if (
     buffer.length >= 4 &&
@@ -196,7 +215,7 @@ export function inspectBinaryMagicBytes(buffer: Buffer): BinarySignatureInspecti
   return {
     detectedMime: null,
     isExecutable: false,
-    threatDescription: 'File binary header does not match any approved format signature (PNG, JPEG, PDF, ZIP).',
+    threatDescription: 'File binary header does not match any approved format signature (PNG, JPEG, WebP, PDF, ZIP).',
   };
 }
 
@@ -228,7 +247,7 @@ export function validateStorageFileBinary(
   if (!inspection.detectedMime) {
     return {
       valid: false,
-      error: `Binary validation failed: ${inspection.threatDescription || 'File content does not match any allowed binary signature (PNG, JPEG, PDF, or ZIP)'}.`,
+      error: `Binary validation failed: ${inspection.threatDescription || 'File content does not match any allowed binary signature (PNG, JPEG, WebP, PDF, or ZIP)'}.`,
     };
   }
 
@@ -236,10 +255,10 @@ export function validateStorageFileBinary(
 
   // 2. Category-specific format & size enforcement based on actual binary content
   if (category === 'profile-photo') {
-    if (detected !== 'image/png' && detected !== 'image/jpeg') {
+    if (detected !== 'image/png' && detected !== 'image/jpeg' && detected !== 'image/webp') {
       return {
         valid: false,
-        error: `Binary validation failed: Profile photo must be a genuine PNG or JPEG image (detected: ${detected}).`,
+        error: `Binary validation failed: Profile photo must be a genuine PNG, JPEG, or WebP image (detected: ${detected}).`,
       };
     }
     if (buffer.length > MAX_PROFILE_PHOTO_SIZE) {
@@ -249,13 +268,13 @@ export function validateStorageFileBinary(
       };
     }
   } else if (category === 'college-id') {
-    if (detected !== 'image/png' && detected !== 'image/jpeg' && detected !== 'application/pdf') {
+    if (detected !== 'image/png' && detected !== 'image/jpeg' && detected !== 'image/webp' && detected !== 'application/pdf') {
       return {
         valid: false,
-        error: `Binary validation failed: College ID must be a genuine PNG, JPEG, or PDF file (detected: ${detected}).`,
+        error: `Binary validation failed: College ID must be a genuine PNG, JPEG, WebP, or PDF file (detected: ${detected}).`,
       };
     }
-    const isImage = detected === 'image/jpeg' || detected === 'image/png';
+    const isImage = detected === 'image/jpeg' || detected === 'image/png' || detected === 'image/webp';
     const limit = isImage ? MAX_COLLEGE_ID_IMAGE_SIZE : MAX_COLLEGE_ID_SIZE;
     if (buffer.length > limit) {
       return {
@@ -266,14 +285,14 @@ export function validateStorageFileBinary(
       };
     }
   } else if (category === 'submission-evidence') {
-    const allowed = ['application/pdf', 'application/zip', 'image/png', 'image/jpeg'];
+    const allowed = ['application/pdf', 'application/zip', 'image/png', 'image/jpeg', 'image/webp'];
     if (!allowed.includes(detected)) {
       return {
         valid: false,
-        error: `Binary validation failed: Submission evidence must be a genuine PDF, ZIP, PNG, or JPEG file (detected: ${detected}).`,
+        error: `Binary validation failed: Submission evidence must be a genuine PDF, ZIP, PNG, JPEG, or WebP file (detected: ${detected}).`,
       };
     }
-    const isImage = detected === 'image/jpeg' || detected === 'image/png';
+    const isImage = detected === 'image/jpeg' || detected === 'image/png' || detected === 'image/webp';
     const limit = isImage ? MAX_EVIDENCE_IMAGE_SIZE : MAX_SUBMISSION_EVIDENCE_SIZE;
     if (buffer.length > limit) {
       return {
@@ -298,6 +317,12 @@ export function validateStorageFileBinary(
       return {
         valid: false,
         error: 'File extension mismatch: JPEG binary content must have a .jpg or .jpeg extension.',
+      };
+    }
+    if (detected === 'image/webp' && !lowerName.endsWith('.webp')) {
+      return {
+        valid: false,
+        error: 'File extension mismatch: WebP binary content must have a .webp extension.',
       };
     }
     if (detected === 'application/pdf' && !lowerName.endsWith('.pdf')) {
@@ -327,6 +352,12 @@ export function validateStorageFileBinary(
       return {
         valid: false,
         error: `Declared MIME type '${declaredMime}' contradicts detected JPEG binary signature.`,
+      };
+    }
+    if (detected === 'image/webp' && lowerDeclared !== 'image/webp') {
+      return {
+        valid: false,
+        error: `Declared MIME type '${declaredMime}' contradicts detected WebP binary signature.`,
       };
     }
     if (detected === 'application/pdf' && lowerDeclared !== 'application/pdf') {
@@ -452,16 +483,16 @@ export function validateStorageFile(
 
   if (category === 'profile-photo') {
     if (!ALLOWED_IMAGE_TYPES.includes(mimeType as (typeof ALLOWED_IMAGE_TYPES)[number])) {
-      return { valid: false, error: 'Invalid image format. Only PNG and JPEG images are permitted.' };
+      return { valid: false, error: 'Invalid image format. Only PNG, JPEG, and WebP images are permitted.' };
     }
     if (file.size > MAX_PROFILE_PHOTO_SIZE) {
       return { valid: false, error: 'Profile photo size cannot exceed 1MB.' };
     }
   } else if (category === 'college-id') {
     if (!ALLOWED_DOCUMENT_TYPES.includes(mimeType as (typeof ALLOWED_DOCUMENT_TYPES)[number])) {
-      return { valid: false, error: 'Invalid file format. Only PNG, JPEG, and PDF files are permitted.' };
+      return { valid: false, error: 'Invalid file format. Only PNG, JPEG, WebP, and PDF files are permitted.' };
     }
-    const isImage = mimeType === 'image/jpeg' || mimeType === 'image/png';
+    const isImage = mimeType === 'image/jpeg' || mimeType === 'image/png' || mimeType === 'image/webp';
     const limit = isImage ? MAX_COLLEGE_ID_IMAGE_SIZE : MAX_COLLEGE_ID_SIZE;
     if (file.size > limit) {
       return {
@@ -476,10 +507,10 @@ export function validateStorageFile(
     if (!isAllowed) {
       return {
         valid: false,
-        error: 'Invalid file format. Only PDF documents, ZIP archives, and PNG/JPEG images are permitted.',
+        error: 'Invalid file format. Only PDF documents, ZIP archives, and PNG/JPEG/WebP images are permitted.',
       };
     }
-    const isImage = mimeType === 'image/jpeg' || mimeType === 'image/png';
+    const isImage = mimeType === 'image/jpeg' || mimeType === 'image/png' || mimeType === 'image/webp';
     if (isImage && file.size > MAX_EVIDENCE_IMAGE_SIZE) {
       return { valid: false, error: 'Evidence image size cannot exceed 1MB.' };
     }
