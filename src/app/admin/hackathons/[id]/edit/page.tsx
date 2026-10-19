@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireHackathonScope } from '@/lib/auth/guards';
 import { HackathonForm } from '@/components/hackathons/hackathon-form';
 import type { Hackathon, PrizeTier } from '@/types/hackathon';
 
@@ -17,8 +17,8 @@ interface EditPageProps {
 }
 
 export default async function EditHackathonPage({ params }: EditPageProps) {
-  await requireAdmin('manage_hackathons');
   const { id } = await params;
+  await requireHackathonScope(id, 'manage_hackathons');
   const supabase = await createClient();
 
   const { data: hackathon, error } = await supabase

@@ -35,7 +35,7 @@ const anonClient = createClient(supabaseUrl, anonKey);
 const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
 async function runHackathonManagementTests() {
-  console.log('--- Starting Phase 6 Hackathon Management Integration Tests (47 Tests) ---');
+  console.log('--- Starting Phase 6 Hackathon Management Integration Tests (54 Tests) ---');
   let passed = 0;
   let total = 0;
 
@@ -150,7 +150,43 @@ async function runHackathonManagementTests() {
     global: { headers: { Authorization: `Bearer ${studentLogin.session.access_token}` } },
   });
 
-  const cleanupAuthIds: string[] = [managerUserId, deactUserId];
+  // Create second ordinary manager admin (to test two-dimensional admin scoping)
+  const manager2Email = `hackathon.manager2.${runId}@nmit-dev.local`;
+  const { data: manager2Auth, error: manager2AuthErr } = await adminClient.auth.admin.createUser({
+    email: manager2Email,
+    password: 'password123',
+    email_confirm: true,
+    user_metadata: { full_name: 'Hackathon Manager Two', role: 'admin' },
+    app_metadata: { claims_admin: true },
+  });
+  if (manager2AuthErr || !manager2Auth.user) {
+    throw new Error(`Failed to create Manager 2 Admin: ${manager2AuthErr?.message}`);
+  }
+  const manager2UserId = manager2Auth.user.id;
+  await adminClient.from('admin_profiles').upsert({
+    id: manager2UserId,
+    email: manager2Email,
+    full_name: 'Hackathon Manager Two',
+    is_super_admin: false,
+    is_active: true,
+  });
+  await adminClient.from('admin_permissions').upsert({
+    admin_id: manager2UserId,
+    permission: 'manage_hackathons',
+    granted_by: saLogin.user.id,
+  });
+  const { data: manager2Login, error: manager2LoginErr } = await anonClient.auth.signInWithPassword({
+    email: manager2Email,
+    password: 'password123',
+  });
+  if (manager2LoginErr || !manager2Login.session) {
+    throw new Error(`Failed to log in Manager 2 Admin: ${manager2LoginErr?.message}`);
+  }
+  const manager2Client = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: `Bearer ${manager2Login.session.access_token}` } },
+  });
+
+  const cleanupAuthIds: string[] = [managerUserId, manager2UserId, deactUserId];
   const cleanupHackathonIds: string[] = [];
 
   try {
@@ -177,6 +213,7 @@ async function runHackathonManagementTests() {
       p_tagline: 'Code the Future Today',
       p_eligibility: 'Open to all registered NMIT students',
       p_prizes_summary: 'INR 1,00,000 Total Prize Pool',
+      p_in_charge_admin_id: managerUserId,
     };
 
     const { data: saDraftRes, error: saDraftErr } = await superAdminClient.rpc('create_hackathon_draft', draftPayload1);
@@ -1170,6 +1207,260 @@ async function runHackathonManagementTests() {
       'INT-HCK-46',
       'Anonymous session is null; requireApprovedStudent guards student routes fail-closed for unauthenticated visitors'
     );
+
+    // ========================================================================
+    // Suite 6: Phase 6 Hardening, Stage Schedules, Scoping & Retention (7 Tests)
+    // ========================================================================
+    console.log('\n--- Suite 6: Phase 6 Hardening, Stage Schedules, Scoping & Retention (7 Tests) ---');
+
+    // INT-HCK-48: Two-tier isolation: Ordinary admin holding manage_hackathons (manager2) who is NOT assigned as in-charge of hackathon is rejected on update_hackathon_metadata and configure_hackathon_rounds
+    const { error: unassignedUpdateErr } = await manager2Client.rpc('update_hackathon_metadata', {
+      p_hackathon_id: h1Id!,
+      p_title: `Unassigned Edit Attempt`,
+      p_slug: `unassigned-edit-${runId}`,
+      p_tagline: null,
+      p_description: 'Should fail closed',
+      p_organizer: 'CSE Dept',
+      p_mode: 'online',
+      p_venue: null,
+      p_registration_start_at: new Date(Date.now() + 1000 * 60).toISOString(),
+      p_event_start_at: new Date(Date.now() + 86400000 * 6).toISOString(),
+      p_event_end_at: new Date(Date.now() + 86400000 * 8).toISOString(),
+      p_min_team_size: 1,
+      p_max_team_size: 4,
+      p_is_solo_allowed: false,
+      p_eligibility: 'All students',
+      p_prizes_summary: null,
+      p_prizes_detail: [],
+      p_external_registration_url: null,
+      p_community_url: null,
+    });
+
+    const { error: unassignedRoundsErr } = await manager2Client.rpc('configure_hackathon_rounds', {
+      p_hackathon_id: h1Id!,
+      p_rounds: [
+        {
+          round_number: 1,
+          name: 'Unassigned Round',
+          start_at: new Date(Date.now() + 86400000 * 6.2).toISOString(),
+          end_at: new Date(Date.now() + 86400000 * 7.5).toISOString(),
+          is_final_round: true,
+        },
+      ],
+    });
+
+    assert(
+      Boolean(unassignedUpdateErr && unassignedUpdateErr.message.includes('manage_hackathons permission required')) &&
+        Boolean(unassignedRoundsErr && unassignedRoundsErr.message.includes('manage_hackathons permission required')),
+      'INT-HCK-48',
+      'Ordinary admin holding manage_hackathons not assigned to hackathon is rejected fail-closed on updates & round configuration',
+      unassignedUpdateErr?.message || unassignedRoundsErr?.message
+    );
+
+    // INT-HCK-49: Ordinary admin attempting to assign another admin in create_hackathon_draft is rejected fail-closed
+    const { error: rogueAssignErr } = await managerClient.rpc('create_hackathon_draft', {
+      ...draftPayload1,
+      p_slug: `rogue-assign-${runId}`,
+      p_in_charge_admin_id: manager2UserId,
+    });
+
+    assert(
+      Boolean(rogueAssignErr && rogueAssignErr.message.includes('only Super Admins can assign a different in-charge admin')),
+      'INT-HCK-49',
+      'Ordinary admin attempting to assign another admin in create_hackathon_draft is rejected fail-closed',
+      rogueAssignErr?.message
+    );
+
+    // INT-HCK-50: Super Admin can explicitly assign another admin (manager2) in create_hackathon_draft, and assigned admin can manage it
+    const { data: saAssignedDraft, error: saAssignedDraftErr } = await superAdminClient.rpc('create_hackathon_draft', {
+      ...draftPayload1,
+      p_slug: `sa-assigned-m2-${runId}`,
+      p_in_charge_admin_id: manager2UserId,
+    });
+    const m2HackathonId = (saAssignedDraft as { id?: string })?.id;
+    if (m2HackathonId) cleanupHackathonIds.push(m2HackathonId);
+
+    // Verify manager2 can configure rounds on their assigned hackathon (event window is day 6 to day 8)
+    const { error: m2ConfigErr } = await manager2Client.rpc('configure_hackathon_rounds', {
+      p_hackathon_id: m2HackathonId!,
+      p_rounds: [
+        {
+          round_number: 1,
+          name: 'Manager 2 Round 1',
+          start_at: new Date(Date.now() + 86400000 * 6.2).toISOString(),
+          end_at: new Date(Date.now() + 86400000 * 7.5).toISOString(),
+          is_final_round: true,
+        },
+      ],
+    });
+
+    assert(
+      !saAssignedDraftErr && Boolean(m2HackathonId) && !m2ConfigErr,
+      'INT-HCK-50',
+      'Super Admin can assign manager2 in create_hackathon_draft, and manager2 successfully configures rounds',
+      saAssignedDraftErr?.message || m2ConfigErr?.message
+    );
+
+    // INT-HCK-51: Independent round schedule override (override_round_schedule RPC)
+    // Fetch round 1 from h1Id (which has window day 6.1 to day 6.9 within event window day 6 to day 8)
+    const { data: h1Rounds } = await adminClient
+      .from('hackathon_rounds')
+      .select('id, round_number, start_at, end_at')
+      .eq('hackathon_id', h1Id!)
+      .order('round_number', { ascending: true });
+
+    const targetRound = h1Rounds?.[0];
+    const newRoundEnd = new Date(Date.now() + 86400000 * 6.95).toISOString();
+
+    const { data: roundOverrideRes, error: roundOverrideErr } = await managerClient.rpc('override_round_schedule', {
+      p_round_id: targetRound?.id,
+      p_new_start_at: targetRound?.start_at,
+      p_new_end_at: newRoundEnd,
+      p_reason: 'Inclement weather extended round submission period',
+    });
+
+    // Check invalid reason length rejected (< 5 chars)
+    const { error: badReasonErr } = await managerClient.rpc('override_round_schedule', {
+      p_round_id: targetRound?.id,
+      p_new_start_at: targetRound?.start_at,
+      p_new_end_at: newRoundEnd,
+      p_reason: 'bad',
+    });
+
+    assert(
+      !roundOverrideErr &&
+        Boolean(roundOverrideRes && (roundOverrideRes as { success?: boolean }).success) &&
+        Boolean(badReasonErr && badReasonErr.message.includes('meaningful justification of at least 5 characters')),
+      'INT-HCK-51',
+      'Independent round schedule override updates round with mandatory reason >= 5 characters',
+      roundOverrideErr?.message || badReasonErr?.message
+    );
+
+    // INT-HCK-52: Stage pause and manual resumption (pause_hackathon_round and resume_hackathon_round RPCs)
+    const { data: pauseRes, error: pauseErr } = await managerClient.rpc('pause_hackathon_round', {
+      p_round_id: targetRound?.id,
+      p_reason: 'Infrastructure investigation required',
+    });
+
+    // Pausing again is idempotent
+    const { data: pauseAgainRes, error: pauseAgainErr } = await managerClient.rpc('pause_hackathon_round', {
+      p_round_id: targetRound?.id,
+      p_reason: 'Duplicate pause call',
+    });
+
+    // Rescheduling alone leaves round paused (no silent resumption)
+    const rescheduledEnd = new Date(Date.now() + 86400000 * 6.96).toISOString();
+    await managerClient.rpc('override_round_schedule', {
+      p_round_id: targetRound?.id,
+      p_new_start_at: targetRound?.start_at,
+      p_new_end_at: rescheduledEnd,
+      p_reason: 'Rescheduling while paused must not silently resume',
+    });
+    const { data: roundStillPaused } = await adminClient
+      .from('hackathon_rounds')
+      .select('status')
+      .eq('id', targetRound?.id)
+      .single();
+
+    // Resume round with future end time
+    const resumedEnd = new Date(Date.now() + 86400000 * 6.98).toISOString();
+    const { data: resumeRes, error: resumeErr } = await managerClient.rpc('resume_hackathon_round', {
+      p_round_id: targetRound?.id,
+      p_new_end_at: resumedEnd,
+      p_reason: 'Infrastructure restored, resumed round submissions',
+    });
+
+    assert(
+      !pauseErr &&
+        (pauseRes as { status?: string })?.status === 'paused' &&
+        !pauseAgainErr &&
+        (pauseAgainRes as { message?: string })?.message === 'Round is already paused.' &&
+        roundStillPaused?.status === 'paused' &&
+        !resumeErr &&
+        (resumeRes as { status?: string })?.status === 'open',
+      'INT-HCK-52',
+      'Stage pause sets status to paused idempotently, rescheduling preserves paused state, and only explicit resume reopens stage',
+      pauseErr?.message || resumeErr?.message
+    );
+
+    // INT-HCK-53: Plan A Conflict Guard: active deletion job rejects deadline extension with 55P03; terminal status allows it
+    const activeJobId = '00000000-0000-0000-0000-000000006999';
+    await adminClient.from('storage_deletion_queue').insert({
+      id: activeJobId,
+      event_id: h1Id!,
+      bucket_id: 'submission-evidence',
+      object_path: `evidence/active_conflict_${runId}.pdf`,
+      target_type: 'submission_evidence',
+      target_id: '00000000-0000-0000-0000-000000000001',
+      retention_deadline_at: new Date(Date.now() - 1000 * 60).toISOString(),
+      status: 'claimed',
+    });
+
+    const newExtDeadline = new Date(Date.now() + 86400000 * 5.8).toISOString();
+    const { error: planAGuardErr } = await managerClient.rpc('override_hackathon_deadline', {
+      p_hackathon_id: h1Id!,
+      p_new_deadline: newExtDeadline,
+      p_reason: 'Attempting extension during active evidence deletion',
+    });
+
+    // Mark job completed to resolve Plan A guard
+    await adminClient.from('storage_deletion_queue').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', activeJobId);
+
+    const { error: planAResolvedErr } = await managerClient.rpc('override_hackathon_deadline', {
+      p_hackathon_id: h1Id!,
+      p_new_deadline: newExtDeadline,
+      p_reason: 'Extending registration now that evidence deletion completed',
+    });
+
+    assert(
+      Boolean(planAGuardErr && (planAGuardErr.code === '55P03' || planAGuardErr.message.includes('Plan A guard'))) &&
+        !planAResolvedErr,
+      'INT-HCK-53',
+      'Plan A guard rejects deadline extension with 55P03 while deletion active; succeeds once deletion completes',
+      planAGuardErr?.message || planAResolvedErr?.message
+    );
+
+    // Clean up mock deletion job
+    await adminClient.from('storage_deletion_queue').delete().eq('id', activeJobId);
+
+    // INT-HCK-54: Evidence retention integration (enqueue_hackathon_evidence_retention RPC)
+    // For h1Id (which concludes in future), enqueue returns eligible = false
+    const { data: retIneligibleRes, error: retIneligibleErr } = await managerClient.rpc('enqueue_hackathon_evidence_retention', {
+      p_hackathon_id: h1Id!,
+    });
+
+    // Create an expired hackathon (ended 8 days ago) to test eligible retention enqueue
+    const expiredHId = '00000000-0000-0000-0000-000000006988';
+    cleanupHackathonIds.push(expiredHId);
+    await adminClient.from('hackathons').insert({
+      id: expiredHId,
+      title: `Expired Event ${runId}`,
+      slug: `expired-event-${runId}`,
+      description: 'Concluded 8 days ago',
+      organizer: 'CSE Dept',
+      mode: 'online',
+      status: 'completed',
+      registration_start_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+      registration_end_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+      event_start_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
+      event_end_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString(),
+      created_by: saLogin.user.id,
+      in_charge_admin_id: managerUserId,
+    });
+
+    const { data: retEligibleRes, error: retEligibleErr } = await managerClient.rpc('enqueue_hackathon_evidence_retention', {
+      p_hackathon_id: expiredHId,
+    });
+
+    assert(
+      !retIneligibleErr &&
+        Boolean(retIneligibleRes && (retIneligibleRes as { eligible?: boolean }).eligible === false) &&
+        !retEligibleErr &&
+        Boolean(retEligibleRes && (retEligibleRes as { eligible?: boolean }).eligible === true),
+      'INT-HCK-54',
+      'Evidence retention returns eligible: false for active event, and eligible: true after 7 days post event end',
+      retIneligibleErr?.message || retEligibleErr?.message
+    );
   } finally {
     // Teardown created test hackathons
     for (const hId of cleanupHackathonIds) {
@@ -1198,7 +1489,7 @@ async function runHackathonManagementTests() {
   console.log(`Results: ${passed}/${total} assertions passed.`);
   console.log(`============================================================`);
 
-  if (passed !== total || total !== 47) {
+  if (passed !== total || total !== 54) {
     process.exit(1);
   }
 }

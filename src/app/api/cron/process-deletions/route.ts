@@ -60,6 +60,21 @@ export async function POST(request: NextRequest) {
   }
 
   // --------------------------------------------------------------------------
+  // STEP 1.5: Scan & Enqueue Expired Hackathon Evidence (7 Days Post Event-End)
+  // --------------------------------------------------------------------------
+  let enqueuedEvidenceJobs = 0;
+  try {
+    const { data: scanData, error: scanError } = await adminClient.rpc(
+      'scan_and_enqueue_expired_hackathons_evidence' as never
+    );
+    if (!scanError && scanData) {
+      enqueuedEvidenceJobs = (scanData as { jobs_enqueued?: number }).jobs_enqueued || 0;
+    }
+  } catch (err) {
+    console.warn('[process-deletions] Evidence retention scan warning:', err);
+  }
+
+  // --------------------------------------------------------------------------
   // STEP 2: Claim & Dispatch Deletions (Phase 4 Root-First Leased Batch)
   // --------------------------------------------------------------------------
   const { data: claimedData, error: claimError } = await adminClient.rpc(
@@ -226,6 +241,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     success: true,
     quarantinedCount,
+    enqueuedEvidenceJobs,
     dispatched: {
       claimed: claimedJobs.length,
       completed: dispatchedCompletedCount,

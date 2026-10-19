@@ -1,16 +1,16 @@
-# Graph Report - HackLeague  (2026-10-13)
+# Graph Report - HackLeague  (2026-10-18)
 
 ## Corpus Check
-- 104 files · ~116,260 words
+- 155 files · ~242,318 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 825 nodes · 1165 edges · 65 communities (59 shown, 6 thin omitted)
+- 1305 nodes · 2149 edges · 119 communities (112 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8d549d08`
+- Built from commit: `1a4c7fa2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -24,7 +24,7 @@
 - 7. Detailed Implementation Sequence
 - NMIT HackLeague
 - NMIT HackLeague — Phase 2 Implementation Plan
-- verifications/page.tsx
+- hackathon.ts
 - E.3 Content, Status & Feedback Primitives
 - layout.tsx
 - eslint.config.mjs
@@ -32,13 +32,13 @@
 - postcss.config.mjs
 - showcase/page.tsx
 - tailwind.config.ts
-- NMIT HackLeague --- Development Phases
+- upload-service.ts
 - D.1 Color Token Architecture & Mathematically Verified Contrast Ratios
 - 6. Table-by-Table Schema Specification
 - preview/layout.tsx
 - NMIT HackLeague — Phase 3 Implementation Plan
 - 19.1 Structured Validation Suites (10 Suites)
-- database.ts
+- auth.ts
 - 2. Stage A Corrections Implemented
 - 15.2 Parameterless Security Definer RLS Helper Definitions
 - F. Shell and Route Architecture
@@ -58,8 +58,8 @@
 - 1. Executive Summary
 - 2. Repository and Architecture Findings
 - 8. Constraint, Index, and Timestamp Strategy
-- createClient
 - auth-actions.ts
+- hackathon-management-actions.ts
 - 3. Critical Security & Integrity Boundary Audit
 - NMIT HackLeague — Phase 3 Final Workspace Verification Report
 - NMIT HackLeague — Phase 4 Implementation Plan
@@ -80,35 +80,88 @@
 - 5. Phase 1 Scope and Exclusions
 - 9. Environment and Security Plan
 - 4. Student Authentication & Registration Architecture
+- 6.3 Rigorous Advisory-Lock Concurrency & Dual Identity-Plus-Email Exclusivity
+- NMIT HackLeague — Phase 5 Implementation Plan
+- 15. Execution Sequence
+- 8.1 Comprehensive Schema Audit of Existing Controls & Evaluation
+- 5. Initial Super Admin Provisioning & Disaster Recovery
+- 14. Detailed Test Matrix
+- provision-super-admin.ts
+- 17. Risks, Assumptions and Unresolved Decisions
+- 4. Authorization Model
+- 7. Server-Side Enforcement Design
+- 9. UI Implementation & Navigation Boundaries
+- 13. Database Migration Sequence
+- 1. Executive Summary
+- NMIT HackLeague --- Project Rules & Source of Truth
+- database.ts
+- admin-verification-actions.ts
+- onboarding-actions.ts
+- NMIT HackLeague — Phase 6 Implementation Plan
+- createClient
+- 13. Least-Privilege Public Discovery Architecture, Column Privacy & Access Reconciliation
+- 24. Ordered Implementation Stages with Completion Gates
+- 20.1 Visual Inspection Checklists
+- 12. PostgreSQL Schema Changes & Exact Next Migration Filename
+- 7.1 Admin Hackathon Management Dashboard (`/admin/hackathons`)
+- 19. Integration & Regression Test Matrix (`tests/integration/hackathon-management.test.ts`)
+- 10. Deadline Enforcement & Authorized Override Workflow
+- 3. Repository Inspection Findings (with Actual File Paths)
+- 11. Round Configuration Model & Invariant Review
+- 16. Application File-by-File Implementation Plan
+- 21. Migration & Data Safety Discipline
+- 2. Phase 6 Objective & Authoritative Scope
+- 4. Existing Schema & Application Components to Reuse
+- 5. Confirmed Gaps & Proposed Changes
+- 8. Lifecycle State Machine & Complete Transition Specification
+- 9. Authoritative Registration-State & Deadline Contract
+- admin-shell.tsx
+- server.ts
+- PostgresSession
+- NMIT HackLeague --- Development Phases
+- verify/page.tsx
+- Phase 4 --- Authentication and student onboarding
+- Phase 5 --- Role-based authorization and admin management
+- Phase 6 --- Hackathon management
+- Phase 7 --- Team formation and registration
+- Phase 8 --- Round tracking and evidence review
+- Phase 9 --- Points, achievements, and leaderboard
+- Phase 12 --- Notifications and reliability
+- Phase 1 --- Project foundation and GitHub setup
+- Phase 10 --- Student profiles and dashboards
+- Phase 11 --- Analytics, audit logs, and exports
+- Phase 13 --- End-to-end QA, security, and launch
+- Phase 2 --- UI design system and page shells
+- Phase 3 --- Supabase setup and database design
 
 ## God Nodes (most connected - your core abstractions)
-1. `createClient()` - 42 edges
+1. `createClient()` - 81 edges
 2. `NMIT HackLeague — Phase 3 Implementation Plan` - 30 edges
-3. `NMIT HackLeague --- Project Rules & Source of Truth` - 21 edges
-4. `NMIT HACKLEAGUE — PHASE 1 IMPLEMENTATION PLAN` - 19 edges
-5. `NMIT HackLeague --- Development Phases` - 18 edges
-6. `NMIT HackLeague — Phase 2 Implementation Plan` - 18 edges
-7. `NMIT HackLeague --- Development Phases` - 18 edges
-8. `compilerOptions` - 16 edges
-9. `6. Table-by-Table Schema Specification` - 16 edges
-10. `NMIT HackLeague — Phase 4 Implementation Plan` - 15 edges
+3. `NMIT HackLeague — Phase 6 Implementation Plan` - 29 edges
+4. `Button` - 25 edges
+5. `requireAdmin()` - 24 edges
+6. `Alert()` - 23 edges
+7. `NMIT HackLeague — Phase 5 Implementation Plan` - 22 edges
+8. `NMIT HackLeague --- Project Rules & Source of Truth` - 22 edges
+9. `NMIT HackLeague --- Project Rules & Source of Truth` - 21 edges
+10. `NMIT HACKLEAGUE — PHASE 1 IMPLEMENTATION PLAN` - 19 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `signOutAction()` --calls--> `createClient()`  [EXTRACTED]
-  src/actions/auth-actions.ts → src/lib/supabase/server.ts
-- `loginAction()` --calls--> `createClient()`  [EXTRACTED]
-  src/actions/auth-actions.ts → src/lib/supabase/server.ts
-- `signupAction()` --calls--> `checkRateLimit()`  [EXTRACTED]
-  src/actions/auth-actions.ts → src/lib/auth/rate-limiter.ts
-- `signupAction()` --calls--> `createClient()`  [EXTRACTED]
-  src/actions/auth-actions.ts → src/lib/supabase/server.ts
-- `SignupPage()` --calls--> `signupAction()`  [EXTRACTED]
-  src/app/signup/page.tsx → src/actions/auth-actions.ts
+- `runHackathonManagementTests()` --calls--> `computeRegistrationState()`  [EXTRACTED]
+  tests/integration/hackathon-management.test.ts → src/lib/hackathons/registration-state.ts
+- `runPhase4IntegrationTests()` --calls--> `isAllowedPushDomain()`  [EXTRACTED]
+  tests/integration/phase4-operational-safety.test.ts → src/lib/notifications/endpoint-validator.ts
+- `runPhase4IntegrationTests()` --calls--> `isPrivateOrReservedIp()`  [EXTRACTED]
+  tests/integration/phase4-operational-safety.test.ts → src/lib/notifications/endpoint-validator.ts
+- `runPhase4IntegrationTests()` --calls--> `validatePushEndpoint()`  [EXTRACTED]
+  tests/integration/phase4-operational-safety.test.ts → src/lib/notifications/endpoint-validator.ts
+- `hasActivePushSubscription()` --calls--> `createAdminClient()`  [EXTRACTED]
+  src/lib/notifications/push-service.ts → src/lib/supabase/admin.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (65 total, 6 thin omitted)
+## Communities (119 total, 7 thin omitted)
 
 ### Community 0 - "NMIT HackLeague --- Development Phases"
 Cohesion: 0.04
@@ -139,28 +192,28 @@ Cohesion: 0.14
 Nodes (14): 7. Detailed Implementation Sequence, Step 10: Package Scripts and Tooling Execution, Step 11: Root `README.md` Creation, Step 12: Lean GitHub Actions CI Workflow, Step 13: Cryptographic Audit, Explicit File Staging, Fail-Closed Manifest Audit, Full Diff Inspection, Initial Commit, and Remote Push, Step 1: Reverify Baseline and Switch Non-Destructively to `v1`, Step 2: Establish Trustworthy `rules.md` Baseline & Cryptographic Roadmap Synchronization, Step 3: Robust `.gitignore` Creation and Safe Non-Destructive Verification (+6 more)
 
 ### Community 7 - "NMIT HackLeague"
-Cohesion: 0.22
-Nodes (8): Available Scripts, Branching Policy, Current Status: Phase 1 Baseline, Getting Started, Installation, NMIT HackLeague, Prerequisites, Project Overview
+Cohesion: 0.12
+Nodes (15): Available Scripts, Branching Policy, Cross-System Failure & Quarantined Orphan Cleanup, Current Status: Phase 1 Baseline, Environment Prerequisites, Getting Started, Idempotent Retry & Elevation Prevention, Installation (+7 more)
 
 ### Community 8 - "NMIT HackLeague — Phase 2 Implementation Plan"
 Cohesion: 0.22
 Nodes (8): C. Requirements Traceability Matrix, G. File-by-File Implementation Manifest, J. Acceptance Criteria, M. Risks, Dependencies, and Mitigations, NMIT HackLeague — Phase 2 Implementation Plan, O. Implementation Sequence (For Authorized Execution), P. Final Readiness Checklist, UI Design System, Branding Integration & Role-Based Page Shells
 
-### Community 9 - "verifications/page.tsx"
-Cohesion: 0.13
-Nodes (16): AdminVerificationsPage(), metadata, AppHeader(), AppHeaderProps, NavItem, NavSection, SidebarNav(), SidebarNavProps (+8 more)
+### Community 9 - "hackathon.ts"
+Cohesion: 0.05
+Nodes (67): configureRoundsAction(), createHackathonDraftAction(), transitionLifecycleAction(), updateHackathonMetadataAction(), HackathonsClient(), HackathonsClientProps, EditHackathonPage(), EditPageProps (+59 more)
 
 ### Community 10 - "E.3 Content, Status & Feedback Primitives"
 Cohesion: 0.09
 Nodes (22): 1. `Badge` (`src/components/ui/badge.tsx`), 1. `BrandLogo` (`src/components/ui/brand-logo.tsx`), 1. `Dialog` (`src/components/ui/dialog.tsx`), 1. `Input` (`src/components/ui/input.tsx`), 1. Shared Button Style Helper (`src/components/ui/button.tsx`), 2. `Button` Component (`src/components/ui/button.tsx`), 2. `Card` (`src/components/ui/card.tsx`), 2. `Textarea` (`src/components/ui/textarea.tsx`) (+14 more)
 
 ### Community 15 - "showcase/page.tsx"
-Cohesion: 0.07
-Nodes (49): StudentProfile, VerificationsClientProps, metadata, metadata, metadata, Profile, RejectedClientProps, metadata (+41 more)
+Cohesion: 0.05
+Nodes (74): setAdminActiveStatusAction(), overrideDeadlineAction(), AdminsClientProps, CreateAdminDialog(), CreateAdminDialogProps, DeactivateDialog(), DeactivateDialogProps, EditPermissionsDialog() (+66 more)
 
-### Community 17 - "NMIT HackLeague --- Development Phases"
-Cohesion: 0.04
-Nodes (47): Completion criteria, Completion criteria, Completion criteria, Completion criteria, Completion criteria, Completion criteria, Completion criteria, Completion criteria (+39 more)
+### Community 17 - "upload-service.ts"
+Cohesion: 0.08
+Nodes (46): RFC-1918, POST(), ALLOWED_PUSH_DOMAINS, isAllowedPushDomain(), isPrivateOrReservedIp(), validatePushEndpoint(), ValidationResult, dispatchNotificationToUser() (+38 more)
 
 ### Community 18 - "D.1 Color Token Architecture & Mathematically Verified Contrast Ratios"
 Cohesion: 0.22
@@ -178,9 +231,9 @@ Nodes (22): 13. Audit-Record Model, 18.1 Deterministic Synthetic Auth Fixtures, 
 Cohesion: 0.17
 Nodes (12): 19.1 Structured Validation Suites (10 Suites), 19. Database, RLS, and Storage Test Plan, Suite 10: Migration Drift & Rerun Behavior (`TS-DFT`), Suite 1: Clean Migration Application & Reset (`TS-MIG`), Suite 2: Schema and Constraint Integrity (`TS-INT`), Suite 3: Row-Level Security & Privilege Boundaries (`TS-RLS`), Suite 4: `SECURITY DEFINER` Invocation Boundaries (`TS-SEC`), Suite 5: Super Admin Lifecycle and Disaster Recovery (`TS-ADM`) (+4 more)
 
-### Community 23 - "database.ts"
+### Community 23 - "auth.ts"
 Cohesion: 0.07
-Nodes (34): POST(), StudentPortalPage(), getStudentProfile(), requireApprovedStudent(), requireAuth(), requireStudent(), checkRateLimit(), getClientIpKey() (+26 more)
+Nodes (39): createAdminAction(), fetchEligibleAdminsForReassignmentAction(), reassignHackathonInChargeAdminAction(), updateAdminPermissionsAction(), EditPermissionsForm(), ReassignHackathonForm(), POST(), StorageDeletionJob (+31 more)
 
 ### Community 24 - "2. Stage A Corrections Implemented"
 Cohesion: 0.20
@@ -258,13 +311,13 @@ Nodes (3): 2.1 Git & Branch Inspection, 2.2 Application Stack & Dependency Inspe
 Cohesion: 0.67
 Nodes (3): 8.1 Database Constraints vs. Application Logic, 8.2 Timestamp Standardization, 8. Constraint, Index, and Timestamp Strategy
 
-### Community 43 - "createClient"
-Cohesion: 0.10
-Nodes (35): fetchPendingVerificationsAction(), getAdminCollegeIdPreviewUrlAction(), reviewStudentAction(), StudentProfile, ActionResult, getCollegeIdPreviewUrlAction(), replaceCollegeIdAction(), submitProfileForReviewAction() (+27 more)
+### Community 43 - "auth-actions.ts"
+Cohesion: 0.18
+Nodes (17): loginAction(), signupAction(), LoginCard(), SignupPage(), ACADEMIC_YEARS, BRANCHES, ForgotPasswordInput, forgotPasswordSchema (+9 more)
 
-### Community 44 - "auth-actions.ts"
-Cohesion: 0.11
-Nodes (25): forgotPasswordAction(), loginAction(), resendOtpAction(), resetPasswordAction(), signOutAction(), signupAction(), verifyOtpAction(), ForgotPasswordPage() (+17 more)
+### Community 44 - "hackathon-management-actions.ts"
+Cohesion: 0.14
+Nodes (18): HackathonFormProps, DeadlineOverrideData, deadlineOverrideSchema, hackathonBaseSchema, HackathonFormData, hackathonFormSchema, hackathonModeSchema, LifecycleTransitionData (+10 more)
 
 ### Community 45 - "3. Critical Security & Integrity Boundary Audit"
 Cohesion: 0.08
@@ -346,22 +399,230 @@ Nodes (3): 9.1 Environment Variable Scope by Phase, 9.2 Secret Boundary Rules, 9
 Cohesion: 0.67
 Nodes (3): 4.1 Registration Workflow: Atomic Trigger-Based Pattern, 4.2 Decoupled Verification & Profile State, 4. Student Authentication & Registration Architecture
 
+### Community 65 - "6.3 Rigorous Advisory-Lock Concurrency & Dual Identity-Plus-Email Exclusivity"
+Cohesion: 0.06
+Nodes (32): 1. The Global Lock Hierarchy, 1. Why Client-Side UI Pre-Checks Are Not a Security Boundary, 1. Why Per-Table Unique Constraints Cannot Enforce Cross-Table Invariants, 2. Atomic Database Enforcement in `set_admin_active_status`, 2. Detailed Concurrency Scenario Proofs, 2. The Cross-Role Concurrency Gap in Revision 1.3.0, 3. Formal Deadlock-Free Proof via Directed Acyclic Wait-For Graph (DAG), 3. The Dual Identity-Plus-Email Advisory Lock Protocol (+24 more)
+
+### Community 66 - "NMIT HackLeague — Phase 5 Implementation Plan"
+Cohesion: 0.15
+Nodes (12): 10.1 Audit Logging Integrity Principles, 10. Audit Logging Architecture, 11. Security and Threat Model, 12. File-by-File Implementation Plan, 16. Acceptance Criteria Checklist, 18. Final Verification Protocol, 19. Completion Report Template, 2. Existing Architecture Audit (+4 more)
+
+### Community 67 - "15. Execution Sequence"
+Cohesion: 0.29
+Nodes (7): 15. Execution Sequence, Unit 1: Canonical Permission Catalog & Types, Unit 2: PostgreSQL Migration & pgTAP Tests, Unit 3: Extended Server Guards & Authorization Helpers, Unit 4: Super Admin Management Server Actions, Unit 5: Admin Management UI & Dynamic Shells, Unit 6: End-to-End Integration Tests & Verification Gates
+
+### Community 68 - "8.1 Comprehensive Schema Audit of Existing Controls & Evaluation"
+Cohesion: 0.33
+Nodes (6): 1. Detailed Table-by-Table Control Inventory, 2. Evaluation of `FORCE ROW LEVEL SECURITY`, 3. Security Definer RPC & Helper Guarantees & Boundary Architecture, 8.1 Comprehensive Schema Audit of Existing Controls & Evaluation, 8.2 Migration: `20261013000002_phase5_admin_management_and_rbac.sql`, 8. Hardened PostgreSQL & RLS Specification
+
+### Community 69 - "5. Initial Super Admin Provisioning & Disaster Recovery"
+Cohesion: 0.33
+Nodes (6): 5.1 Reconciled Bootstrap Architecture & Database Access Boundary, 5.2 Explicit Resolution of the Seven Provisioning Invariants, 5.3 Explicit Trust Boundaries & Service-Role Partitioning, 5.4 Existing Disaster Recovery Verification, 5. Initial Super Admin Provisioning & Disaster Recovery, Prerequisites for Safe Out-of-Band Bootstrap Execution:
+
+### Community 70 - "14. Detailed Test Matrix"
+Cohesion: 0.40
+Nodes (5): 14.1 Database pgTAP Tests (`supabase/tests/12_ts_adm_mgmt.sql`) — 60 Assertions, 14.2 Application Integration Tests (`tests/integration/admin-management.test.ts`) — Suite 1: Admin Governance (26 Tests), 14.3 Provisioning, Concurrency & Bootstrap/Recovery Security Matrix (20 Tests), 14.4 Comprehensive Mapping of the 14 Mandatory Audit Testing Areas, 14. Detailed Test Matrix
+
+### Community 71 - "provision-super-admin.ts"
+Cohesion: 0.50
+Nodes (4): bootstrapSuperAdmin(), CliArgs, envPath, parseArgs()
+
+### Community 72 - "17. Risks, Assumptions and Unresolved Decisions"
+Cohesion: 0.50
+Nodes (4): 17.1 Verified Architectural Assumptions, 17.2 Documented Operational Considerations, 17.3 Settled Product Decisions from Requirements, 17. Risks, Assumptions and Unresolved Decisions
+
+### Community 73 - "4. Authorization Model"
+Cohesion: 0.50
+Nodes (4): 4.1 Role Hierarchy & Taxonomy, 4.2 The Canonical 11-Key Permission Catalog, 4.3 Evaluation Rules & Default-Deny Semantics, 4. Authorization Model
+
+### Community 74 - "7. Server-Side Enforcement Design"
+Cohesion: 0.50
+Nodes (4): 7.1 Server Guards Architecture (`src/lib/auth/guards.ts`), 7.2 Exact Enforcement Boundaries, 7.3 Operational Realities of Account Deactivation, 7. Server-Side Enforcement Design
+
+### Community 75 - "9. UI Implementation & Navigation Boundaries"
+Cohesion: 0.40
+Nodes (5): 9.1 Phase 5 Functional Route Boundaries, 9.2 Page & Component Breakdown, 9.3 Dynamic Shell Integration & Mandatory Web Push Gate, 9. UI Implementation & Navigation Boundaries, Component Behavioral Specifications:
+
+### Community 76 - "13. Database Migration Sequence"
+Cohesion: 0.67
+Nodes (3): 13. Database Migration Sequence, Migration 13 Scope:, Migration Verification Steps
+
+### Community 77 - "1. Executive Summary"
+Cohesion: 0.67
+Nodes (3): 1.1 Purpose and Architectural Objective, 1.2 Core Security Invariants, 1. Executive Summary
+
+### Community 78 - "NMIT HackLeague --- Project Rules & Source of Truth"
+Cohesion: 0.04
+Nodes (46): 10. Student profiles and participation history, 11. Points and leaderboard, 12. Profile change requests, 13. Admin dashboard, Data & Reports, and exports, 14. Audit logs and retention, 15. UI/UX design rules --- MUST FOLLOW, 16. Website notifications, 17. Security and engineering standards (+38 more)
+
+### Community 79 - "database.ts"
+Cohesion: 0.13
+Nodes (14): IMPORTANT: Do NOT use supabase.auth.getSession(). It is insecure on the server., updateSession(), config, middleware(), CompositeTypes, Constants, Database, DatabaseWithoutInternals (+6 more)
+
+### Community 80 - "admin-verification-actions.ts"
+Cohesion: 0.18
+Nodes (11): fetchPendingVerificationsAction(), getAdminCollegeIdPreviewUrlAction(), reviewStudentAction(), StudentProfile, ActionResult, getCollegeIdPreviewUrlAction(), AdminVerificationsPage(), metadata (+3 more)
+
+### Community 81 - "onboarding-actions.ts"
+Cohesion: 0.26
+Nodes (11): replaceCollegeIdAction(), submitProfileForReviewAction(), uploadCollegeIdAction(), uploadProfilePhotoAction(), OnboardingClient(), OnboardingClientProps, Profile, Profile (+3 more)
+
+### Community 82 - "NMIT HackLeague — Phase 6 Implementation Plan"
+Cohesion: 0.13
+Nodes (14): 14. Permission Checks for Every Operation, 15. Audit Event Matrix, 17.1 Zod Validation Schemas (`src/lib/validation/hackathon-schemas.ts`), 17. Validation Rules & Error Handling, 18. PostgreSQL / pgTAP Test Matrix (Suite 13: `13_ts_hck_mgmt.sql`), 1. Document Metadata & Revision, 22. Dependencies & Cross-Phase Contracts, 23. Explicit Non-Goals (Strictly Out of Scope for Phase 6) (+6 more)
+
+### Community 83 - "createClient"
+Cohesion: 0.10
+Nodes (21): fetchAdminsAction(), forgotPasswordAction(), resetPasswordAction(), signOutAction(), AdminsClient(), AdminManagementPage(), metadata, POST() (+13 more)
+
+### Community 84 - "13. Least-Privilege Public Discovery Architecture, Column Privacy & Access Reconciliation"
+Cohesion: 0.20
+Nodes (10): 13.1 Architectural Principles: Why RLS Alone Was Insufficient & The Public Projection Model, 13.2 PostgreSQL View Security Semantics & Enforcement, 13.3 Reconciled 5-Role Effective Access Matrix, 13.4 Comprehensive Schema Audit & Field-by-Field Privacy Justification, 13.5 Route Guard & Server Authorization Reconciliation, 13.6 Preservation of Approved Decisions & Safety Invariants, 13. Least-Privilege Public Discovery Architecture, Column Privacy & Access Reconciliation, Table 1: `public.hackathons` Schema Field Audit (25 Total Columns) (+2 more)
+
+### Community 85 - "24. Ordered Implementation Stages with Completion Gates"
+Cohesion: 0.22
+Nodes (9): 24. Ordered Implementation Stages with Completion Gates, Stage 1: Schema, Privilege Revocations & RPC Migration, Stage 2: Validation Schemas, Domain Types & Server Actions, Stage 3: Admin Hackathon Dashboard & Lifecycle Controls, Stage 4: Create/Edit Wizard & Round Configurator, Stage 5: Student Discovery & Event Detail Pages, Stage 6: Deadline Override & Shell Navigation Wiring, Stage 7: Automated pgTAP Suite 13 & Integration Tests (+1 more)
+
+### Community 86 - "20.1 Visual Inspection Checklists"
+Cohesion: 0.29
+Nodes (7): 20.1 Visual Inspection Checklists, 20.2 Responsive Viewport Verification, 20. UI & Browser Verification Plan, Admin Dashboard (`/admin/hackathons`), Create / Edit Form (`/admin/hackathons/new`, `/admin/hackathons/[id]/edit`), Round Configurator (`/admin/hackathons/[id]/rounds`), Student Browse & Details (`/student/hackathons`, `/student/hackathons/[slug]`)
+
+### Community 87 - "12. PostgreSQL Schema Changes & Exact Next Migration Filename"
+Cohesion: 0.33
+Nodes (6): 12.1 Exact Next Migration Filename, 12.2 DDL Specification for Migration 14, 12.3 Transactional Lifecycle Transition Procedure (`transition_hackathon_lifecycle`), 12.4 Draft Creation Procedure (`create_hackathon_draft`), 12.5 Metadata Update Procedure with Round Boundary Protection (`update_hackathon_metadata`), 12. PostgreSQL Schema Changes & Exact Next Migration Filename
+
+### Community 88 - "7.1 Admin Hackathon Management Dashboard (`/admin/hackathons`)"
+Cohesion: 0.33
+Nodes (6): 7.1 Admin Hackathon Management Dashboard (`/admin/hackathons`), 7.2 Unified Creation & Publishing Workflow, 7. Admin Dashboard & Event-Form Behavior, A. Header & Key Performance Indicators (KPIs), B. Filter & Search Controls, C. Hackathons Table Columns
+
+### Community 89 - "19. Integration & Regression Test Matrix (`tests/integration/hackathon-management.test.ts`)"
+Cohesion: 0.40
+Nodes (5): 19. Integration & Regression Test Matrix (`tests/integration/hackathon-management.test.ts`), Suite 1: Hackathon Creation, Editing & Direct-Write Security (10 Tests), Suite 2: Round Configuration & Downstream Integrity (11 Tests), Suite 3: Registration Lifecycle, Deadline Overrides & Invariant Matrix (12 Tests), Suite 4: Public Discovery, Student Visibility, Privacy Projections & Quality Gates (14 Tests)
+
+### Community 90 - "10. Deadline Enforcement & Authorized Override Workflow"
+Cohesion: 0.50
+Nodes (4): 10.1 Allowed Source States & Reopening Rules, 10.2 Approved Policy: Option A — Flexible Override [OWNER APPROVED], 10.3 Procedure Implementation (`override_hackathon_deadline`), 10. Deadline Enforcement & Authorized Override Workflow
+
+### Community 91 - "3. Repository Inspection Findings (with Actual File Paths)"
+Cohesion: 0.50
+Nodes (4): 3.1 Migration Sequence & Database State, 3.2 Downstream Dependent Tables Audited, 3.3 Historical Seed & Test Compatibility Inspection, 3. Repository Inspection Findings (with Actual File Paths)
+
+### Community 92 - "11. Round Configuration Model & Invariant Review"
+Cohesion: 0.67
+Nodes (3): 11.1 Reconciled Invariants & Security Guarantees, 11.2 Transactional Round Configuration Procedure (`configure_hackathon_rounds`), 11. Round Configuration Model & Invariant Review
+
+### Community 93 - "16. Application File-by-File Implementation Plan"
+Cohesion: 0.67
+Nodes (3): 16.1 New Files to Create, 16.2 Existing Files to Extend, 16. Application File-by-File Implementation Plan
+
+### Community 94 - "21. Migration & Data Safety Discipline"
+Cohesion: 0.67
+Nodes (3): 21.1 Preflight Verification & Data Safety, 21.2 Production Environments vs Local Reset, 21. Migration & Data Safety Discipline
+
+### Community 95 - "2. Phase 6 Objective & Authoritative Scope"
+Cohesion: 0.67
+Nodes (3): 2.1 Authoritative Roadmap Scope (Quote from `NMIT_HackLeague_Development_Phases.md`), 2.2 Core Security & Business Invariants for Phase 6, 2. Phase 6 Objective & Authoritative Scope
+
+### Community 96 - "4. Existing Schema & Application Components to Reuse"
+Cohesion: 0.67
+Nodes (3): 4.1 Existing Database Objects to Reuse Unchanged, 4.2 Existing Application Components to Reuse, 4. Existing Schema & Application Components to Reuse
+
+### Community 97 - "5. Confirmed Gaps & Proposed Changes"
+Cohesion: 0.67
+Nodes (3): 5.1 Database Schema Gaps in `public.hackathons`, 5.2 Direct-Write and Read Access Security Gaps Closed in Phase 6, 5. Confirmed Gaps & Proposed Changes
+
+### Community 98 - "8. Lifecycle State Machine & Complete Transition Specification"
+Cohesion: 0.67
+Nodes (3): 8.1 Distinct State Dimensions, 8.2 Complete Lifecycle Transition Matrix (Source × Target), 8. Lifecycle State Machine & Complete Transition Specification
+
+### Community 99 - "9. Authoritative Registration-State & Deadline Contract"
+Cohesion: 0.67
+Nodes (3): 9.1 Database-Evaluated Registration State Function, 9.2 TypeScript Shared Contract (`src/types/hackathon.ts`), 9. Authoritative Registration-State & Deadline Contract
+
+### Community 100 - "admin-shell.tsx"
+Cohesion: 0.23
+Nodes (11): AppHeader(), AppHeaderProps, NavItem, NavSection, SidebarNav(), SidebarNavProps, AdminShellProps, StudentShellProps (+3 more)
+
+### Community 101 - "server.ts"
+Cohesion: 0.26
+Nodes (4): EnablePushContent(), PushGateState, BrandLogo(), BrandLogoProps
+
+### Community 103 - "NMIT HackLeague --- Development Phases"
+Cohesion: 0.25
+Nodes (7): GitHub branch policy summary, Mandatory rules before starting, New-requirements implementation map, NMIT HackLeague --- Development Phases, Open decisions and confirmations required, Revision strategy for completed phases, Standard workflow for every phase and revision
+
+### Community 104 - "verify/page.tsx"
+Cohesion: 0.60
+Nodes (3): resendOtpAction(), verifyOtpAction(), VerifyContent()
+
+### Community 105 - "Phase 4 --- Authentication and student onboarding"
+Cohesion: 0.50
+Nodes (4): Completion criteria, New-requirement revision tasks, Original scope, Phase 4 --- Authentication and student onboarding
+
+### Community 106 - "Phase 5 --- Role-based authorization and admin management"
+Cohesion: 0.50
+Nodes (4): Completion criteria, New-requirement revision tasks, Original scope, Phase 5 --- Role-based authorization and admin management
+
+### Community 107 - "Phase 6 --- Hackathon management"
+Cohesion: 0.50
+Nodes (4): Completion criteria, New-requirement revision tasks, Original scope, Phase 6 --- Hackathon management
+
+### Community 108 - "Phase 7 --- Team formation and registration"
+Cohesion: 0.50
+Nodes (4): Completion criteria, Confirmed workflow, Phase 7 --- Team formation and registration, Scope
+
+### Community 109 - "Phase 8 --- Round tracking and evidence review"
+Cohesion: 0.50
+Nodes (4): Completion criteria, New-requirement revision tasks, Original scope, Phase 8 --- Round tracking and evidence review
+
+### Community 110 - "Phase 9 --- Points, achievements, and leaderboard"
+Cohesion: 0.50
+Nodes (4): Completion criteria, Initial proposed point values, Phase 9 --- Points, achievements, and leaderboard, Scope
+
+### Community 111 - "Phase 12 --- Notifications and reliability"
+Cohesion: 0.50
+Nodes (4): Completion criteria, Important reliability note, Phase 12 --- Notifications and reliability, Scope
+
+### Community 112 - "Phase 1 --- Project foundation and GitHub setup"
+Cohesion: 0.67
+Nodes (3): Completion criteria, Phase 1 --- Project foundation and GitHub setup, Scope
+
+### Community 113 - "Phase 10 --- Student profiles and dashboards"
+Cohesion: 0.67
+Nodes (3): Completion criteria, Phase 10 --- Student profiles and dashboards, Scope
+
+### Community 114 - "Phase 11 --- Analytics, audit logs, and exports"
+Cohesion: 0.67
+Nodes (3): Completion criteria, Phase 11 --- Analytics, audit logs, and exports, Scope
+
+### Community 115 - "Phase 13 --- End-to-end QA, security, and launch"
+Cohesion: 0.67
+Nodes (3): Completion criteria, Phase 13 --- End-to-end QA, security, and launch, Scope
+
+### Community 116 - "Phase 2 --- UI design system and page shells"
+Cohesion: 0.67
+Nodes (3): Completion criteria, Phase 2 --- UI design system and page shells, Scope
+
+### Community 117 - "Phase 3 --- Supabase setup and database design"
+Cohesion: 0.67
+Nodes (3): Completion criteria, Phase 3 --- Supabase setup and database design, Scope
+
 ## Knowledge Gaps
-- **482 isolated node(s):** `config`, `nextConfig`, `name`, `version`, `private` (+477 more)
+- **709 isolated node(s):** `config`, `nextConfig`, `name`, `version`, `private` (+704 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createClient()` connect `createClient` to `verifications/page.tsx`, `auth-actions.ts`, `database.ts`?**
-  _High betweenness centrality (0.012) - this node is a cross-community bridge._
+- **Why does `createClient()` connect `createClient` to `server.ts`, `verify/page.tsx`, `hackathon.ts`, `auth-actions.ts`, `hackathon-management-actions.ts`, `showcase/page.tsx`, `admin-verification-actions.ts`, `onboarding-actions.ts`, `upload-service.ts`, `auth.ts`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Why does `NMIT HackLeague — Phase 3 Implementation Plan` connect `NMIT HackLeague — Phase 3 Implementation Plan` to `12.1 Additive Ledger Rules & Milestone Points`, `10. Admin, Super Admin, and Permission Model`, `14. Row-Level Security (RLS) Policy Matrix`, `1. Executive Summary`, `2. Repository and Architecture Findings`, `8. Constraint, Index, and Timestamp Strategy`, `6. Table-by-Table Schema Specification`, `19.1 Structured Validation Suites (10 Suites)`, `15.2 Parameterless Security Definer RLS Helper Definitions`, `16.1 Storage Deletion Queue Operational Lifecycle & Worker Trust Boundary`, `11.1 Team Formation & Lifecycle Procedures`, `17. Migration Structure and Execution Strategy`?**
-  _High betweenness centrality (0.012) - this node is a cross-community bridge._
-- **Why does `NMIT HackLeague — Phase 2 Implementation Plan` connect `NMIT HackLeague — Phase 2 Implementation Plan` to `K. Verification and Visual QA Plan`, `L. Graphify Update, Diff Inspection and Generated-File Safety`, `A. Executive Summary`, `N. Strict Scope Boundaries`, `H. Official Branding Integration Specification`, `E.3 Content, Status & Feedback Primitives`, `D.1 Color Token Architecture & Mathematically Verified Contrast Ratios`, `F. Shell and Route Architecture`, `B. Repository Baseline`, `I. Responsive and Accessibility Matrix`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+- **Why does `Database` connect `database.ts` to `server.ts`, `hackathon.ts`, `showcase/page.tsx`, `admin-verification-actions.ts`, `onboarding-actions.ts`, `auth.ts`?**
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **What connects `config`, `nextConfig`, `name` to the rest of the system?**
-  _482 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _709 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `NMIT HackLeague --- Development Phases` be split into smaller, more focused modules?**
   _Cohesion score 0.041666666666666664 - nodes in this community are weakly interconnected._
 - **Should `NMIT HackLeague --- Project Rules & Source of Truth` be split into smaller, more focused modules?**

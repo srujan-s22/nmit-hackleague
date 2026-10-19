@@ -617,7 +617,7 @@ isOneToOne: false
 { Args: { "p_action": string,"p_custom_key"?: string }; Returns: boolean
                            },
 "create_hackathon_draft":
-{ Args: { "p_community_url"?: string,"p_description": string,"p_eligibility"?: string,"p_event_end_at": string,"p_event_start_at": string,"p_external_registration_url"?: string,"p_is_solo_allowed"?: boolean,"p_max_team_size"?: number,"p_min_team_size"?: number,"p_mode": string,"p_organizer": string,"p_prizes_detail"?: Json,"p_prizes_summary"?: string,"p_registration_end_at": string,"p_registration_start_at": string,"p_slug": string,"p_tagline"?: string,"p_title": string,"p_venue": string }; Returns: Json
+{ Args: { "p_community_url"?: string,"p_description": string,"p_eligibility"?: string,"p_event_end_at": string,"p_event_start_at": string,"p_external_registration_url"?: string,"p_in_charge_admin_id"?: string,"p_is_solo_allowed"?: boolean,"p_max_team_size"?: number,"p_min_team_size"?: number,"p_mode": string,"p_organizer": string,"p_prizes_detail"?: Json,"p_prizes_summary"?: string,"p_registration_end_at": string,"p_registration_start_at": string,"p_slug": string,"p_tagline"?: string,"p_title": string,"p_venue": string }; Returns: Json
                            },
 "create_team":
 { Args: { "p_hackathon_id": string,"p_team_name": string }; Returns: Json
@@ -636,6 +636,9 @@ isOneToOne: false
                            },
 "deactivate_push_subscription":
 { Args: { "p_device_fingerprint": string }; Returns: Json
+                           },
+"enqueue_hackathon_evidence_retention":
+{ Args: { "p_hackathon_id": string }; Returns: Json
                            },
 "enqueue_storage_deletion_job":
 { Args: { "p_bucket_id": string,"p_object_path": string,"p_target_id": string,"p_target_type": string }; Returns: string
@@ -664,6 +667,12 @@ isOneToOne: false
 "override_hackathon_deadline":
 { Args: { "p_hackathon_id": string,"p_new_deadline": string,"p_reason": string }; Returns: Json
                            },
+"override_round_schedule":
+{ Args: { "p_new_end_at": string,"p_new_start_at": string,"p_reason": string,"p_round_id": string }; Returns: Json
+                           },
+"pause_hackathon_round":
+{ Args: { "p_reason": string,"p_round_id": string }; Returns: Json
+                           },
 "provision_admin_profile":
 { Args: { "p_auth_uid": string,"p_email": string,"p_full_name": string,"p_permissions": (string)[] }; Returns: Json
                            },
@@ -690,11 +699,17 @@ isOneToOne: false
 "resolve_reconciliation_job":
 { Args: { "p_http_status": number,"p_job_id": string,"p_lease_token": string }; Returns: undefined
                            },
+"resume_hackathon_round":
+{ Args: { "p_new_end_at"?: string,"p_reason"?: string,"p_round_id": string }; Returns: Json
+                           },
 "reverse_points_award":
 { Args: { "p_original_ledger_id": string,"p_reason": string }; Returns: string
                            },
 "review_student_registration":
 { Args: { "p_decision": string,"p_rejection_reason"?: string,"p_student_id": string }; Returns: Json
+                           },
+"scan_and_enqueue_expired_hackathons_evidence":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "set_admin_active_status":
 { Args: { "p_is_active": boolean,"p_reason": string,"p_target_admin_id": string }; Returns: Json

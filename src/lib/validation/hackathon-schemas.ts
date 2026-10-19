@@ -61,6 +61,12 @@ export const hackathonBaseSchema = z.object({
     .url('Must be a valid URL starting with http:// or https://')
     .optional()
     .or(z.literal('')),
+  inChargeAdminId: z
+    .string()
+    .uuid('Invalid admin UUID format.')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
 });
 
 // Refined schema for full form validation
@@ -172,3 +178,37 @@ export const lifecycleTransitionSchema = z.object({
 });
 
 export type LifecycleTransitionData = z.infer<typeof lifecycleTransitionSchema>;
+
+export const roundScheduleOverrideSchema = z.object({
+  hackathonId: z.string().uuid('Invalid hackathon UUID format.'),
+  roundId: z.string().uuid('Invalid round UUID format.'),
+  newStartAt: z.string().datetime({ message: 'Invalid start time.' }),
+  newEndAt: z.string().datetime({ message: 'Invalid end time.' }),
+  reason: z
+    .string()
+    .trim()
+    .min(5, 'A meaningful justification of at least 5 characters is mandatory.')
+    .max(500, 'Reason cannot exceed 500 characters.'),
+}).refine(
+  (data) => new Date(data.newEndAt) > new Date(data.newStartAt),
+  {
+    message: 'Round end time must be after round start time.',
+    path: ['newEndAt'],
+  }
+);
+
+export type RoundScheduleOverrideData = z.infer<typeof roundScheduleOverrideSchema>;
+
+export const roundPauseResumeSchema = z.object({
+  hackathonId: z.string().uuid('Invalid hackathon UUID format.'),
+  roundId: z.string().uuid('Invalid round UUID format.'),
+  action: z.enum(['pause', 'resume']),
+  newEndAt: z.string().datetime({ message: 'Invalid end time.' }).optional(),
+  reason: z
+    .string()
+    .trim()
+    .min(5, 'A meaningful justification of at least 5 characters is mandatory.')
+    .max(500, 'Reason cannot exceed 500 characters.'),
+});
+
+export type RoundPauseResumeData = z.infer<typeof roundPauseResumeSchema>;
