@@ -554,3 +554,16 @@ export function generateProfilePhotoStoragePath(userId: string, ext: string): st
   const randomSuffix = crypto.randomUUID();
   return `${userId}/${randomSuffix}.${ext}`;
 }
+
+/**
+ * Generates an unpredictable, team-specific storage path for registration proof screenshots.
+ * Format: teams/{team_id}/registration/{uuid}.{ext}
+ * Enforced by Stage A migration check_registration_proof_storage_path.
+ */
+export function generateRegistrationProofStoragePath(
+  teamId: string,
+  ext: 'png' | 'jpg' | 'jpeg' | 'webp'
+): string {
+  const randomSuffix = crypto.randomUUID();
+  return `teams/${teamId}/registration/${randomSuffix}.${ext}`;
+}

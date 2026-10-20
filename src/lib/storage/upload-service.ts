@@ -19,6 +19,7 @@ import {
   generateEvidenceStoragePath,
   generateCollegeIdStoragePath,
   generateProfilePhotoStoragePath,
+  generateRegistrationProofStoragePath,
 } from './paths';
 
 export {
@@ -39,6 +40,7 @@ export {
   generateEvidenceStoragePath,
   generateCollegeIdStoragePath,
   generateProfilePhotoStoragePath,
+  generateRegistrationProofStoragePath,
 };
 
 export interface StorageUploadResult {
@@ -257,3 +259,10 @@ export async function getSignedPreviewUrl(
   const supabase = client || (await createClient());
   return getSignedPreviewUrlWithClient(supabase, bucket, path, expiresInSeconds);
 }
+
+export {
+  uploadRegistrationProofScreenshot,
+  executeThreeTierOrphanRecovery,
+  type UploadRegistrationProofResult,
+  type UnresolvedArtifact,
+} from './registration-proof-service';

@@ -625,11 +625,17 @@ isOneToOne: false
 "can_admin_manage_hackathon":
 { Args: { "p_hackathon_id": string,"p_permission_key": string }; Returns: boolean
                            },
+"can_upload_registration_proof":
+{ Args: { "p_team_id_text": string }; Returns: boolean
+                           },
 "can_upload_submission_evidence":
 { Args: { "p_hackathon_id": string,"p_submission_id": string }; Returns: boolean
                            },
 "can_upload_team_round_evidence":
 { Args: { "p_round_id": string,"p_team_id": string }; Returns: boolean
+                           },
+"can_view_registration_proof":
+{ Args: { "p_team_id_text": string }; Returns: boolean
                            },
 "can_view_submission_evidence":
 { Args: { "p_submission_id": string }; Returns: boolean
@@ -710,6 +716,9 @@ isOneToOne: false
 "join_team_with_code":
 { Args: { "p_invitation_code": string }; Returns: Json
                            },
+"leave_team":
+{ Args: { "p_team_id": string }; Returns: Json
+                           },
 "lock_team_roster":
 { Args: { "p_team_id": string }; Returns: undefined
                            },
@@ -745,8 +754,14 @@ isOneToOne: false
 "reassign_hackathon_in_charge_admin":
 { Args: { "p_hackathon_id": string,"p_justification": string,"p_new_admin_id": string }; Returns: Json
                            },
+"regenerate_team_invitation_code":
+{ Args: { "p_team_id": string }; Returns: Json
+                           },
 "register_push_subscription":
 { Args: { "p_auth": string,"p_device_fingerprint": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: Json
+                           },
+"remove_team_member":
+{ Args: { "p_student_id": string,"p_team_id": string }; Returns: Json
                            },
 "replace_college_id":
 { Args: { "p_new_storage_path": string }; Returns: Json

@@ -16,6 +16,7 @@ import type {
   HackathonRoundPublicView,
   PrizeTier,
 } from '@/types/hackathon';
+import { getStudentTeams } from '@/lib/teams/queries';
 
 interface StudentEventDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -80,6 +81,10 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
 
   const isOpenForRegistration = regState === 'OPEN';
 
+  // Check if current student already belongs to a team for this hackathon
+  const studentTeams = await getStudentTeams(h.id || undefined);
+  const existingTeam = studentTeams[0] || null;
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <Link
@@ -141,32 +146,65 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
 
         {/* Action CTAs */}
         <div className="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-border-subtle/60">
-          {h.external_registration_url ? (
+          {existingTeam ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={`/student/teams/${existingTeam.id}`}
+                className="px-5 py-2.5 rounded-sm text-sm font-semibold bg-brand-primary text-text-inverse hover:bg-brand-hover transition-colors inline-flex items-center gap-2 shadow-xs"
+              >
+                <span>Manage Team ({existingTeam.name})</span>
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
+
+              {existingTeam.is_leader ? (
+                <Badge variant="info" size="md">Team Leader</Badge>
+              ) : (
+                <Badge variant="neutral" size="md">Team Member</Badge>
+              )}
+
+              {existingTeam.external_status === 'verified' && (
+                <Badge variant="success" dot size="md">Registration Approved</Badge>
+              )}
+              {existingTeam.external_status === 'submitted' && (
+                <Badge variant="info" dot size="md">Proof Under Review</Badge>
+              )}
+              {existingTeam.external_status === 'rejected' && (
+                <Badge variant="error" dot size="md">Proof Rejected</Badge>
+              )}
+              {existingTeam.external_status === 'not_submitted' && (
+                <Badge variant="warning" dot size="md">Proof Required</Badge>
+              )}
+            </div>
+          ) : isOpenForRegistration ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={`/student/teams?action=create&hackathon=${h.id}`}
+                className="px-5 py-2.5 rounded-sm text-sm font-semibold bg-brand-primary text-text-inverse hover:bg-brand-hover transition-colors inline-flex items-center gap-1.5 shadow-xs"
+              >
+                <span>Create Team</span>
+              </Link>
+              <Link
+                href="/student/teams?action=join"
+                className="px-4 py-2.5 rounded-sm text-sm font-semibold bg-surface-subtle hover:bg-surface-muted text-text-primary border border-border-subtle transition-colors inline-flex items-center gap-1.5"
+              >
+                <span>Join with Code</span>
+              </Link>
+            </div>
+          ) : (
+            <span className="px-5 py-2.5 rounded-sm text-sm font-semibold bg-surface-subtle text-text-muted cursor-not-allowed">
+              Registration Closed
+            </span>
+          )}
+
+          {h.external_registration_url && (
             <a
               href={h.external_registration_url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`px-5 py-2.5 rounded-sm text-sm font-semibold transition-colors ${
-                isOpenForRegistration
-                  ? 'bg-brand-primary text-text-inverse hover:bg-brand-hover'
-                  : 'bg-surface-subtle text-text-muted pointer-events-none'
-              }`}
+              className="px-4 py-2.5 rounded-sm text-sm font-medium border border-border-subtle bg-surface-subtle hover:bg-surface-canvas text-text-primary transition-colors flex items-center gap-1.5"
             >
-              {isOpenForRegistration ? 'Register on External Portal ↗' : 'Registration Closed'}
+              External Portal ↗
             </a>
-          ) : (
-            <button
-              type="button"
-              disabled={!isOpenForRegistration}
-              className={`px-5 py-2.5 rounded-sm text-sm font-semibold transition-colors ${
-                isOpenForRegistration
-                  ? 'bg-brand-primary text-text-inverse hover:bg-brand-hover cursor-pointer'
-                  : 'bg-surface-subtle text-text-muted cursor-not-allowed'
-              }`}
-              title={isOpenForRegistration ? 'Register team' : 'Registration is not currently open'}
-            >
-              {isOpenForRegistration ? 'Register Team' : 'Registration Closed'}
-            </button>
           )}
 
           {h.community_url && (
@@ -176,7 +214,7 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
               rel="noopener noreferrer"
               className="px-4 py-2.5 rounded-sm text-sm font-medium border border-border-subtle bg-surface-subtle hover:bg-surface-canvas text-text-primary transition-colors flex items-center gap-1.5"
             >
-              💬 Join Community Group ↗
+              💬 Community Group ↗
             </a>
           )}
         </div>
