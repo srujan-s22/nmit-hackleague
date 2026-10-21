@@ -47,6 +47,20 @@ export interface TeamMemberDetail {
   } | null;
 }
 
+export interface TeamRoundMilestone {
+  round: {
+    id: string;
+    round_number: number;
+    name: string;
+    status: 'scheduled' | 'open' | 'evaluation' | 'completed' | 'paused';
+    start_at: string;
+    end_at: string;
+  };
+  isQualified: boolean;
+  currentSubmission: any | null;
+  history: any[];
+}
+
 export interface TeamDetails {
   id: string;
   name: string;
@@ -63,6 +77,7 @@ export interface TeamDetails {
   created_at: string;
   updated_at: string;
   members: TeamMemberDetail[];
+  roundMilestones: TeamRoundMilestone[];
   hackathon: {
     id: string;
     title: string;
@@ -327,6 +342,89 @@ export async function getTeamDetails(teamId: string): Promise<TeamDetails | null
     );
   }
 
+  // 5. Fetch Hackathon Rounds
+  const { data: roundsData } = await supabase
+    .from('hackathon_rounds')
+    .select('id, round_number, name, status, start_at, end_at')
+    .eq('hackathon_id', team.hackathon_id)
+    .order('round_number', { ascending: true });
+
+  const rounds = roundsData || [];
+
+  // 6. Fetch Team Results (for qualification)
+  const { data: resultsData } = await supabase
+    .from('results')
+    .select('round_id, milestone_type')
+    .eq('team_id', teamId)
+    .eq('milestone_type', 'round_qualification');
+
+  const qualifiedRoundIds = new Set((resultsData || []).map((r) => r.round_id));
+
+  // 7. Fetch Submissions with Reviews for this team
+  const { data: submissionsData } = await supabase
+    .from('submissions')
+    .select(`
+      id,
+      hackathon_id,
+      round_id,
+      team_id,
+      submitted_by,
+      parent_submission_id,
+      version,
+      is_current,
+      status,
+      title,
+      description,
+      github_url,
+      live_demo_url,
+      evidence_path,
+      evidence_deleted_at,
+      evidence_lifecycle_state,
+      submitted_at,
+      created_at,
+      updated_at,
+      reviews:submission_reviews (
+        id,
+        reviewer_id,
+        decision,
+        feedback,
+        reviewed_at
+      )
+    `)
+    .eq('team_id', teamId)
+    .order('version', { ascending: false });
+
+  const allSubmissions = (submissionsData || []) as any[];
+
+  const roundMilestones: TeamRoundMilestone[] = rounds.map((r) => {
+    const isRound1 = r.round_number === 1;
+    let isQualified = false;
+    if (isRound1) {
+      isQualified = team.external_status !== 'not_submitted';
+    } else {
+      const prevRound = rounds.find((pr) => pr.round_number === r.round_number - 1);
+      isQualified = Boolean(prevRound && qualifiedRoundIds.has(prevRound.id));
+    }
+
+    const roundSubs = allSubmissions.filter((s) => s.round_id === r.id);
+    const currentSub = roundSubs.find((s) => s.is_current) || null;
+    const history = roundSubs.filter((s) => !s.is_current);
+
+    return {
+      round: {
+        id: r.id,
+        round_number: r.round_number,
+        name: r.name,
+        status: r.status as any,
+        start_at: r.start_at,
+        end_at: r.end_at,
+      },
+      isQualified,
+      currentSubmission: currentSub,
+      history,
+    };
+  });
+
   return {
     id: team.id,
     name: team.name,
@@ -344,6 +442,7 @@ export async function getTeamDetails(teamId: string): Promise<TeamDetails | null
     created_at: team.created_at,
     updated_at: team.updated_at,
     members,
+    roundMilestones,
     hackathon: hackathon
       ? {
           id: hackathon.id,

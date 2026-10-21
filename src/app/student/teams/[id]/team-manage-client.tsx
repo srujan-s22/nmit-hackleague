@@ -2,12 +2,15 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TeamStatusBanner } from '@/components/teams/team-status-banner';
 import { TeamRosterCard } from '@/components/teams/team-roster-card';
 import { InvitationCodeCard } from '@/components/teams/invitation-code-card';
 import { RegistrationProofCard } from '@/components/teams/registration-proof-card';
+import { RoundMilestoneSubmissionCard } from '@/components/submissions/round-milestone-submission-card';
+import { SubmissionVersionHistoryCard } from '@/components/submissions/submission-version-history-card';
 import type { TeamDetails } from '@/lib/teams/queries';
 
 export interface TeamManageClientProps {
@@ -16,6 +19,7 @@ export interface TeamManageClientProps {
 }
 
 export function TeamManageClient({ initialTeam, currentUserId }: TeamManageClientProps) {
+  const router = useRouter();
   const team = initialTeam;
   const isLeader = team.is_leader;
   const hackathon = team.hackathon;
@@ -74,6 +78,43 @@ export function TeamManageClient({ initialTeam, currentUserId }: TeamManageClien
             minTeamSize={hackathon?.min_team_size || 1}
             maxTeamSize={hackathon?.max_team_size || 4}
           />
+
+          {/* Round Milestone Submissions (Phase 8) */}
+          {team.roundMilestones && team.roundMilestones.length > 0 && (
+            <div className="space-y-6" id="round-milestone-submissions-section">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-text-primary">
+                  Competition Rounds & Milestone Deliverables
+                </h2>
+                <span className="text-xs text-text-muted">
+                  Sequential Round Advancement
+                </span>
+              </div>
+
+              {team.roundMilestones.map((rm) => (
+                <div key={rm.round.id} className="space-y-4">
+                  <RoundMilestoneSubmissionCard
+                    hackathonId={team.hackathon_id}
+                    teamId={team.id}
+                    isLeader={isLeader}
+                    round={rm.round}
+                    isQualified={rm.isQualified}
+                    isRegistrationSubmitted={team.external_status !== 'not_submitted'}
+                    currentSubmission={rm.currentSubmission}
+                    onSubmissionSuccess={() => router.refresh()}
+                  />
+
+                  {rm.history && rm.history.length > 0 && (
+                    <SubmissionVersionHistoryCard
+                      versions={rm.history}
+                      teamName={team.name}
+                      roundName={`Round ${rm.round.round_number}: ${rm.round.name}`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Hackathon Rules Reference Card */}
           {hackathon && (

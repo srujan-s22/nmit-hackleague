@@ -289,6 +289,13 @@ export function HackathonsClient({ initialHackathons }: HackathonsClientProps) {
                             Rounds
                           </Link>
 
+                          <Link
+                            href={`/admin/hackathons/${h.id}/submissions`}
+                            className="px-2 py-1 text-xs rounded-xs font-medium text-brand-primary hover:bg-brand-primary/10 transition-colors"
+                          >
+                            Submissions
+                          </Link>
+
                           {/* Override deadline button (only for published or closed) */}
                           {(h.status === 'published' || h.status === 'registration_closed') && (
                             <button

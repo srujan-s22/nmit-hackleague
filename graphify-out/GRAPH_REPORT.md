@@ -1,16 +1,16 @@
-# Graph Report - HackLeague  (2026-10-18)
+# Graph Report - HackLeague  (2026-10-21)
 
 ## Corpus Check
-- 155 files · ~242,318 words
+- 211 files · ~352,214 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1305 nodes · 2149 edges · 119 communities (112 shown, 7 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
+- 1690 nodes · 3111 edges · 156 communities (145 shown, 11 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1a4c7fa2`
+- Built from commit: `1829fde7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -25,20 +25,20 @@
 - NMIT HackLeague
 - NMIT HackLeague — Phase 2 Implementation Plan
 - hackathon.ts
-- E.3 Content, Status & Feedback Primitives
+- E. Component Inventory, API Contracts & Server/Client Boundaries
 - layout.tsx
 - eslint.config.mjs
 - next.config.ts
 - postcss.config.mjs
-- showcase/page.tsx
+- card.tsx
 - tailwind.config.ts
-- upload-service.ts
+- runPhase4IntegrationTests
 - D.1 Color Token Architecture & Mathematically Verified Contrast Ratios
 - 6. Table-by-Table Schema Specification
 - preview/layout.tsx
 - NMIT HackLeague — Phase 3 Implementation Plan
 - 19.1 Structured Validation Suites (10 Suites)
-- auth.ts
+- permissions.ts
 - 2. Stage A Corrections Implemented
 - 15.2 Parameterless Security Definer RLS Helper Definitions
 - F. Shell and Route Architecture
@@ -51,7 +51,7 @@
 - L. Graphify Update, Diff Inspection and Generated-File Safety
 - 12.1 Additive Ledger Rules & Milestone Points
 - A. Executive Summary
-- N. Strict Scope Boundaries
+- admins-client.tsx
 - H. Official Branding Integration Specification
 - 10. Admin, Super Admin, and Permission Model
 - 14. Row-Level Security (RLS) Policy Matrix
@@ -95,8 +95,8 @@
 - 1. Executive Summary
 - NMIT HackLeague --- Project Rules & Source of Truth
 - database.ts
+- NMIT HackLeague — Phase 8 Implementation Plan
 - admin-verification-actions.ts
-- onboarding-actions.ts
 - NMIT HackLeague — Phase 6 Implementation Plan
 - createClient
 - 13. Least-Privilege Public Discovery Architecture, Column Privacy & Access Reconciliation
@@ -119,7 +119,7 @@
 - server.ts
 - PostgresSession
 - NMIT HackLeague --- Development Phases
-- verify/page.tsx
+- button.tsx
 - Phase 4 --- Authentication and student onboarding
 - Phase 5 --- Role-based authorization and admin management
 - Phase 6 --- Hackathon management
@@ -133,35 +133,72 @@
 - Phase 13 --- End-to-end QA, security, and launch
 - Phase 2 --- UI design system and page shells
 - Phase 3 --- Supabase setup and database design
+- upload-service.ts
+- createAdminClient
+- report-actions.ts
+- dependencies
+- guards.ts
+- admins/page.tsx
+- package.json
+- E.3 Content, Status & Feedback Primitives
+- submissions-client.tsx
+- E.1 Actions: Button vs. Link Separation
+- submission-schemas.ts
+- team-actions.ts
+- showcase/page.tsx
+- react-dom
+- tsx
+- submissions/page.tsx
+- typescript
+- round-submission-actions.ts
+- NMIT HackLeague — Phase 7 Implementation Plan
+- 5.1 Additive SQL Migration
+- auth.ts
+- rate-limiter.ts
+- 10. Comprehensive Acceptance Test Plan
+- 9. Ordered Implementation Phases
+- 6. Server Action and Validation Design
+- 1. Purpose, Scope, and Completion Criteria
+- 7. UI Routes, Components, and States
+- 11. Migration Ordering, Rollback, and Data Preservation
+- 2. Verified Repository Facts vs. Proposed Phase 7 Behavior
+- 8. Security, Concurrency, Idempotency, and Lifecycle Consistency Strategy
+- retention-worker-purging.test.ts
+- round-review-authorization.test.ts
+- phase7-regression-suite.test.ts
+- round-lifecycle-concurrency.test.ts
+- round-submission-lifecycle.test.ts
+- button-link.tsx
+- eslint
 
 ## God Nodes (most connected - your core abstractions)
-1. `createClient()` - 81 edges
-2. `NMIT HackLeague — Phase 3 Implementation Plan` - 30 edges
-3. `NMIT HackLeague — Phase 6 Implementation Plan` - 29 edges
-4. `Button` - 25 edges
-5. `requireAdmin()` - 24 edges
-6. `Alert()` - 23 edges
-7. `NMIT HackLeague — Phase 5 Implementation Plan` - 22 edges
-8. `NMIT HackLeague --- Project Rules & Source of Truth` - 22 edges
-9. `NMIT HackLeague --- Project Rules & Source of Truth` - 21 edges
-10. `NMIT HACKLEAGUE — PHASE 1 IMPLEMENTATION PLAN` - 19 edges
+1. `createClient()` - 127 edges
+2. `Button` - 41 edges
+3. `Alert()` - 30 edges
+4. `requireAdmin()` - 30 edges
+5. `NMIT HackLeague — Phase 3 Implementation Plan` - 30 edges
+6. `NMIT HackLeague — Phase 6 Implementation Plan` - 29 edges
+7. `Badge()` - 27 edges
+8. `Card()` - 23 edges
+9. `createAdminClient()` - 23 edges
+10. `NMIT HackLeague — Phase 5 Implementation Plan` - 22 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `runHackathonManagementTests()` --calls--> `computeRegistrationState()`  [EXTRACTED]
   tests/integration/hackathon-management.test.ts → src/lib/hackathons/registration-state.ts
-- `runPhase4IntegrationTests()` --calls--> `isAllowedPushDomain()`  [EXTRACTED]
-  tests/integration/phase4-operational-safety.test.ts → src/lib/notifications/endpoint-validator.ts
-- `runPhase4IntegrationTests()` --calls--> `isPrivateOrReservedIp()`  [EXTRACTED]
-  tests/integration/phase4-operational-safety.test.ts → src/lib/notifications/endpoint-validator.ts
-- `runPhase4IntegrationTests()` --calls--> `validatePushEndpoint()`  [EXTRACTED]
-  tests/integration/phase4-operational-safety.test.ts → src/lib/notifications/endpoint-validator.ts
-- `hasActivePushSubscription()` --calls--> `createAdminClient()`  [EXTRACTED]
-  src/lib/notifications/push-service.ts → src/lib/supabase/admin.ts
+- `runPendingUpdatesTestSuite()` --calls--> `inspectBinaryMagicBytes()`  [EXTRACTED]
+  tests/integration/pending-updates-1-to-6.test.ts → src/lib/storage/paths.ts
+- `runPhase4IntegrationTests()` --calls--> `inspectBinaryMagicBytes()`  [EXTRACTED]
+  tests/integration/phase4-operational-safety.test.ts → src/lib/storage/paths.ts
+- `runStageBTestSuite()` --calls--> `inspectBinaryMagicBytes()`  [EXTRACTED]
+  tests/integration/team-formation-stage-b.test.ts → src/lib/storage/paths.ts
+- `runPendingUpdatesTestSuite()` --calls--> `validateStorageFileBinary()`  [EXTRACTED]
+  tests/integration/pending-updates-1-to-6.test.ts → src/lib/storage/paths.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (119 total, 7 thin omitted)
+## Communities (156 total, 11 thin omitted)
 
 ### Community 0 - "NMIT HackLeague --- Development Phases"
 Cohesion: 0.04
@@ -180,8 +217,8 @@ Cohesion: 0.07
 Nodes (27): dom, dom.iterable, esnext, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules, **/*.ts (+19 more)
 
 ### Community 4 - "devDependencies"
-Cohesion: 0.04
-Nodes (45): eslint, eslint-config-next, next, dependencies, next, react, react-dom, server-only (+37 more)
+Cohesion: 0.12
+Nodes (17): eslint-config-next, devDependencies, eslint-config-next, postcss, tailwindcss, @tailwindcss/postcss, @types/jszip, @types/node (+9 more)
 
 ### Community 5 - "NMIT HackLeague — Phase 3 Implementation Report"
 Cohesion: 0.11
@@ -196,24 +233,24 @@ Cohesion: 0.12
 Nodes (15): Available Scripts, Branching Policy, Cross-System Failure & Quarantined Orphan Cleanup, Current Status: Phase 1 Baseline, Environment Prerequisites, Getting Started, Idempotent Retry & Elevation Prevention, Installation (+7 more)
 
 ### Community 8 - "NMIT HackLeague — Phase 2 Implementation Plan"
-Cohesion: 0.22
-Nodes (8): C. Requirements Traceability Matrix, G. File-by-File Implementation Manifest, J. Acceptance Criteria, M. Risks, Dependencies, and Mitigations, NMIT HackLeague — Phase 2 Implementation Plan, O. Implementation Sequence (For Authorized Execution), P. Final Readiness Checklist, UI Design System, Branding Integration & Role-Based Page Shells
+Cohesion: 0.17
+Nodes (11): C. Requirements Traceability Matrix, Explicitly Out of Scope for Phase 2 (Deferred to Later Phases):, G. File-by-File Implementation Manifest, In Scope for Phase 2:, J. Acceptance Criteria, M. Risks, Dependencies, and Mitigations, N. Strict Scope Boundaries, NMIT HackLeague — Phase 2 Implementation Plan (+3 more)
 
 ### Community 9 - "hackathon.ts"
-Cohesion: 0.05
-Nodes (67): configureRoundsAction(), createHackathonDraftAction(), transitionLifecycleAction(), updateHackathonMetadataAction(), HackathonsClient(), HackathonsClientProps, EditHackathonPage(), EditPageProps (+59 more)
+Cohesion: 0.06
+Nodes (54): HackathonsClient(), HackathonsClientProps, metadata, metadata, StudentHackathonsPage(), StudentEventDetailPage(), StudentEventDetailPageProps, StudentHackathonsClient() (+46 more)
 
-### Community 10 - "E.3 Content, Status & Feedback Primitives"
-Cohesion: 0.09
-Nodes (22): 1. `Badge` (`src/components/ui/badge.tsx`), 1. `BrandLogo` (`src/components/ui/brand-logo.tsx`), 1. `Dialog` (`src/components/ui/dialog.tsx`), 1. `Input` (`src/components/ui/input.tsx`), 1. Shared Button Style Helper (`src/components/ui/button.tsx`), 2. `Button` Component (`src/components/ui/button.tsx`), 2. `Card` (`src/components/ui/card.tsx`), 2. `Textarea` (`src/components/ui/textarea.tsx`) (+14 more)
+### Community 10 - "E. Component Inventory, API Contracts & Server/Client Boundaries"
+Cohesion: 0.20
+Nodes (10): 1. `BrandLogo` (`src/components/ui/brand-logo.tsx`), 1. `Dialog` (`src/components/ui/dialog.tsx`), 1. `Input` (`src/components/ui/input.tsx`), 2. `Textarea` (`src/components/ui/textarea.tsx`), 3. `Select` (`src/components/ui/select.tsx`), 4. `Checkbox` (`src/components/ui/checkbox.tsx`), E.2 Form Controls & Field Primitives, E.4 Dialog Primitive: Native HTML `<dialog>` Implementation (+2 more)
 
-### Community 15 - "showcase/page.tsx"
-Cohesion: 0.05
-Nodes (74): setAdminActiveStatusAction(), overrideDeadlineAction(), AdminsClientProps, CreateAdminDialog(), CreateAdminDialogProps, DeactivateDialog(), DeactivateDialogProps, EditPermissionsDialog() (+66 more)
+### Community 15 - "card.tsx"
+Cohesion: 0.15
+Nodes (27): metadata, metadata, EventCard(), EditableRound, BreadcrumbItem, PageHeader(), PageHeaderProps, StudentShell() (+19 more)
 
-### Community 17 - "upload-service.ts"
-Cohesion: 0.08
-Nodes (46): RFC-1918, POST(), ALLOWED_PUSH_DOMAINS, isAllowedPushDomain(), isPrivateOrReservedIp(), validatePushEndpoint(), ValidationResult, dispatchNotificationToUser() (+38 more)
+### Community 17 - "runPhase4IntegrationTests"
+Cohesion: 0.16
+Nodes (14): RFC-1918, POST(), ALLOWED_PUSH_DOMAINS, isAllowedPushDomain(), isPrivateOrReservedIp(), validatePushEndpoint(), ValidationResult, isMockSubscription() (+6 more)
 
 ### Community 18 - "D.1 Color Token Architecture & Mathematically Verified Contrast Ratios"
 Cohesion: 0.22
@@ -231,9 +268,9 @@ Nodes (22): 13. Audit-Record Model, 18.1 Deterministic Synthetic Auth Fixtures, 
 Cohesion: 0.17
 Nodes (12): 19.1 Structured Validation Suites (10 Suites), 19. Database, RLS, and Storage Test Plan, Suite 10: Migration Drift & Rerun Behavior (`TS-DFT`), Suite 1: Clean Migration Application & Reset (`TS-MIG`), Suite 2: Schema and Constraint Integrity (`TS-INT`), Suite 3: Row-Level Security & Privilege Boundaries (`TS-RLS`), Suite 4: `SECURITY DEFINER` Invocation Boundaries (`TS-SEC`), Suite 5: Super Admin Lifecycle and Disaster Recovery (`TS-ADM`) (+4 more)
 
-### Community 23 - "auth.ts"
-Cohesion: 0.07
-Nodes (39): createAdminAction(), fetchEligibleAdminsForReassignmentAction(), reassignHackathonInChargeAdminAction(), updateAdminPermissionsAction(), EditPermissionsForm(), ReassignHackathonForm(), POST(), StorageDeletionJob (+31 more)
+### Community 23 - "permissions.ts"
+Cohesion: 0.15
+Nodes (13): adminCreationSchema, adminPermissionKeySchema, adminPermissionsArraySchema, adminPermissionsUpdateSchema, adminStatusSchema, CANONICAL_PERMISSIONS, PERMISSION_DEFINITIONS, PermissionDefinition (+5 more)
 
 ### Community 24 - "2. Stage A Corrections Implemented"
 Cohesion: 0.20
@@ -283,9 +320,9 @@ Nodes (4): 12.1 Additive Ledger Rules & Milestone Points, 12. Submission, Eviden
 Cohesion: 0.67
 Nodes (3): A.1 Purpose and Objective, A.2 Phase Scope Boundaries & Guarantees, A. Executive Summary
 
-### Community 36 - "N. Strict Scope Boundaries"
-Cohesion: 0.67
-Nodes (3): Explicitly Out of Scope for Phase 2 (Deferred to Later Phases):, In Scope for Phase 2:, N. Strict Scope Boundaries
+### Community 36 - "admins-client.tsx"
+Cohesion: 0.12
+Nodes (22): createAdminAction(), setAdminActiveStatusAction(), AdminsClientProps, CreateAdminDialog(), CreateAdminDialogProps, DeactivateDialog(), DeactivateDialogProps, EditPermissionsDialog() (+14 more)
 
 ### Community 37 - "H. Official Branding Integration Specification"
 Cohesion: 0.67
@@ -312,12 +349,12 @@ Cohesion: 0.67
 Nodes (3): 8.1 Database Constraints vs. Application Logic, 8.2 Timestamp Standardization, 8. Constraint, Index, and Timestamp Strategy
 
 ### Community 43 - "auth-actions.ts"
-Cohesion: 0.18
-Nodes (17): loginAction(), signupAction(), LoginCard(), SignupPage(), ACADEMIC_YEARS, BRANCHES, ForgotPasswordInput, forgotPasswordSchema (+9 more)
+Cohesion: 0.12
+Nodes (25): forgotPasswordAction(), loginAction(), resendOtpAction(), resetPasswordAction(), signOutAction(), signupAction(), verifyOtpAction(), ForgotPasswordPage() (+17 more)
 
 ### Community 44 - "hackathon-management-actions.ts"
-Cohesion: 0.14
-Nodes (18): HackathonFormProps, DeadlineOverrideData, deadlineOverrideSchema, hackathonBaseSchema, HackathonFormData, hackathonFormSchema, hackathonModeSchema, LifecycleTransitionData (+10 more)
+Cohesion: 0.06
+Nodes (47): configureRoundsAction(), createHackathonDraftAction(), overrideDeadlineAction(), overrideRoundScheduleAction(), pauseRoundAction(), resumeRoundAction(), transitionLifecycleAction(), updateHackathonMetadataAction() (+39 more)
 
 ### Community 45 - "3. Critical Security & Integrity Boundary Audit"
 Cohesion: 0.08
@@ -459,21 +496,21 @@ Nodes (46): 10. Student profiles and participation history, 11. Points and leade
 Cohesion: 0.13
 Nodes (14): IMPORTANT: Do NOT use supabase.auth.getSession(). It is insecure on the server., updateSession(), config, middleware(), CompositeTypes, Constants, Database, DatabaseWithoutInternals (+6 more)
 
-### Community 80 - "admin-verification-actions.ts"
-Cohesion: 0.18
-Nodes (11): fetchPendingVerificationsAction(), getAdminCollegeIdPreviewUrlAction(), reviewStudentAction(), StudentProfile, ActionResult, getCollegeIdPreviewUrlAction(), AdminVerificationsPage(), metadata (+3 more)
+### Community 80 - "NMIT HackLeague — Phase 8 Implementation Plan"
+Cohesion: 0.04
+Nodes (44): 1. Executive Summary & Architectural Scope, 1. Objectives & Scope, 1. Objectives & Scope, 1. Objectives & Scope, 2. Detailed Technical Specifications, 2. Detailed Technical Specifications, 2. Detailed Technical Specifications, 2. Requirements Conflict Matrix (+36 more)
 
-### Community 81 - "onboarding-actions.ts"
-Cohesion: 0.26
-Nodes (11): replaceCollegeIdAction(), submitProfileForReviewAction(), uploadCollegeIdAction(), uploadProfilePhotoAction(), OnboardingClient(), OnboardingClientProps, Profile, Profile (+3 more)
+### Community 81 - "admin-verification-actions.ts"
+Cohesion: 0.17
+Nodes (17): fetchPendingVerificationsAction(), getAdminCollegeIdPreviewUrlAction(), reviewStudentAction(), StudentProfile, ActionResult, getCollegeIdPreviewUrlAction(), replaceCollegeIdAction(), submitProfileForReviewAction() (+9 more)
 
 ### Community 82 - "NMIT HackLeague — Phase 6 Implementation Plan"
 Cohesion: 0.13
 Nodes (14): 14. Permission Checks for Every Operation, 15. Audit Event Matrix, 17.1 Zod Validation Schemas (`src/lib/validation/hackathon-schemas.ts`), 17. Validation Rules & Error Handling, 18. PostgreSQL / pgTAP Test Matrix (Suite 13: `13_ts_hck_mgmt.sql`), 1. Document Metadata & Revision, 22. Dependencies & Cross-Phase Contracts, 23. Explicit Non-Goals (Strictly Out of Scope for Phase 6) (+6 more)
 
 ### Community 83 - "createClient"
-Cohesion: 0.10
-Nodes (21): fetchAdminsAction(), forgotPasswordAction(), resetPasswordAction(), signOutAction(), AdminsClient(), AdminManagementPage(), metadata, POST() (+13 more)
+Cohesion: 0.16
+Nodes (13): MANDATORY_CDC_DECLARATION_TEXT, reviewRoundAdvancementAction(), submitRegistrationProofAction(), SubmitRegistrationProofResult, POST(), GET(), GET(), GET() (+5 more)
 
 ### Community 84 - "13. Least-Privilege Public Discovery Architecture, Column Privacy & Access Reconciliation"
 Cohesion: 0.20
@@ -540,20 +577,20 @@ Cohesion: 0.67
 Nodes (3): 9.1 Database-Evaluated Registration State Function, 9.2 TypeScript Shared Contract (`src/types/hackathon.ts`), 9. Authoritative Registration-State & Deadline Contract
 
 ### Community 100 - "admin-shell.tsx"
-Cohesion: 0.23
-Nodes (11): AppHeader(), AppHeaderProps, NavItem, NavSection, SidebarNav(), SidebarNavProps, AdminShellProps, StudentShellProps (+3 more)
+Cohesion: 0.19
+Nodes (13): AppHeader(), AppHeaderProps, NavItem, NavSection, SidebarNav(), SidebarNavProps, AdminShellProps, StudentShellProps (+5 more)
 
 ### Community 101 - "server.ts"
-Cohesion: 0.26
-Nodes (4): EnablePushContent(), PushGateState, BrandLogo(), BrandLogoProps
+Cohesion: 0.19
+Nodes (7): EnablePushContent(), PushGateState, PendingStatusPage(), RejectedStatusPage(), SuspendedStatusPage(), BrandLogo(), BrandLogoProps
 
 ### Community 103 - "NMIT HackLeague --- Development Phases"
 Cohesion: 0.25
 Nodes (7): GitHub branch policy summary, Mandatory rules before starting, New-requirements implementation map, NMIT HackLeague --- Development Phases, Open decisions and confirmations required, Revision strategy for completed phases, Standard workflow for every phase and revision
 
-### Community 104 - "verify/page.tsx"
-Cohesion: 0.60
-Nodes (3): resendOtpAction(), verifyOtpAction(), VerifyContent()
+### Community 104 - "button.tsx"
+Cohesion: 0.16
+Nodes (15): AnnouncementItem, NotificationsClientProps, OnboardingClientProps, Profile, WebPushGateModalProps, CreateTeamDialogProps, JoinTeamDialogProps, Alert() (+7 more)
 
 ### Community 105 - "Phase 4 --- Authentication and student onboarding"
 Cohesion: 0.50
@@ -607,22 +644,154 @@ Nodes (3): Completion criteria, Phase 2 --- UI design system and page shells, Sc
 Cohesion: 0.67
 Nodes (3): Completion criteria, Phase 3 --- Supabase setup and database design, Scope
 
+### Community 119 - "upload-service.ts"
+Cohesion: 0.14
+Nodes (31): ALLOWED_DOCUMENT_TYPES, ALLOWED_EVIDENCE_TYPES, ALLOWED_IMAGE_TYPES, BinarySignatureInspection, BinaryValidationResult, generateCollegeIdStoragePath(), generateEvidenceStoragePath(), generateProfilePhotoStoragePath() (+23 more)
+
+### Community 120 - "createAdminClient"
+Cohesion: 0.19
+Nodes (14): getInAppNotificationsAction(), InAppNotification, markNotificationReadAction(), publishAnnouncementAction(), NotificationsClient(), POST(), StorageDeletionJob, NotificationCenter() (+6 more)
+
+### Community 121 - "report-actions.ts"
+Cohesion: 0.19
+Nodes (16): RFC-4180, exportReportAction(), ExportReportParams, ExportReportResult, metadata, DATASETS, ReportsClient(), ReportsClientProps (+8 more)
+
+### Community 122 - "dependencies"
+Cohesion: 0.12
+Nodes (17): exceljs, jszip, next, dependencies, exceljs, jszip, next, react (+9 more)
+
+### Community 123 - "guards.ts"
+Cohesion: 0.18
+Nodes (14): getAccessibleHackathonsForReportsAction(), metadata, NewHackathonPage(), AdminHackathonsPage(), AdminNotificationsPage(), metadata, AdminReportsPage(), AdminVerificationsPage() (+6 more)
+
+### Community 124 - "admins/page.tsx"
+Cohesion: 0.19
+Nodes (12): fetchAdminsAction(), fetchEligibleAdminsForReassignmentAction(), reassignHackathonInChargeAdminAction(), updateAdminPermissionsAction(), AdminsClient(), EditPermissionsForm(), AdminManagementPage(), metadata (+4 more)
+
+### Community 125 - "package.json"
+Cohesion: 0.20
+Nodes (9): name, private, scripts, build, dev, lint, start, type-check (+1 more)
+
+### Community 126 - "E.3 Content, Status & Feedback Primitives"
+Cohesion: 0.29
+Nodes (7): 1. `Badge` (`src/components/ui/badge.tsx`), 2. `Card` (`src/components/ui/card.tsx`), 3. `Table` (`src/components/ui/table.tsx`), 4. `Alert` (`src/components/ui/alert.tsx`), 5. `EmptyState` (`src/components/ui/empty-state.tsx`), 6. `Skeleton` (`src/components/ui/skeleton.tsx`), E.3 Content, Status & Feedback Primitives
+
+### Community 127 - "submissions-client.tsx"
+Cohesion: 0.11
+Nodes (22): recordRoundWinnerPlacementAction(), reopenRejectedSubmissionAction(), reviewRoundSubmissionAction(), HackathonRoundInfo, ResultRow, ReviewInfo, SubmissionRow, SubmissionsClientProps (+14 more)
+
+### Community 128 - "E.1 Actions: Button vs. Link Separation"
+Cohesion: 0.40
+Nodes (5): 1. Shared Button Style Helper (`src/components/ui/button.tsx`), 2. `Button` Component (`src/components/ui/button.tsx`), 3. `ButtonLink` Component (`src/components/ui/button-link.tsx`), 4. `IconButton` (`src/components/ui/icon-button.tsx`), E.1 Actions: Button vs. Link Separation
+
+### Community 129 - "submission-schemas.ts"
+Cohesion: 0.09
+Nodes (22): ReopenActionResult, ReviewRoundActionResult, WinnerPlacementActionResult, ALLOWED_EVIDENCE_EXTENSIONS, ALLOWED_EVIDENCE_MIME_TYPES, CANONICAL_ROUND_EVIDENCE_REGEX, canonicalEvidencePathSchema, GITHUB_REPO_REGEX (+14 more)
+
+### Community 130 - "team-actions.ts"
+Cohesion: 0.06
+Nodes (59): ActionResult, createTeamAction(), getMyTeamsAction(), getRegistrationProofPreviewUrlAction(), getTeamDetailsAction(), joinTeamWithCodeAction(), leaveTeamAction(), lockTeamRosterAction() (+51 more)
+
+### Community 131 - "showcase/page.tsx"
+Cohesion: 0.19
+Nodes (12): StudentProfile, VerificationsClientProps, metadata, metadata, Skeleton(), SkeletonProps, Table(), TableBody() (+4 more)
+
+### Community 134 - "submissions/page.tsx"
+Cohesion: 0.17
+Nodes (14): AuditLogItem, getAuditLogsAction(), GetAuditLogsParams, GetAuditLogsResult, AuditLogsClient(), AuditLogsClientProps, AuditLogsPage(), metadata (+6 more)
+
+### Community 136 - "round-submission-actions.ts"
+Cohesion: 0.24
+Nodes (13): getSignedEvidenceUrlAction(), GetSignedUrlActionResult, resubmitRoundMilestoneAction(), SubmitMilestoneActionResult, submitRoundMilestoneAction(), RoundMilestoneSubmissionCard(), createSignedEvidencePreviewUrl(), purgeOrphanedRoundEvidence() (+5 more)
+
+### Community 137 - "NMIT HackLeague — Phase 7 Implementation Plan"
+Cohesion: 0.20
+Nodes (9): 12. Risks and Reconciled Decisions, 13. Explicit Scope Exclusions (Preventing Scope Creep), 14. Final Verification Checklist, 3. Requirements Traceability Matrix, 4.1 Target User Journey Flow, 4. Current Architecture and End-to-End Target Flow, Document Revision History & Change Log, NMIT HackLeague — Phase 7 Implementation Plan (+1 more)
+
+### Community 138 - "5.1 Additive SQL Migration"
+Cohesion: 0.20
+Nodes (10): 5.1 Additive SQL Migration, 5. Database, RPC, RLS, and Storage Design, A. Helper Function: `can_upload_registration_proof(p_team_id_text TEXT)`, B. Helper Function: `can_view_registration_proof(p_team_id_text TEXT)`, C. Storage RLS Policies on `storage.objects` for `submission-evidence`, D. New RPC: `leave_team(p_team_id UUID)`, E. New RPC: `remove_team_member(p_team_id UUID, p_student_id UUID)`, F. New RPC: `regenerate_team_invitation_code(p_team_id UUID)` (+2 more)
+
+### Community 139 - "auth.ts"
+Cohesion: 0.18
+Nodes (12): adminReassignSchema, ActionResult, AdminCreationInput, AdminUpdateInput, ForgotPasswordInput, Gender, LoginInput, RegistrationStatus (+4 more)
+
+### Community 140 - "rate-limiter.ts"
+Cohesion: 0.47
+Nodes (5): adminManagementBuckets, checkAdminManagementQuota(), checkRateLimit(), getClientIpKey(), RateLimitAction
+
+### Community 141 - "10. Comprehensive Acceptance Test Plan"
+Cohesion: 0.33
+Nodes (6): 10.1 Storage & Private Evidence Security Test Suite (`tests/integration/storage-evidence-security.test.ts`), 10.2 Enforceable Binary Validation & Upload Authorization Test Suite (`tests/integration/binary-validation-boundary.test.ts`), 10.3 Team Lifecycle & Historical Integrity Test Suite (`supabase/tests/17_ts_team_formation.sql`), 10.4 Concurrency & Idempotency Test Suite (`tests/concurrency/team-membership-concurrency.test.ts`), 10.5 Resilient Three-Tier Recovery & Retention Test Suite (`tests/integration/evidence-retention-recovery.test.ts`), 10. Comprehensive Acceptance Test Plan
+
+### Community 142 - "9. Ordered Implementation Phases"
+Cohesion: 0.33
+Nodes (6): 9. Ordered Implementation Phases, Stage 1: Database Migration & Storage RLS (Deliverables), Stage 2: Server Actions & Validation Layer, Stage 3: User Interface & Shell Navigation, Stage 4: Concurrency & Integration Testing, Stage 5: Verification & Quality Gates
+
+### Community 143 - "6. Server Action and Validation Design"
+Cohesion: 0.40
+Nodes (5): 6.1 Validation Schemas (`src/lib/validation/team-schemas.ts`), 6.2 Server Actions (`src/actions/team-actions.ts`), 6.3 Dual-Client Separation & Three-Tier Orphan Recovery (`src/lib/storage/upload-service.ts`), 6.4 Operator Intervention and Recovery Workflow for Unresolved Leaks (Verified Existing Mechanisms), 6. Server Action and Validation Design
+
+### Community 144 - "1. Purpose, Scope, and Completion Criteria"
+Cohesion: 0.50
+Nodes (4): 1.1 Purpose, 1.2 Authoritative Roadmap Scope (from `hackleague_plan_updated.md` lines 190–227), 1.3 Completion Criteria, 1. Purpose, Scope, and Completion Criteria
+
+### Community 145 - "7. UI Routes, Components, and States"
+Cohesion: 0.50
+Nodes (4): 7.1 New & Updated Routes, 7.2 UI Components & Modals, 7.3 Student Shell Navigation Update, 7. UI Routes, Components, and States
+
+### Community 146 - "11. Migration Ordering, Rollback, and Data Preservation"
+Cohesion: 0.67
+Nodes (3): 11.1 Migration Numbering, 11.2 Additive Principles & Safety, 11. Migration Ordering, Rollback, and Data Preservation
+
+### Community 147 - "2. Verified Repository Facts vs. Proposed Phase 7 Behavior"
+Cohesion: 0.67
+Nodes (3): 2.1 Confirmed Repository Facts (Current Baseline), 2.2 Proposed Phase 7 Behavior (Reconciled Architecture), 2. Verified Repository Facts vs. Proposed Phase 7 Behavior
+
+### Community 148 - "8. Security, Concurrency, Idempotency, and Lifecycle Consistency Strategy"
+Cohesion: 0.67
+Nodes (3): 8.1 Detailed Lifecycle State Machine & Allowed Transitions, 8.2 Registration Pause & Deadline Enforcement, 8. Security, Concurrency, Idempotency, and Lifecycle Consistency Strategy
+
+### Community 149 - "retention-worker-purging.test.ts"
+Cohesion: 0.28
+Nodes (8): adminClient, assert(), { createAdminClient }, createTestStudent(), envPath, { purgeOrphanedRoundEvidence }, runRetentionSuite(), serverOnlyPath
+
+### Community 150 - "round-review-authorization.test.ts"
+Cohesion: 0.33
+Nodes (8): adminClient, assert(), createAssignedAdmin(), createTestStudent(), envPath, getSuperAdminClient(), runAuthorizationSuite(), serverOnlyPath
+
+### Community 151 - "phase7-regression-suite.test.ts"
+Cohesion: 0.36
+Nodes (7): adminClient, assert(), createTestStudent(), envPath, getSuperAdminClient(), runPhase7RegressionSuite(), serverOnlyPath
+
+### Community 152 - "round-lifecycle-concurrency.test.ts"
+Cohesion: 0.36
+Nodes (7): adminClient, assert(), createTestStudent(), envPath, getSuperAdminClient(), runConcurrencySuite(), serverOnlyPath
+
+### Community 153 - "round-submission-lifecycle.test.ts"
+Cohesion: 0.36
+Nodes (7): adminClient, assert(), createTestStudent(), envPath, getSuperAdminClient(), runLifecycleSuite(), serverOnlyPath
+
+### Community 154 - "button-link.tsx"
+Cohesion: 0.48
+Nodes (5): ButtonProps, ButtonLink(), ButtonLinkProps, ButtonStyleOptions, getButtonClasses()
+
 ## Knowledge Gaps
-- **709 isolated node(s):** `config`, `nextConfig`, `name`, `version`, `private` (+704 more)
+- **880 isolated node(s):** `config`, `nextConfig`, `name`, `version`, `private` (+875 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createClient()` connect `createClient` to `server.ts`, `verify/page.tsx`, `hackathon.ts`, `auth-actions.ts`, `hackathon-management-actions.ts`, `showcase/page.tsx`, `admin-verification-actions.ts`, `onboarding-actions.ts`, `upload-service.ts`, `auth.ts`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
-- **Why does `NMIT HackLeague — Phase 3 Implementation Plan` connect `NMIT HackLeague — Phase 3 Implementation Plan` to `12.1 Additive Ledger Rules & Milestone Points`, `10. Admin, Super Admin, and Permission Model`, `14. Row-Level Security (RLS) Policy Matrix`, `1. Executive Summary`, `2. Repository and Architecture Findings`, `8. Constraint, Index, and Timestamp Strategy`, `6. Table-by-Table Schema Specification`, `19.1 Structured Validation Suites (10 Suites)`, `15.2 Parameterless Security Definer RLS Helper Definitions`, `16.1 Storage Deletion Queue Operational Lifecycle & Worker Trust Boundary`, `11.1 Team Formation & Lifecycle Procedures`, `17. Migration Structure and Execution Strategy`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `Database` connect `database.ts` to `server.ts`, `hackathon.ts`, `showcase/page.tsx`, `admin-verification-actions.ts`, `onboarding-actions.ts`, `auth.ts`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+- **Why does `createClient()` connect `createClient` to `submission-schemas.ts`, `team-actions.ts`, `submissions/page.tsx`, `round-submission-actions.ts`, `hackathon.ts`, `auth.ts`, `rate-limiter.ts`, `card.tsx`, `runPhase4IntegrationTests`, `admins-client.tsx`, `auth-actions.ts`, `hackathon-management-actions.ts`, `admin-verification-actions.ts`, `server.ts`, `upload-service.ts`, `createAdminClient`, `report-actions.ts`, `guards.ts`, `admins/page.tsx`, `submissions-client.tsx`?**
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Why does `createAdminClient()` connect `createAdminClient` to `team-actions.ts`, `admins-client.tsx`, `round-submission-actions.ts`, `auth.ts`, `rate-limiter.ts`, `retention-worker-purging.test.ts`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `Button` connect `button.tsx` to `showcase/page.tsx`, `admins-client.tsx`, `hackathon.ts`, `auth-actions.ts`, `card.tsx`, `admin-verification-actions.ts`, `report-actions.ts`, `button-link.tsx`, `submissions-client.tsx`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **What connects `config`, `nextConfig`, `name` to the rest of the system?**
-  _709 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _880 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `NMIT HackLeague --- Development Phases` be split into smaller, more focused modules?**
   _Cohesion score 0.041666666666666664 - nodes in this community are weakly interconnected._
 - **Should `NMIT HackLeague --- Project Rules & Source of Truth` be split into smaller, more focused modules?**

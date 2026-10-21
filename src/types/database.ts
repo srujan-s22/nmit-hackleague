@@ -129,6 +129,62 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"evidence_validation_intents": {
+                  Row: {
+                    "consumed_at": string | null,"created_at": string,"created_by": string,"expires_at": string,"file_size_bytes": number,"hackathon_id": string,"id": string,"mime_type": string,"object_path": string,"round_id": string,"sha256_hash": string,"status": string,"submission_id": string | null,"team_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "consumed_at"?: string | null,"created_at"?: string,"created_by": string,"expires_at"?: string,"file_size_bytes": number,"hackathon_id": string,"id"?: string,"mime_type": string,"object_path": string,"round_id": string,"sha256_hash": string,"status"?: string,"submission_id"?: string | null,"team_id": string
+                  }
+                  Update: {
+                    "consumed_at"?: string | null,"created_at"?: string,"created_by"?: string,"expires_at"?: string,"file_size_bytes"?: number,"hackathon_id"?: string,"id"?: string,"mime_type"?: string,"object_path"?: string,"round_id"?: string,"sha256_hash"?: string,"status"?: string,"submission_id"?: string | null,"team_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "evidence_validation_intents_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "evidence_validation_intents_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "evidence_validation_intents_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons_public_view"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "evidence_validation_intents_round_id_fkey"
+      columns: ["round_id"]
+isOneToOne: false
+      referencedRelation: "hackathon_rounds"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "evidence_validation_intents_round_id_fkey"
+      columns: ["round_id"]
+isOneToOne: false
+      referencedRelation: "hackathon_rounds_public_view"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "evidence_validation_intents_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submissions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "evidence_validation_intents_team_id_fkey"
+      columns: ["team_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"hackathon_rounds": {
                   Row: {
                     "created_at": string,"description": string | null,"end_at": string,"hackathon_id": string,"id": string,"is_final_round": boolean,"name": string,"round_number": number,"start_at": string,"status": string,"updated_at": string
@@ -441,14 +497,14 @@ isOneToOne: false
                   ]
                 },"submissions": {
                   Row: {
-                    "created_at": string,"demo_url": string | null,"description": string | null,"evidence_absence_recorded_at": string | null,"evidence_deleted_at": string | null,"evidence_lifecycle_state": string,"evidence_path": string | null,"evidence_sha256": string | null,"evidence_uploaded_at": string | null,"hackathon_id": string,"id": string,"repo_url": string | null,"round_id": string,"status": string,"submitted_by": string,"team_id": string,"title": string,"updated_at": string,"version": number
+                    "created_at": string,"demo_url": string | null,"description": string | null,"evidence_absence_recorded_at": string | null,"evidence_deleted_at": string | null,"evidence_lifecycle_state": string,"evidence_path": string | null,"evidence_sha256": string | null,"evidence_uploaded_at": string | null,"hackathon_id": string,"id": string,"is_current": boolean,"parent_submission_id": string | null,"repo_url": string | null,"round_id": string,"status": string,"submitted_by": string,"team_id": string,"title": string,"updated_at": string,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_absence_recorded_at"?: string | null,"evidence_deleted_at"?: string | null,"evidence_lifecycle_state"?: string,"evidence_path"?: string | null,"evidence_sha256"?: string | null,"evidence_uploaded_at"?: string | null,"hackathon_id": string,"id"?: string,"repo_url"?: string | null,"round_id": string,"status"?: string,"submitted_by": string,"team_id": string,"title": string,"updated_at"?: string,"version"?: number
+                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_absence_recorded_at"?: string | null,"evidence_deleted_at"?: string | null,"evidence_lifecycle_state"?: string,"evidence_path"?: string | null,"evidence_sha256"?: string | null,"evidence_uploaded_at"?: string | null,"hackathon_id": string,"id"?: string,"is_current"?: boolean,"parent_submission_id"?: string | null,"repo_url"?: string | null,"round_id": string,"status"?: string,"submitted_by": string,"team_id": string,"title": string,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_absence_recorded_at"?: string | null,"evidence_deleted_at"?: string | null,"evidence_lifecycle_state"?: string,"evidence_path"?: string | null,"evidence_sha256"?: string | null,"evidence_uploaded_at"?: string | null,"hackathon_id"?: string,"id"?: string,"repo_url"?: string | null,"round_id"?: string,"status"?: string,"submitted_by"?: string,"team_id"?: string,"title"?: string,"updated_at"?: string,"version"?: number
+                    "created_at"?: string,"demo_url"?: string | null,"description"?: string | null,"evidence_absence_recorded_at"?: string | null,"evidence_deleted_at"?: string | null,"evidence_lifecycle_state"?: string,"evidence_path"?: string | null,"evidence_sha256"?: string | null,"evidence_uploaded_at"?: string | null,"hackathon_id"?: string,"id"?: string,"is_current"?: boolean,"parent_submission_id"?: string | null,"repo_url"?: string | null,"round_id"?: string,"status"?: string,"submitted_by"?: string,"team_id"?: string,"title"?: string,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     {
@@ -469,6 +525,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "teams"
       referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "submissions_parent_submission_id_fkey"
+      columns: ["parent_submission_id"]
+isOneToOne: false
+      referencedRelation: "submissions"
+      referencedColumns: ["id"]
     },{
       foreignKeyName: "submissions_submitted_by_fkey"
       columns: ["submitted_by"]
@@ -754,6 +816,9 @@ isOneToOne: false
 "reassign_hackathon_in_charge_admin":
 { Args: { "p_hackathon_id": string,"p_justification": string,"p_new_admin_id": string }; Returns: Json
                            },
+"record_round_winner_placement":
+{ Args: { "p_notes"?: string,"p_placement": string,"p_submission_id": string }; Returns: Json
+                           },
 "regenerate_team_invitation_code":
 { Args: { "p_team_id": string }; Returns: Json
                            },
@@ -762,6 +827,9 @@ isOneToOne: false
                            },
 "remove_team_member":
 { Args: { "p_student_id": string,"p_team_id": string }; Returns: Json
+                           },
+"reopen_rejected_submission":
+{ Args: { "p_reason": string,"p_submission_id": string,"p_target_status": string }; Returns: Json
                            },
 "replace_college_id":
 { Args: { "p_new_storage_path": string }; Returns: Json
@@ -772,13 +840,22 @@ isOneToOne: false
 "resolve_reconciliation_job":
 { Args: { "p_http_status": number,"p_job_id": string,"p_lease_token": string }; Returns: undefined
                            },
+"resubmit_round_milestone":
+{ Args: { "p_demo_url"?: string,"p_description"?: string,"p_evidence_path"?: string,"p_evidence_sha256"?: string,"p_prior_submission_id": string,"p_repo_url"?: string,"p_title": string }; Returns: Json
+                           },
 "resume_hackathon_round":
 { Args: { "p_new_end_at"?: string,"p_reason"?: string,"p_round_id": string }; Returns: Json
                            },
 "reverse_points_award":
 { Args: { "p_original_ledger_id": string,"p_reason": string }; Returns: string
                            },
+"reverse_points_ledger_entry":
+{ Args: { "p_ledger_id": string,"p_reason": string }; Returns: Json
+                           },
 "review_round_advancement":
+{ Args: { "p_decision": string,"p_feedback"?: string,"p_submission_id": string }; Returns: Json
+                           },
+"review_round_submission":
 { Args: { "p_decision": string,"p_feedback"?: string,"p_submission_id": string }; Returns: Json
                            },
 "review_student_registration":
@@ -795,6 +872,9 @@ isOneToOne: false
                            },
 "submit_registration_proof":
 { Args: { "p_cdc_declaration_accepted": boolean,"p_cdc_declaration_text": string,"p_proof_path": string,"p_team_id": string }; Returns: Json
+                           },
+"submit_round_milestone":
+{ Args: { "p_demo_url"?: string,"p_description"?: string,"p_evidence_path"?: string,"p_evidence_sha256"?: string,"p_repo_url"?: string,"p_round_id": string,"p_team_id": string,"p_title": string }; Returns: Json
                            },
 "transfer_team_leadership":
 { Args: { "p_new_leader_id": string,"p_team_id": string }; Returns: undefined
