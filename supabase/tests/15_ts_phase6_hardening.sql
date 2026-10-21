@@ -1,6 +1,6 @@
 -- Suite 15: Phase 6 Hardening, Stage Schedules, Admin Scoping & Retention Integration (TS-P6H)
 BEGIN;
-SELECT plan(31);
+SELECT plan(32);
 
 -- ============================================================================
 -- Fixture Setup (Executed as Superuser / postgres)
@@ -851,10 +851,10 @@ INSERT INTO public.points_ledger (
   '00000000-0000-0000-0000-000000006086',
   '00000000-0000-0000-0000-000000006087',
   '00000000-0000-0000-0000-000000006084',
-  'win_placement',
+  'round_qualification',
   'leader',
   100,
-  'Winner prize points',
+  'Round qualification points',
   '00000000-0000-0000-0000-000000000001'
 );
 
@@ -862,6 +862,12 @@ SELECT is(
   (SELECT count(*)::int FROM public.results WHERE hackathon_id = '00000000-0000-0000-0000-000000006088'),
   1,
   'TS-P6H-29: Verified results remain intact and preserved'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.points_ledger WHERE id = '00000000-0000-0000-0000-000000006083'),
+  1,
+  'TS-P6H-29b: Awarded points ledger record remains intact and preserved'
 );
 
 -- ----------------------------------------------------------------------------

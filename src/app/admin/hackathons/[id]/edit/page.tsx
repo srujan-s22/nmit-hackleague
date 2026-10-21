@@ -55,6 +55,8 @@ export default async function EditHackathonPage({ params }: EditPageProps) {
     prizesDetail,
     externalRegistrationUrl: h.external_registration_url || '',
     communityUrl: h.community_url || '',
+    academicYear: h.academic_year || '',
+    academicTerm: (h.academic_term as 'odd_sem' | 'even_sem' | 'summer_term' | 'unassigned') || 'unassigned',
   };
 
   return (

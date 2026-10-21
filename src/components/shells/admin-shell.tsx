@@ -26,6 +26,8 @@ export function AdminShell({
     adminProfile?.is_super_admin || permissions.includes('verify_students');
   const hasManageHackathons =
     adminProfile?.is_super_admin || permissions.includes('manage_hackathons');
+  const hasManagePoints =
+    adminProfile?.is_super_admin || permissions.includes('manage_points');
   const hasExportData =
     adminProfile?.is_super_admin || permissions.includes('export_data');
   const hasManageNotifications =
@@ -45,6 +47,18 @@ export function AdminShell({
       ),
     });
   }
+  if (hasManagePoints) {
+    eventOpItems.push({
+      label: 'Points & Awards',
+      href: '/admin/points',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="7" />
+          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+        </svg>
+      ),
+    });
+  }
   if (hasVerifyStudents) {
     eventOpItems.push({
       label: 'Student Verifications',
@@ -58,6 +72,19 @@ export function AdminShell({
       ),
     });
   }
+  eventOpItems.push({
+    label: 'Leaderboard',
+    href: '/leaderboard',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+        <path d="M4 22h16" />
+        <path d="M10 14.66V17c0 .55-.45 1-1 1H7v2h10v-2h-2c-.55 0-1-.45-1-1v-2.34" />
+        <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+      </svg>
+    ),
+  });
   if (hasManageNotifications) {
     eventOpItems.push({
       label: 'Broadcasts & Alerts',

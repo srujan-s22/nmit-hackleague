@@ -213,14 +213,14 @@ isOneToOne: false
                   ]
                 },"hackathons": {
                   Row: {
-                    "community_url": string | null,"created_at": string,"created_by": string,"description": string,"eligibility": string,"event_end_at": string,"event_start_at": string,"external_registration_url": string | null,"id": string,"in_charge_admin_id": string | null,"is_solo_allowed": boolean,"max_team_size": number,"min_team_size": number,"mode": string,"organizer": string,"prizes_detail": NonNullable<Json>,"prizes_summary": string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status": string,"tagline": string | null,"timezone": string,"title": string,"updated_at": string,"venue": string | null
+                    "academic_term": string,"academic_year": string,"community_url": string | null,"created_at": string,"created_by": string,"description": string,"eligibility": string,"event_end_at": string,"event_start_at": string,"external_registration_url": string | null,"id": string,"in_charge_admin_id": string | null,"is_solo_allowed": boolean,"max_team_size": number,"min_team_size": number,"mode": string,"organizer": string,"prizes_detail": NonNullable<Json>,"prizes_summary": string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status": string,"tagline": string | null,"timezone": string,"title": string,"updated_at": string,"venue": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "community_url"?: string | null,"created_at"?: string,"created_by": string,"description": string,"eligibility"?: string,"event_end_at": string,"event_start_at": string,"external_registration_url"?: string | null,"id"?: string,"in_charge_admin_id"?: string | null,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode": string,"organizer": string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title": string,"updated_at"?: string,"venue"?: string | null
+                    "academic_term"?: string,"academic_year"?: string,"community_url"?: string | null,"created_at"?: string,"created_by": string,"description": string,"eligibility"?: string,"event_end_at": string,"event_start_at": string,"external_registration_url"?: string | null,"id"?: string,"in_charge_admin_id"?: string | null,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode": string,"organizer": string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title": string,"updated_at"?: string,"venue"?: string | null
                   }
                   Update: {
-                    "community_url"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string,"eligibility"?: string,"event_end_at"?: string,"event_start_at"?: string,"external_registration_url"?: string | null,"id"?: string,"in_charge_admin_id"?: string | null,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode"?: string,"organizer"?: string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at"?: string,"registration_start_at"?: string,"slug"?: string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title"?: string,"updated_at"?: string,"venue"?: string | null
+                    "academic_term"?: string,"academic_year"?: string,"community_url"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string,"eligibility"?: string,"event_end_at"?: string,"event_start_at"?: string,"external_registration_url"?: string | null,"id"?: string,"in_charge_admin_id"?: string | null,"is_solo_allowed"?: boolean,"max_team_size"?: number,"min_team_size"?: number,"mode"?: string,"organizer"?: string,"prizes_detail"?: NonNullable<Json>,"prizes_summary"?: string | null,"registration_end_at"?: string,"registration_start_at"?: string,"slug"?: string,"status"?: string,"tagline"?: string | null,"timezone"?: string,"title"?: string,"updated_at"?: string,"venue"?: string | null
                   }
                   Relationships: [
                     {
@@ -259,14 +259,14 @@ isOneToOne: false
                   ]
                 },"points_ledger": {
                   Row: {
-                    "awarded_by": string,"created_at": string,"hackathon_id": string,"id": string,"idempotency_key": string,"milestone_type": string,"points": number,"reason": string,"result_id": string | null,"reversal_of_id": string | null,"role_at_award": string,"round_id": string | null,"student_id": string,"team_id": string
+                    "adjusted_entry_id": string | null,"awarded_by": string,"created_at": string,"hackathon_id": string,"id": string,"idempotency_key": string,"milestone_type": string,"points": number,"reason": string,"result_id": string | null,"reversal_of_id": string | null,"role_at_award": string,"round_id": string | null,"student_id": string,"team_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "awarded_by": string,"created_at"?: string,"hackathon_id": string,"id"?: string,"idempotency_key": string,"milestone_type": string,"points": number,"reason": string,"result_id"?: string | null,"reversal_of_id"?: string | null,"role_at_award": string,"round_id"?: string | null,"student_id": string,"team_id": string
+                    "adjusted_entry_id"?: string | null,"awarded_by": string,"created_at"?: string,"hackathon_id": string,"id"?: string,"idempotency_key": string,"milestone_type": string,"points": number,"reason": string,"result_id"?: string | null,"reversal_of_id"?: string | null,"role_at_award": string,"round_id"?: string | null,"student_id": string,"team_id": string
                   }
                   Update: {
-                    "awarded_by"?: string,"created_at"?: string,"hackathon_id"?: string,"id"?: string,"idempotency_key"?: string,"milestone_type"?: string,"points"?: number,"reason"?: string,"result_id"?: string | null,"reversal_of_id"?: string | null,"role_at_award"?: string,"round_id"?: string | null,"student_id"?: string,"team_id"?: string
+                    "adjusted_entry_id"?: string | null,"awarded_by"?: string,"created_at"?: string,"hackathon_id"?: string,"id"?: string,"idempotency_key"?: string,"milestone_type"?: string,"points"?: number,"reason"?: string,"result_id"?: string | null,"reversal_of_id"?: string | null,"role_at_award"?: string,"round_id"?: string | null,"student_id"?: string,"team_id"?: string
                   }
                   Relationships: [
                     {
@@ -293,6 +293,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "hackathon_rounds_public_view"
       referencedColumns: ["id","hackathon_id"]
+    },{
+      foreignKeyName: "points_ledger_adjusted_entry_id_fkey"
+      columns: ["adjusted_entry_id"]
+isOneToOne: false
+      referencedRelation: "points_ledger"
+      referencedColumns: ["id"]
     },{
       foreignKeyName: "points_ledger_awarded_by_fkey"
       columns: ["awarded_by"]
@@ -669,7 +675,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "adjust_student_points":
+            "adjust_points_ledger_entry":
+{ Args: { "p_adjusted_entry_id"?: string,"p_hackathon_id": string,"p_idempotency_key": string,"p_override_negative_floor"?: boolean,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: Json
+                           },
+"adjust_student_points":
 { Args: { "p_hackathon_id": string,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: string
                            },
 "audit_data_export":
@@ -772,6 +781,14 @@ isOneToOne: false
 "finalize_submission_upload":
 { Args: { "p_object_path": string,"p_sha256": string,"p_submission_id": string }; Returns: Json
                            },
+"get_platform_leaderboard":
+{ Args: { "p_academic_year"?: number,"p_event_academic_year"?: string,"p_event_term"?: string,"p_limit"?: number,"p_offset"?: number }; Returns: {
+              "academic_year": number,"branch": string,"full_name": string,"rank": number,"student_id": string,"total_points": number,"verified_qualifications_count": number
+            }[]
+                           },
+"get_student_points_summary":
+{ Args: { "p_student_id": string }; Returns: Json
+                           },
 "is_push_registered":
 { Args: { "p_user_id"?: string }; Returns: boolean
                            },
@@ -866,6 +883,9 @@ isOneToOne: false
                            },
 "set_admin_active_status":
 { Args: { "p_is_active": boolean,"p_reason": string,"p_target_admin_id": string }; Returns: Json
+                           },
+"set_hackathon_academic_period":
+{ Args: { "p_academic_term": string,"p_academic_year": string,"p_hackathon_id": string }; Returns: Json
                            },
 "submit_profile_for_review":
 { Args: Record<PropertyKey, never>; Returns: Json

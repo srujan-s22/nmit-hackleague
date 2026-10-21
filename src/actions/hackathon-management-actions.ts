@@ -457,3 +457,44 @@ export async function resumeRoundAction(
     return { success: false, error: message };
   }
 }
+
+/**
+ * Sets or updates the academic period (year and term) for an event.
+ * Scoped to authorized admins or super admin.
+ */
+export async function setHackathonAcademicPeriodAction(
+  hackathonId: string,
+  academicYear: string,
+  academicTerm: 'odd_sem' | 'even_sem' | 'summer_term' | 'unassigned'
+): Promise<ActionResult<{ success: boolean; hackathon_id: string; academic_year: string; academic_term: string }>> {
+  try {
+    await requireHackathonScope(hackathonId, 'manage_hackathons');
+    const supabase = await createClient();
+
+    const { data: result, error } = await supabase.rpc('set_hackathon_academic_period', {
+      p_hackathon_id: hackathonId,
+      p_academic_year: academicYear || 'unassigned',
+      p_academic_term: academicTerm,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath(`/admin/hackathons/${hackathonId}`);
+    revalidatePath(`/admin/hackathons/${hackathonId}/edit`);
+    revalidatePath('/leaderboard');
+
+    return {
+      success: true,
+      data: result as any,
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update academic period.';
+    if (message.includes('NEXT_REDIRECT')) {
+      throw err;
+    }
+    return { success: false, error: message };
+  }
+}
+

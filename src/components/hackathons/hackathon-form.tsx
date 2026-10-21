@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   createHackathonDraftAction,
   updateHackathonMetadataAction,
+  setHackathonAcademicPeriodAction,
 } from '@/actions/hackathon-management-actions';
 import {
   hackathonFormSchema,
@@ -19,7 +20,12 @@ import {
 } from '@/lib/validation/hackathon-schemas';
 
 interface HackathonFormProps {
-  initialData?: Partial<HackathonFormData> & { id?: string; registrationEndAt?: string };
+  initialData?: Partial<HackathonFormData> & {
+    id?: string;
+    registrationEndAt?: string;
+    academicYear?: string | null;
+    academicTerm?: 'odd_sem' | 'even_sem' | 'summer_term' | 'unassigned' | null;
+  };
   isEdit?: boolean;
 }
 
@@ -50,6 +56,10 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
   const [organizer, setOrganizer] = useState(initialData?.organizer || 'NMIT Department of CSE');
   const [mode, setMode] = useState<'offline' | 'online' | 'hybrid'>(initialData?.mode || 'hybrid');
   const [venue, setVenue] = useState(initialData?.venue || '');
+  const [academicYear, setAcademicYear] = useState(initialData?.academicYear || '');
+  const [academicTerm, setAcademicTerm] = useState<'odd_sem' | 'even_sem' | 'summer_term' | 'unassigned'>(
+    initialData?.academicTerm || 'unassigned'
+  );
 
   const [registrationStartAt, setRegistrationStartAt] = useState(
     toLocalDatetimeString(initialData?.registrationStartAt)
@@ -169,6 +179,17 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
           if (res.fieldErrors) setFieldErrors(res.fieldErrors);
           return;
         }
+
+        const periodRes = await setHackathonAcademicPeriodAction(
+          initialData.id,
+          academicYear.trim() || 'unassigned',
+          academicTerm
+        );
+        if (!periodRes.success) {
+          setFormError(periodRes.error || 'Failed to update academic period.');
+          return;
+        }
+
         router.push('/admin/hackathons');
       } else {
         const res = await createHackathonDraftAction(payload);
@@ -178,6 +199,13 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
           return;
         }
         if (res.data?.id) {
+          if (academicYear.trim() || academicTerm !== 'unassigned') {
+            await setHackathonAcademicPeriodAction(
+              res.data.id,
+              academicYear.trim() || 'unassigned',
+              academicTerm
+            );
+          }
           // Direct admin to configure rounds next
           router.push(`/admin/hackathons/${res.data.id}/rounds`);
         } else {
@@ -279,6 +307,41 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
               placeholder="e.g. Auditorium / LAB-3"
               error={fieldErrors['venue']?.[0]}
               required={mode !== 'online'}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Institutional Academic Period (Phase 9 Points & Leaderboard) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Institutional Academic Period</CardTitle>
+          <p className="text-xs text-text-muted mt-1">
+            Assign the competition to an institutional academic year and semester. This enables leaderboard filtering for points earned during this event. Historical events without an assigned period remain unassigned.
+          </p>
+        </CardHeader>
+        <div className="p-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Academic Year"
+              value={academicYear}
+              onChange={(e) => setAcademicYear(e.target.value)}
+              placeholder="e.g. 2026-2027"
+              helperText="Format: YYYY-YYYY (e.g. 2026-2027)"
+            />
+            <Select
+              label="Academic Term / Semester"
+              value={academicTerm}
+              onChange={(e) =>
+                setAcademicTerm(e.target.value as 'odd_sem' | 'even_sem' | 'summer_term' | 'unassigned')
+              }
+              options={[
+                { label: 'Unassigned (Historical / General)', value: 'unassigned' },
+                { label: 'Odd Semester (Autumn / Monsoon)', value: 'odd_sem' },
+                { label: 'Even Semester (Spring)', value: 'even_sem' },
+                { label: 'Summer Term', value: 'summer_term' },
+              ]}
+              helperText="Determines semester-specific leaderboard aggregates."
             />
           </div>
         </div>
