@@ -681,6 +681,9 @@ isOneToOne: false
 "adjust_student_points":
 { Args: { "p_hackathon_id": string,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: string
                            },
+"approve_profile_change_request":
+{ Args: { "p_request_id": string }; Returns: Json
+                           },
 "audit_data_export":
 { Args: { "p_dataset": string,"p_filters"?: Json,"p_format": string,"p_hackathon_id"?: string }; Returns: undefined
                            },
@@ -789,6 +792,11 @@ isOneToOne: false
 "get_student_points_summary":
 { Args: { "p_student_id": string }; Returns: Json
                            },
+"get_team_roster":
+{ Args: { "p_team_id": string }; Returns: {
+              "academic_year": number,"branch": string,"full_name": string,"id": string,"profile_photo_path": string | null,"role": string,"student_id": string
+            }[]
+                           },
 "is_push_registered":
 { Args: { "p_user_id"?: string }; Returns: boolean
                            },
@@ -842,6 +850,9 @@ isOneToOne: false
 "register_push_subscription":
 { Args: { "p_auth": string,"p_device_fingerprint": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: Json
                            },
+"reject_profile_change_request":
+{ Args: { "p_rejection_reason": string,"p_request_id": string }; Returns: Json
+                           },
 "remove_team_member":
 { Args: { "p_student_id": string,"p_team_id": string }; Returns: Json
                            },
@@ -886,6 +897,9 @@ isOneToOne: false
                            },
 "set_hackathon_academic_period":
 { Args: { "p_academic_term": string,"p_academic_year": string,"p_hackathon_id": string }; Returns: Json
+                           },
+"submit_profile_change_request":
+{ Args: { "p_field_name": string,"p_new_value": string,"p_reason": string }; Returns: Json
                            },
 "submit_profile_for_review":
 { Args: Record<PropertyKey, never>; Returns: Json

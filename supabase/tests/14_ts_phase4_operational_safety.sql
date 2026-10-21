@@ -63,12 +63,12 @@ BEGIN
     'authenticated', 'authenticated', 'student_p4_71@nmit-dev.local',
     extensions.crypt('password123', extensions.gen_salt('bf')), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Student P4 71","usn":"1NT22CS999","phone":"9876543210","branch":"CSE","academic_year":3,"sex":"Male","date_of_birth":"2003-01-01"}'::jsonb,
+    '{"full_name":"Student P4 71","usn":"1NT22CS999","phone":"+919876543210","branch":"CSE","academic_year":3,"sex":"Male","date_of_birth":"2003-01-01"}'::jsonb,
     now(), now()
   ) ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.profiles (id, email, full_name, usn, phone, branch, academic_year, sex, date_of_birth, registration_status)
-  VALUES (v_student_id, 'student_p4_71@nmit-dev.local', 'Student P4 71', '1NT22CS999', '9876543210', 'CSE', 3, 'Male', '2003-01-01', 'approved')
+  VALUES (v_student_id, 'student_p4_71@nmit-dev.local', 'Student P4 71', '1NT22CS999', '+919876543210', 'CSE', 3, 'Male', '2003-01-01', 'approved')
   ON CONFLICT (id) DO UPDATE SET registration_status = 'approved';
 
   -- 3. Create Hackathon with in_charge_admin_id

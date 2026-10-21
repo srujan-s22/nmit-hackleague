@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import React from 'react';
 import Link from 'next/link';
@@ -11,6 +12,7 @@ export interface AppHeaderProps {
   roleBadge?: React.ReactNode;
   userName?: string;
   userRole?: string;
+  avatarUrl?: string | null;
   onToggleSidebar?: () => void;
   isSidebarOpen?: boolean;
 }
@@ -20,6 +22,7 @@ export function AppHeader({
   roleBadge,
   userName = 'Demo User',
   userRole = 'Preview Account',
+  avatarUrl = null,
   onToggleSidebar,
   isSidebarOpen = false,
 }: AppHeaderProps) {
@@ -84,16 +87,24 @@ export function AppHeader({
         {/* In-App Notification Center */}
         <NotificationCenter />
 
-        {/* User profile capsule (Demo Presentation) */}
+        {/* User profile capsule */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-surface-muted border border-border-subtle flex items-center justify-center font-semibold text-xs text-text-primary select-none">
-            {userName
-              .split(' ')
-              .map((n) => n[0])
-              .join('')
-              .slice(0, 2)
-              .toUpperCase()}
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={userName}
+              className="w-8 h-8 rounded-full object-cover border border-border-subtle"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-surface-muted border border-border-subtle flex items-center justify-center font-semibold text-xs text-text-primary select-none">
+              {userName
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase()}
+            </div>
+          )}
           <div className="hidden sm:flex flex-col text-left">
             <span className="text-xs font-medium text-text-primary leading-tight">
               {userName}

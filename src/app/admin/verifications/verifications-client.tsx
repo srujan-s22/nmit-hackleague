@@ -11,14 +11,27 @@ import {
   getAdminCollegeIdPreviewUrlAction,
 } from '@/actions/admin-verification-actions';
 import type { Database } from '@/types/database';
+import { ProfileChangesClient } from './profile-changes-client';
+import type { PendingProfileChangeReviewItem } from '@/lib/student/queries';
 
 type StudentProfile = Database['public']['Tables']['profiles']['Row'];
 
-interface VerificationsClientProps {
+export interface VerificationsClientProps {
   initialStudents: StudentProfile[];
+  initialProfileChanges?: PendingProfileChangeReviewItem[];
+  canVerifyStudents?: boolean;
+  canManageStudents?: boolean;
 }
 
-export function VerificationsClient({ initialStudents }: VerificationsClientProps) {
+export function VerificationsClient({
+  initialStudents,
+  initialProfileChanges = [],
+  canVerifyStudents = true,
+  canManageStudents = true,
+}: VerificationsClientProps) {
+  const [activeTab, setActiveTab] = useState<'registrations' | 'profile_changes'>(
+    canVerifyStudents ? 'registrations' : 'profile_changes'
+  );
   const [students, setStudents] = useState<StudentProfile[]>(initialStudents);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -95,23 +108,65 @@ export function VerificationsClient({ initialStudents }: VerificationsClientProp
 
   return (
     <div className="space-y-6">
-      {feedbackMessage && (
-        <Alert variant="success" onClose={() => setFeedbackMessage(null)}>
-          {feedbackMessage}
-        </Alert>
+      {/* Top Tab Switcher */}
+      {canVerifyStudents && canManageStudents && (
+        <div className="flex items-center gap-2 p-1.5 bg-surface-subtle border border-border-subtle rounded-xl self-start">
+          <button
+            type="button"
+            onClick={() => setActiveTab('registrations')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-colors ${
+              activeTab === 'registrations'
+                ? 'bg-surface-canvas text-text-primary shadow-xs'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <span>Student Registrations</span>
+            <Badge variant={students.length > 0 ? 'warning' : 'neutral'} size="sm">
+              {students.length}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('profile_changes')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-colors ${
+              activeTab === 'profile_changes'
+                ? 'bg-surface-canvas text-text-primary shadow-xs'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <span>Profile Change Requests</span>
+            <Badge
+              variant={initialProfileChanges.length > 0 ? 'warning' : 'neutral'}
+              size="sm"
+            >
+              {initialProfileChanges.length}
+            </Badge>
+          </button>
+        </div>
       )}
 
-      {errorMessage && (
-        <Alert
-          variant="error"
-          title="Review Action Error"
-          onClose={() => setErrorMessage(null)}
-        >
-          {errorMessage}
-        </Alert>
-      )}
+      {activeTab === 'profile_changes' ? (
+        <ProfileChangesClient initialRequests={initialProfileChanges} />
+      ) : (
+        <>
+          {feedbackMessage && (
+            <Alert variant="success" onClose={() => setFeedbackMessage(null)}>
+              {feedbackMessage}
+            </Alert>
+          )}
 
-      {/* Main Review Queue Table */}
+          {errorMessage && (
+            <Alert
+              variant="error"
+              title="Review Action Error"
+              onClose={() => setErrorMessage(null)}
+            >
+              {errorMessage}
+            </Alert>
+          )}
+
+          {/* Main Review Queue Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -322,6 +377,8 @@ export function VerificationsClient({ initialStudents }: VerificationsClientProp
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

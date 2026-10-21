@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -241,7 +242,7 @@ export function TeamRosterCard({
               <thead className="bg-surface-subtle border-b border-border-subtle text-text-secondary font-medium">
                 <tr>
                   <th className="py-2.5 px-3">Student Name</th>
-                  <th className="py-2.5 px-3">USN / Roll No</th>
+                  <th className="py-2.5 px-3">Branch & Year</th>
                   <th className="py-2.5 px-3">Role</th>
                   <th className="py-2.5 px-3">Joined On</th>
                   {isLeader && canModifyRoster && (
@@ -260,22 +261,42 @@ export function TeamRosterCard({
                       className={isCurrent ? 'bg-brand-primary/5 font-medium' : 'hover:bg-surface-subtle/40'}
                     >
                       <td className="py-3 px-3">
-                        <div className="flex flex-col">
-                          <span className="text-text-primary">
-                            {member.profile?.full_name || 'Institutional Student'}
-                            {isCurrent && (
-                              <span className="text-[10px] text-brand-primary ml-1.5 font-bold">
-                                (You)
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-[11px] text-text-muted">
-                            {member.profile?.email || '—'}
-                          </span>
+                        <div className="flex items-center gap-2.5">
+                          {member.profile?.avatar_url ? (
+                            <img
+                              src={member.profile.avatar_url}
+                              alt={member.profile.full_name || 'Teammate avatar'}
+                              className="w-7 h-7 rounded-full object-cover border border-border-subtle"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-surface-muted border border-border-subtle flex items-center justify-center font-semibold text-[10px] text-text-primary select-none shrink-0">
+                              {(member.profile?.full_name || 'U')
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')
+                                .slice(0, 2)
+                                .toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex flex-col">
+                            <span className="text-text-primary">
+                              {member.profile?.full_name || 'Institutional Student'}
+                              {isCurrent && (
+                                <span className="text-[10px] text-brand-primary ml-1.5 font-bold">
+                                  (You)
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-[11px] text-text-muted">
+                              {member.profile?.branch ? `${member.profile.branch} Department` : 'Verified Student'}
+                            </span>
+                          </div>
                         </div>
                       </td>
-                      <td className="py-3 px-3 font-mono text-text-secondary">
-                        {member.profile?.roll_number || '—'}
+                      <td className="py-3 px-3 text-text-secondary font-medium">
+                        {member.profile?.branch
+                          ? `${member.profile.branch} • Year ${member.profile.academic_year}`
+                          : '—'}
                       </td>
                       <td className="py-3 px-3">
                         {isMemberLeader ? (

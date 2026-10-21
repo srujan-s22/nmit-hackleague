@@ -212,7 +212,7 @@ INSERT INTO public.point_configurations (
 VALUES
   ('participation', 10, 15, true, '00000000-0000-0000-0000-000000000001'),
   ('round_qualification', 20, 25, true, '00000000-0000-0000-0000-000000000001'),
-  ('win_placement', 30, 35, true, '00000000-0000-0000-0000-000000000001')
+  ('win_placement', 0, 0, false, '00000000-0000-0000-0000-000000000001')
 ON CONFLICT (milestone_type) DO UPDATE SET
   regular_member_points = EXCLUDED.regular_member_points,
   team_leader_points = EXCLUDED.team_leader_points,

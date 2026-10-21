@@ -687,9 +687,10 @@ async function runPhase9IntegrationTests() {
     p_limit: 10,
     p_offset: 0,
   });
-  const hasNoMatchingEvents = !boardEvenSem?.some((b: any) => b.student_id === student1.userId);
+  const std1InEvenSem = boardEvenSem?.find((b: any) => b.student_id === student1.userId);
+  const hasNoLeakedPoints = !std1InEvenSem || Number(std1InEvenSem.total_points) === 0;
   assert(
-    hasNoMatchingEvents,
+    hasNoLeakedPoints,
     'P9-FLT-03',
     'Leaderboard does not leak points from different academic periods (no inference from event dates)'
   );

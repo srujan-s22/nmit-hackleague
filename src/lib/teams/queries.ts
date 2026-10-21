@@ -41,9 +41,12 @@ export interface TeamMemberDetail {
   profile?: {
     id: string;
     full_name: string;
-    email: string;
+    email?: string;
     avatar_url: string | null;
-    roll_number: string | null;
+    roll_number?: string | null;
+    branch?: string;
+    academic_year?: number;
+    profile_photo_path?: string | null;
   } | null;
 }
 
@@ -276,45 +279,45 @@ export async function getTeamDetails(teamId: string): Promise<TeamDetails | null
     p_team_id_text: teamId,
   });
 
-  // 3. Fetch team members
-  const { data: membersData } = await supabase
-    .from('team_members')
-    .select(`
-      id,
-      team_id,
-      student_id,
-      role,
-      joined_at,
-      profiles!team_members_student_id_fkey (
-        id,
-        full_name,
-        email,
-        avatar_url,
-        roll_number
-      )
-    `)
-    .eq('team_id', teamId)
-    .order('joined_at', { ascending: true });
-
-  const members: TeamMemberDetail[] = (membersData || []).map((m) => {
-    const prof = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
-    return {
-      id: m.id,
-      team_id: m.team_id,
-      student_id: m.student_id,
-      role: (m.role as 'leader' | 'member') || 'member',
-      joined_at: m.joined_at,
-      profile: prof
-        ? {
-            id: prof.id,
-            full_name: prof.full_name,
-            email: prof.email,
-            avatar_url: prof.avatar_url,
-            roll_number: prof.roll_number,
-          }
-        : null,
-    };
+  // 3. Fetch team members via scoped RPC get_team_roster (RLS safe & sanitized)
+  const { data: rosterData } = await supabase.rpc('get_team_roster', {
+    p_team_id: teamId,
   });
+
+  const members: TeamMemberDetail[] = await Promise.all(
+    ((rosterData as any[]) || []).map(async (m) => {
+      let avatarUrl: string | null = null;
+      if (m.profile_photo_path) {
+        const previewRes = await getSignedPreviewUrlWithClient(
+          supabase,
+          'profile-photos',
+          m.profile_photo_path,
+          900
+        );
+        if (previewRes.success && previewRes.url) {
+          avatarUrl = previewRes.url;
+        }
+      }
+
+      return {
+        id: m.id,
+        team_id: m.team_id || teamId,
+        student_id: m.student_id,
+        role: (m.role as 'leader' | 'member') || 'member',
+        joined_at: m.joined_at || team.created_at,
+        profile: {
+          id: m.student_id,
+          full_name: m.full_name,
+          email: '', // sanitized: email omitted from roster projection
+          avatar_url: avatarUrl,
+          roll_number: null, // sanitized: USN omitted from roster projection
+          branch: m.branch,
+          academic_year: m.academic_year,
+          profile_photo_path: m.profile_photo_path,
+        },
+      };
+    })
+  );
 
   // 4. Check paused status for Round 1
   let isRound1Paused = false;

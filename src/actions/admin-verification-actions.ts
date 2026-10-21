@@ -183,3 +183,61 @@ export async function reviewStudentAction(
     message: `Student registration successfully updated to ${decision}.`,
   };
 }
+
+/**
+ * Review a student profile change request (approve or reject)
+ * Requires manage_students or super_admin permission.
+ * Uses transactional RPCs approve_profile_change_request / reject_profile_change_request.
+ */
+export async function reviewProfileChangeRequestAction(
+  requestId: string,
+  decision: 'approved' | 'rejected',
+  rejectionReason?: string
+): Promise<ActionResult<{ requestId: string }>> {
+  await requireAdmin('manage_students');
+  const supabase = await createClient();
+
+  if (decision === 'rejected') {
+    if (!rejectionReason || rejectionReason.trim().length < 10) {
+      return {
+        success: false,
+        error: 'A rejection reason of at least 10 characters is mandatory.',
+      };
+    }
+  }
+
+  if (decision === 'approved') {
+    const { error } = await supabase.rpc('approve_profile_change_request', {
+      p_request_id: requestId,
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to approve profile change request.',
+      };
+    }
+  } else {
+    const { error } = await supabase.rpc('reject_profile_change_request', {
+      p_request_id: requestId,
+      p_rejection_reason: rejectionReason!.trim(),
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to reject profile change request.',
+      };
+    }
+  }
+
+  revalidatePath('/admin/verifications');
+  revalidatePath('/student/profile');
+  revalidatePath('/student');
+
+  return {
+    success: true,
+    data: { requestId },
+    message: `Profile change request was successfully ${decision}.`,
+  };
+}
