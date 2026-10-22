@@ -8,6 +8,7 @@ import {
   generateExcelWorkbook,
   DatasetExportConfig,
 } from '@/lib/reports/export-generators';
+import { exportRequestSchema } from '@/lib/validation/export-schemas';
 
 export interface ExportReportParams {
   dataset:
@@ -26,7 +27,8 @@ export interface ExportReportParams {
     | 'results'
     | 'points_ledger'
     | 'audit_logs'
-    | 'storage_objects';
+    | 'storage_objects'
+    | 'profile_change_requests';
   format: 'csv' | 'xlsx' | 'zip';
   hackathonId?: string | null;
 }
@@ -84,8 +86,36 @@ export async function getAccessibleHackathonsForReportsAction(): Promise<{
  */
 export async function exportReportAction(params: ExportReportParams): Promise<ExportReportResult> {
   try {
-    const { admin } = await requireAdmin('export_data');
+    // Validate request schema
+    const parsed = exportRequestSchema.safeParse(params);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message || 'Invalid export request parameters.',
+      };
+    }
+
+    const { admin, permissions } = await requireAdmin('export_data');
     const supabase = await createClient();
+
+    // Guard against attempting to download a single flat CSV for multiple disparate datasets
+    if (params.format === 'csv' && params.dataset === 'all') {
+      return {
+        success: false,
+        error: 'A single CSV cannot represent multiple datasets. Please select a specific dataset for CSV export, or use XLSX/ZIP for all datasets.',
+      };
+    }
+
+    // Explicit permission guard for audit_logs dataset
+    if (params.dataset === 'audit_logs') {
+      const hasAuditPermission = admin.is_super_admin || permissions.includes('view_audit_logs');
+      if (!hasAuditPermission) {
+        return {
+          success: false,
+          error: 'Access denied: view_audit_logs permission or Super Admin status is required to export audit logs.',
+        };
+      }
+    }
 
     const hackathonId = params.hackathonId || null;
 
@@ -95,6 +125,23 @@ export async function exportReportAction(params: ExportReportParams): Promise<Ex
         success: false,
         error: 'Hackathon selection is required. Scoped administrators may only export data for assigned hackathons.',
       };
+    }
+
+    // For non-super admins, verify the requested hackathon is actually assigned to caller
+    if (!admin.is_super_admin && hackathonId) {
+      const { data: assignedEvent } = await supabase
+        .from('hackathons')
+        .select('id')
+        .eq('id', hackathonId)
+        .eq('in_charge_admin_id', admin.id)
+        .maybeSingle();
+
+      if (!assignedEvent) {
+        return {
+          success: false,
+          error: 'Access denied: not authorized to export data for this hackathon.',
+        };
+      }
     }
 
     // Call audit_data_export RPC to verify authorization and log activity
@@ -117,10 +164,25 @@ export async function exportReportAction(params: ExportReportParams): Promise<Ex
 
     // 1. Students Dataset
     if (params.dataset === 'all' || params.dataset === 'students') {
-      const { data: students } = await supabase
+      let studentQuery = supabase
         .from('profiles')
-        .select('id, full_name, usn, email, branch, academic_year, phone, sex, registration_status, created_at')
+        .select('id, full_name, usn, email, branch, academic_year, phone, registration_status, created_at')
         .order('created_at', { ascending: false });
+
+      if (hackathonId) {
+        const { data: members } = await supabase
+          .from('team_members')
+          .select('student_id')
+          .eq('hackathon_id', hackathonId);
+        const studentIds = Array.from(new Set((members || []).map((m) => m.student_id)));
+        if (studentIds.length === 0) {
+          studentQuery = studentQuery.in('id', ['00000000-0000-0000-0000-000000000000']);
+        } else {
+          studentQuery = studentQuery.in('id', studentIds);
+        }
+      }
+
+      const { data: students } = await studentQuery;
 
       datasets.push({
         id: 'students',
@@ -133,7 +195,6 @@ export async function exportReportAction(params: ExportReportParams): Promise<Ex
           { key: 'phone', label: 'Phone' },
           { key: 'branch', label: 'Branch' },
           { key: 'academic_year', label: 'Academic Year' },
-          { key: 'sex', label: 'Gender' },
           { key: 'registration_status', label: 'Status' },
           { key: 'created_at', label: 'Registered At' },
         ],
@@ -443,10 +504,24 @@ export async function exportReportAction(params: ExportReportParams): Promise<Ex
 
     // 11. Reviews Dataset (Supplementary)
     if (params.dataset === 'reviews') {
-      const { data: reviews } = await supabase
+      let query = supabase
         .from('submission_reviews')
-        .select('id, submission_id, reviewer_id, decision, score, feedback, reviewed_at')
-        .order('reviewed_at', { ascending: false });
+        .select('id, submission_id, reviewer_id, decision, score, feedback, reviewed_at');
+
+      if (hackathonId) {
+        const { data: hackSubmissions } = await supabase
+          .from('submissions')
+          .select('id')
+          .eq('hackathon_id', hackathonId);
+        const subIds = (hackSubmissions || []).map((s) => s.id);
+        if (subIds.length === 0) {
+          query = query.in('submission_id', ['00000000-0000-0000-0000-000000000000']);
+        } else {
+          query = query.in('submission_id', subIds);
+        }
+      }
+
+      const { data: reviews } = await query.order('reviewed_at', { ascending: false });
 
       datasets.push({
         id: 'reviews',
@@ -495,10 +570,22 @@ export async function exportReportAction(params: ExportReportParams): Promise<Ex
 
     // 13. Storage Retention & Deletion Queue Dataset (Supplementary)
     if (params.dataset === 'storage_objects') {
-      const { data: storageJobs } = await supabase
+      if (!admin.is_super_admin) {
+        return {
+          success: false,
+          error: 'Access denied: Super Admin status is required to export storage deletion queue.',
+        };
+      }
+
+      let query = supabase
         .from('storage_deletion_queue')
-        .select('id, bucket_id, object_path, target_type, target_id, event_id, status, retention_deadline_at, created_at, completed_at')
-        .order('created_at', { ascending: false });
+        .select('id, bucket_id, object_path, target_type, target_id, event_id, status, retention_deadline_at, created_at, completed_at');
+
+      if (hackathonId) {
+        query = query.eq('event_id', hackathonId);
+      }
+
+      const { data: storageJobs } = await query.order('created_at', { ascending: false });
 
       datasets.push({
         id: 'storage_objects',
@@ -516,6 +603,48 @@ export async function exportReportAction(params: ExportReportParams): Promise<Ex
           { key: 'completed_at', label: 'Processed At' },
         ],
         rows: ((storageJobs || []) as unknown) as Record<string, unknown>[],
+      });
+    }
+
+    // 14. Profile Correction Requests Dataset
+    if (params.dataset === 'all' || params.dataset === 'profile_change_requests') {
+      let changeReqQuery = supabase
+        .from('profile_change_requests')
+        .select('id, student_id, field_name, old_value, new_value, reason, status, reviewed_by, reviewed_at, rejection_reason, created_at')
+        .order('created_at', { ascending: false });
+
+      if (hackathonId) {
+        const { data: members } = await supabase
+          .from('team_members')
+          .select('student_id')
+          .eq('hackathon_id', hackathonId);
+        const studentIds = Array.from(new Set((members || []).map((m) => m.student_id)));
+        if (studentIds.length === 0) {
+          changeReqQuery = changeReqQuery.in('student_id', ['00000000-0000-0000-0000-000000000000']);
+        } else {
+          changeReqQuery = changeReqQuery.in('student_id', studentIds);
+        }
+      }
+
+      const { data: changeRequests } = await changeReqQuery;
+
+      datasets.push({
+        id: 'profile_change_requests',
+        title: 'Profile Change Requests',
+        headers: [
+          { key: 'id', label: 'Request ID' },
+          { key: 'student_id', label: 'Student ID' },
+          { key: 'field_name', label: 'Field' },
+          { key: 'old_value', label: 'Old Value' },
+          { key: 'new_value', label: 'New Value' },
+          { key: 'reason', label: 'Student Reason' },
+          { key: 'status', label: 'Status' },
+          { key: 'reviewed_by', label: 'Reviewed By' },
+          { key: 'reviewed_at', label: 'Reviewed At' },
+          { key: 'rejection_reason', label: 'Rejection Reason' },
+          { key: 'created_at', label: 'Submitted At' },
+        ],
+        rows: ((changeRequests || []) as unknown) as Record<string, unknown>[],
       });
     }
 
@@ -567,3 +696,95 @@ export async function exportReportAction(params: ExportReportParams): Promise<Ex
     };
   }
 }
+
+export const exportDataAction = exportReportAction;
+
+export interface AdminDashboardMetrics {
+  scope: {
+    is_global: boolean;
+    events_count: number;
+    hackathon_id: string | null;
+  };
+  students: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+  hackathons: {
+    total: number;
+    published: number;
+    draft: number;
+    archived: number;
+  };
+  teams: {
+    total: number;
+    internal_registered: number;
+    submitted_claims: number;
+    verified_external: number;
+    rejected_external: number;
+  };
+  submissions: {
+    total: number;
+    pending: number;
+    accepted: number;
+    rejected: number;
+  };
+  results: {
+    winners_count: number;
+    verified_outcomes: number;
+  };
+  points: {
+    total_distributed: number;
+    transactions_count: number;
+  };
+  profile_changes: {
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+  generated_at?: string;
+}
+
+/**
+ * Retrieves aggregate platform or event-scoped administrative metrics.
+ */
+export async function getAdminDashboardMetricsAction(hackathonId?: string | null): Promise<{
+  success: boolean;
+  metrics?: AdminDashboardMetrics;
+  error?: string;
+}> {
+  try {
+    await requireAdmin();
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc(
+      'get_admin_dashboard_metrics' as never,
+      {
+        p_hackathon_id: hackathonId || null,
+      } as never
+    );
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    const metricsData = (data as unknown) as any;
+    if (metricsData) {
+      metricsData.generated_at = new Date().toISOString();
+    }
+
+    return {
+      success: true,
+      metrics: metricsData as AdminDashboardMetrics,
+    };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to retrieve administrative metrics.',
+    };
+  }
+}
+

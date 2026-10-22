@@ -42,6 +42,7 @@ export default async function AdminReportsPage() {
         <ReportsClient
           hackathons={hackathons || []}
           isSuperAdmin={admin.is_super_admin}
+          canViewAuditLogs={admin.is_super_admin || permissions.includes('view_audit_logs')}
         />
       </div>
     </AdminShell>

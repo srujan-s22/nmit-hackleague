@@ -8,9 +8,10 @@ import { Alert } from '@/components/ui/alert';
 interface ReportsClientProps {
   hackathons: { id: string; title: string }[];
   isSuperAdmin: boolean;
+  canViewAuditLogs?: boolean;
 }
 
-const DATASETS = [
+const ALL_DATASETS = [
   { id: 'all', label: 'All Datasets (Master Workbook & Complete Package)', description: 'Exports all 9 authoritative sheets across the event lifecycle.' },
   { id: 'students', label: 'Students', description: 'Student rosters, USNs, verification statuses, and contact information.' },
   { id: 'hackathons', label: 'Hackathons', description: 'Event configurations, rules, schedules, and team size boundaries.' },
@@ -25,9 +26,14 @@ const DATASETS = [
   { id: 'reviews', label: 'Reviews', description: 'Admin evaluator decisions, rubrics, scores, and feedback notes.' },
   { id: 'audit_logs', label: 'Audit Logs', description: 'Security and administrative audit trail with actor IDs and timestamps.' },
   { id: 'storage_objects', label: 'Storage Retention Queue', description: 'Scheduled deletions, college ID purges, and artifact lifecycle jobs.' },
+  { id: 'profile_change_requests', label: 'Profile Correction Requests', description: 'Student profile correction submissions, field changes, and administrative decisions.' },
 ] as const;
 
-export function ReportsClient({ hackathons, isSuperAdmin }: ReportsClientProps) {
+export function ReportsClient({ hackathons, isSuperAdmin, canViewAuditLogs = false }: ReportsClientProps) {
+  const availableDatasets = ALL_DATASETS.filter(
+    (ds) => ds.id !== 'audit_logs' || canViewAuditLogs
+  );
+
   const [selectedHackathon, setSelectedHackathon] = useState<string>(
     hackathons.length > 0 ? hackathons[0].id : ''
   );
@@ -125,7 +131,7 @@ export function ReportsClient({ hackathons, isSuperAdmin }: ReportsClientProps) 
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {DATASETS.map((ds) => (
+          {availableDatasets.map((ds) => (
             <label
               key={ds.id}
               className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${

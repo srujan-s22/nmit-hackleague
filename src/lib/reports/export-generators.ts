@@ -1,27 +1,8 @@
 import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
+import { sanitizeCellValue } from '@/lib/validation/export-schemas';
 
-/**
- * Sanitizes cell values against Spreadsheet Formula Injection (CSV Injection).
- * Any cell beginning with '=', '+', '-', '@', '\t', or '\r' is prefixed with a single quote.
- */
-export function sanitizeCellValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-
-  let str = typeof value === 'object' ? JSON.stringify(value) : String(value);
-
-  // Check if first character is a formula trigger
-  if (str.length > 0) {
-    const firstChar = str.charAt(0);
-    if (firstChar === '=' || firstChar === '+' || firstChar === '-' || firstChar === '@' || firstChar === '\t' || firstChar === '\r') {
-      str = `'${str}`;
-    }
-  }
-
-  return str;
-}
+export { sanitizeCellValue };
 
 /**
  * Converts an array of record objects into an RFC 4180 compliant CSV string.
@@ -50,7 +31,16 @@ export function generateCsvString(
  * Escapes an individual cell value for CSV output.
  */
 function escapeCsvCell(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+  if (
+    value.includes(',') ||
+    value.includes('"') ||
+    value.includes('\n') ||
+    value.includes('\r') ||
+    value.startsWith("'") ||
+    value.startsWith(' ') ||
+    value.endsWith(' ') ||
+    value.startsWith('\t')
+  ) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
