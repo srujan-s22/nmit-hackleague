@@ -6,6 +6,7 @@ import {
   markNotificationReadAction,
   type InAppNotification,
 } from '@/actions/notification-actions';
+import { formatNotificationTimestamp } from '@/lib/notifications/format-timestamp';
 
 export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
@@ -171,12 +172,7 @@ export function NotificationCenter() {
                   </p>
                   <div className="mt-2 flex items-center justify-between text-[10px] text-text-helper">
                     <span>
-                      {new Date(ann.created_at).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatNotificationTimestamp(ann.created_at, { includeYear: false })}
                     </span>
                     {ann.target_role !== 'all' && (
                       <span className="uppercase text-[9px] font-semibold tracking-wider text-text-helper">

@@ -1,7 +1,8 @@
 import 'server-only';
+import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { validatePushEndpoint } from './endpoint-validator';
-import { validateVapidConfiguration, isMockSubscription } from './vapid-config';
+import { validateVapidConfiguration, isMockSubscription, type VapidConfig } from './vapid-config';
 
 export interface PushPayload {
   title: string;
@@ -25,8 +26,122 @@ export interface SendPushOptions {
 }
 
 /**
+ * Encrypts an arbitrary JSON payload according to RFC 8291 (Message Encryption for Web Push).
+ * Uses AES-128-GCM with ECDH over prime256v1 (P-256) and HKDF.
+ */
+export function encryptWebPushPayload(
+  payload: PushPayload,
+  clientP256dhB64: string,
+  clientAuthB64: string
+): Buffer {
+  const normalizeB64 = (s: string) => s.replace(/-/g, '+').replace(/_/g, '/');
+  const clientPubBuf = Buffer.from(normalizeB64(clientP256dhB64), 'base64');
+  const clientAuthBuf = Buffer.from(normalizeB64(clientAuthB64), 'base64');
+
+  if (clientPubBuf.length !== 65 || clientPubBuf[0] !== 0x04) {
+    throw new Error('Invalid subscriber public key: must be 65-byte uncompressed P-256 point.');
+  }
+
+  if (clientAuthBuf.length < 16) {
+    throw new Error('Invalid subscriber auth secret: must be at least 16 bytes.');
+  }
+
+  // Server generates ephemeral P-256 key pair
+  const serverEcdh = crypto.createECDH('prime256v1');
+  serverEcdh.generateKeys();
+  const serverPubBuf = serverEcdh.getPublicKey(); // 65 bytes uncompressed
+
+  // Derive shared ECDH secret
+  const sharedSecret = serverEcdh.computeSecret(clientPubBuf);
+
+  // Derive pseudo-random key (ikm) using subscriber auth secret
+  const infoBuf = Buffer.concat([
+    Buffer.from('WebPush: info\0', 'utf8'),
+    clientPubBuf,
+    serverPubBuf,
+  ]);
+  const ikmRaw = crypto.hkdfSync('sha256', sharedSecret, clientAuthBuf, infoBuf, 32);
+  const ikm = Buffer.from(ikmRaw);
+
+  // 16-byte random salt
+  const salt = crypto.randomBytes(16);
+
+  // Derive Content-Encryption-Key (CEK) and Nonce
+  const cekRaw = crypto.hkdfSync('sha256', ikm, salt, Buffer.from('Content-Encoding: aes128gcm\0', 'utf8'), 16);
+  const nonceRaw = crypto.hkdfSync('sha256', ikm, salt, Buffer.from('Content-Encoding: nonce\0', 'utf8'), 12);
+  const cek = Buffer.from(cekRaw);
+  const nonce = Buffer.from(nonceRaw);
+
+  // Encrypt payload with padding delimiter (0x02 indicates final record)
+  const plaintext = Buffer.concat([
+    Buffer.from(JSON.stringify(payload), 'utf8'),
+    Buffer.from([0x02]),
+  ]);
+
+  const cipher = crypto.createCipheriv('aes-128-gcm', cek, nonce);
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext),
+    cipher.final(),
+    cipher.getAuthTag(),
+  ]);
+
+  // Construct 86-byte RFC 8291 header:
+  // salt (16 bytes) || rs (4 bytes uint32 = 4096) || idlen (1 byte = 65) || keyid (serverPubBuf 65 bytes)
+  const header = Buffer.alloc(86);
+  salt.copy(header, 0);
+  header.writeUInt32BE(4096, 16);
+  header.writeUInt8(65, 20);
+  serverPubBuf.copy(header, 21);
+
+  return Buffer.concat([header, encrypted]);
+}
+
+/**
+ * Creates an RFC 8292 VAPID Authorization header token.
+ */
+export function createVapidAuthHeader(endpointUrl: string, config: VapidConfig): string {
+  const origin = new URL(endpointUrl).origin;
+  const headerB64 = Buffer.from(JSON.stringify({ alg: 'ES256', typ: 'JWT' })).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + 12 * 3600; // 12 hours
+
+  const payloadB64 = Buffer.from(
+    JSON.stringify({
+      aud: origin,
+      exp,
+      sub: config.subject,
+    })
+  ).toString('base64url');
+
+  const dataToSign = `${headerB64}.${payloadB64}`;
+
+  // Build private key from P-256 scalar
+  const pubBuf = Buffer.from(config.publicKey, 'base64url');
+  const x = pubBuf.subarray(1, 33).toString('base64url');
+  const y = pubBuf.subarray(33, 65).toString('base64url');
+
+  const privKeyObj = crypto.createPrivateKey({
+    key: {
+      kty: 'EC',
+      crv: 'P-256',
+      x,
+      y,
+      d: config.privateKey,
+    },
+    format: 'jwk',
+  });
+
+  const sign = crypto.createSign('SHA256');
+  sign.update(dataToSign);
+  const sigB64 = sign.sign({ key: privKeyObj, dsaEncoding: 'ieee-p1363' }, 'base64url');
+
+  const jwt = `${dataToSign}.${sigB64}`;
+  return `vapid t=${jwt}, k=${config.publicKey}`;
+}
+
+/**
  * Sends a Web Push notification to an authenticated subscriber endpoint.
  * Enforces pre-connect SSRF checks, domain allowlists, and VAPID key verification before network dispatch.
+ * Uses RFC 8291 aes128gcm payload encryption and RFC 8292 VAPID authorization.
  * Automatically deactivates 404 / 410 Gone stale subscriptions and logs all outcomes to push_delivery_logs.
  */
 export async function sendWebPushNotification(
@@ -93,21 +208,80 @@ export async function sendWebPushNotification(
     }
   }
 
-  // 3. Dispatch with retry loop on transient errors
+  // 3. Prepare Encrypted Body & VAPID Authorization
+  let encryptedBody: Buffer | null = null;
+  let vapidAuthHeader = '';
+
+  const hasValidKeys =
+    subscription.p256dh &&
+    subscription.auth &&
+    !isMockSubscription(subscription) &&
+    vapidCheck.config?.publicKey &&
+    vapidCheck.config?.privateKey;
+
+  if (hasValidKeys && vapidCheck.config) {
+    try {
+      encryptedBody = encryptWebPushPayload(payload, subscription.p256dh, subscription.auth);
+      vapidAuthHeader = createVapidAuthHeader(subscription.endpoint, vapidCheck.config);
+    } catch (err) {
+      const encError = err instanceof Error ? err.message : 'Encryption failed';
+      if (isProduction) {
+        return { success: false, error: `Payload encryption failed: ${encError}` };
+      }
+    }
+  }
+
+  // If in development/test with mock subscription and no real VAPID, handle simulated delivery safely
+  if (!isProduction && isMockSubscription(subscription)) {
+    try {
+      if (targetUserId) {
+        await adminClient.rpc('log_push_delivery_outcome', {
+          p_announcement_id: announcementId || undefined,
+          p_subscription_id: subscription.id || undefined,
+          p_user_id: targetUserId,
+          p_endpoint: subscription.endpoint,
+          p_status: 'delivered',
+          p_status_code: 201,
+          p_error_message: undefined,
+          p_attempt_count: 1,
+        });
+      }
+    } catch {
+      // Non-blocking
+    }
+    return {
+      success: true,
+      statusCode: 201,
+      retried: false,
+    };
+  }
+
+  // 4. Dispatch with bounded retry loop on transient errors
   let attempt = 0;
   let lastError: string | undefined;
   let lastStatus: number | undefined;
+
+  const requestHeaders: Record<string, string> = {
+    TTL: '86400',
+  };
+
+  if (encryptedBody && vapidAuthHeader) {
+    requestHeaders['Content-Type'] = 'application/octet-stream';
+    requestHeaders['Content-Encoding'] = 'aes128gcm';
+    requestHeaders['Authorization'] = vapidAuthHeader;
+  } else {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
+
+  const requestBody: BodyInit = encryptedBody ? new Uint8Array(encryptedBody) : JSON.stringify(payload);
 
   while (attempt <= maxRetries) {
     attempt++;
     try {
       const response = await fetch(subscription.endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          TTL: '86400', // 24 hours retention on push gateway
-        },
-        body: JSON.stringify(payload),
+        headers: requestHeaders,
+        body: requestBody,
         signal: AbortSignal.timeout(10000), // 10 second timeout
         redirect: 'error',
       });
@@ -139,8 +313,22 @@ export async function sendWebPushNotification(
         };
       }
 
+      // Read response body for precise diagnostic logging
+      let responseBody = '';
+      try {
+        responseBody = await response.text();
+      } catch {
+        // ignore
+      }
+
       // 404 or 410 Gone indicates device unsubscribed or subscription expired at gateway
-      if (response.status === 404 || response.status === 410) {
+      // 403 with mismatched VAPID credentials indicates stale/orphaned subscription
+      const isMismatchedVapid = response.status === 403 && responseBody.toLowerCase().includes('vapid');
+      if (response.status === 404 || response.status === 410 || isMismatchedVapid) {
+        const expiredReason = isMismatchedVapid
+          ? 'Subscription invalid: VAPID credentials do not correspond to the subscription.'
+          : 'Subscription expired or unregistered at push gateway.';
+
         try {
           if (targetUserId) {
             await adminClient.rpc('log_push_delivery_outcome', {
@@ -150,7 +338,7 @@ export async function sendWebPushNotification(
               p_endpoint: subscription.endpoint,
               p_status: 'expired',
               p_status_code: response.status,
-              p_error_message: 'Subscription expired or unregistered at push gateway.',
+              p_error_message: expiredReason,
               p_attempt_count: attempt,
             });
           } else if (subscription.id) {
@@ -167,22 +355,24 @@ export async function sendWebPushNotification(
           success: false,
           statusCode: response.status,
           unregistered: true,
-          error: 'Subscription expired or unregistered at push gateway.',
+          error: expiredReason,
         };
       }
 
-      // If server error (5xx), allow retry
-      if (response.status >= 500 && attempt <= maxRetries) {
-        await new Promise((r) => setTimeout(r, 500));
+      // If server error (5xx) or 429 rate limit, allow retry with exponential backoff
+      if ((response.status >= 500 || response.status === 429) && attempt <= maxRetries) {
+        await new Promise((r) => setTimeout(r, Math.min(500 * Math.pow(2, attempt - 1), 2000)));
         continue;
       }
 
-      lastError = `Push service rejected notification with HTTP ${response.status}`;
+      lastError = responseBody
+        ? `Push gateway rejected (${response.status}): ${responseBody.trim().slice(0, 150)}`
+        : `Push service rejected notification with HTTP ${response.status}`;
       break;
     } catch (err) {
       lastError = err instanceof Error ? err.message : 'Unknown network failure during push dispatch';
       if (attempt <= maxRetries) {
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, Math.min(500 * Math.pow(2, attempt - 1), 2000)));
         continue;
       }
     }

@@ -1,6 +1,6 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import type { StudentProfile, AdminProfile } from '@/types/auth';
 
@@ -65,11 +65,28 @@ export async function requirePushSubscription(userId: string, redirectTo = '/stu
     p_user_id: userId,
   } as never);
 
-  if (error || !isPushActive) {
-    redirect(`/enable-push?redirectTo=${encodeURIComponent(redirectTo)}`);
+  if (isPushActive && !error) {
+    return { hasActiveSubscription: true };
   }
 
-  return { hasActiveSubscription: true };
+  // If push is not active in database, verify whether this is an authorized mobile/tablet
+  // client that has acknowledged in-app notifications
+  try {
+    const cookieStore = await cookies();
+    const inAppAck = cookieStore.get('hl_in_app_acknowledged')?.value === 'true';
+
+    const headerList = await headers();
+    const userAgent = headerList.get('user-agent') || '';
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(userAgent);
+
+    if (isMobileDevice && inAppAck) {
+      return { hasActiveSubscription: false };
+    }
+  } catch {
+    // Non-blocking fallback
+  }
+
+  redirect(`/enable-push?redirectTo=${encodeURIComponent(redirectTo)}`);
 }
 
 export async function requireApprovedStudent(redirectTo?: string): Promise<{ profile: StudentProfile; user: { id: string; email?: string } }> {

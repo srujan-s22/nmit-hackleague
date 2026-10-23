@@ -17,8 +17,8 @@ export default async function AdminNotificationsPage() {
   const supabase = await createClient();
   const adminClient = createAdminClient();
 
-  // 1. Fetch recent announcements
-  const { data: announcements } = await supabase
+  // 1. Fetch recent announcements with explicit error capture
+  const { data: announcements, error: announcementsError } = await supabase
     .from('announcements')
     .select('id, title, body, target_role, hackathon_id, announcement_type, created_at')
     .order('created_at', { ascending: false })
@@ -41,8 +41,8 @@ export default async function AdminNotificationsPage() {
     .order('created_at', { ascending: false })
     .limit(20);
 
-  // 3. Fetch push delivery stats
-  const { data: logs } = await adminClient
+  // 3. Fetch push delivery stats with error tracking
+  const { data: logs, error: logsError } = await adminClient
     .from('push_delivery_logs')
     .select('status');
 
@@ -81,6 +81,8 @@ export default async function AdminNotificationsPage() {
           initialAnnouncements={formattedAnnouncements}
           hackathons={hackathons || []}
           initialStats={deliveryStats}
+          announcementsError={announcementsError ? announcementsError.message : null}
+          statsError={logsError ? logsError.message : null}
         />
       </div>
     </AdminShell>

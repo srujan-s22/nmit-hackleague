@@ -12,38 +12,43 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  if (!event.data) {
-    return;
-  }
-
   let payload = {
     title: 'NMIT HackLeague Announcement',
     body: 'You have a new update regarding your hackathon.',
-    url: '/',
-    tag: 'hackleague-notification',
+    url: '/student/hackathons',
+    tag: 'hackleague-notification-' + Date.now(),
   };
 
-  try {
-    const json = event.data.json();
-    payload = {
-      title: json.title || payload.title,
-      body: json.body || payload.body,
-      url: json.url || payload.url,
-      tag: json.tag || payload.tag,
-    };
-  } catch (e) {
-    payload.body = event.data.text() || payload.body;
+  if (event.data) {
+    try {
+      const json = event.data.json();
+      payload = {
+        title: json.title || payload.title,
+        body: json.body || payload.body,
+        url: json.url || payload.url,
+        tag: json.tag || payload.tag,
+      };
+    } catch {
+      try {
+        const text = event.data.text();
+        if (text) payload.body = text;
+      } catch {
+        // preserve fallback
+      }
+    }
   }
 
   const notificationOptions = {
     body: payload.body,
-    icon: '/nmit-logo.svg',
-    badge: '/nmit-logo.svg',
+    icon: '/nmit.jpeg',
+    badge: '/nmit.jpeg',
     tag: payload.tag,
     data: {
       url: payload.url,
+      timestamp: Date.now(),
     },
     requireInteraction: false,
+    renotify: true,
   };
 
   event.waitUntil(
@@ -54,17 +59,26 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const targetPath = (event.notification.data && event.notification.data.url) || '/';
+  const targetUrl = new URL(targetPath, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Focus existing window if open
+      // 1. If an existing tab is open on this origin, focus it and navigate
       for (const client of windowClients) {
-        if (client.url.includes(targetUrl) && 'focus' in client) {
-          return client.focus();
+        if ('focus' in client) {
+          if (client.url === targetUrl) {
+            return client.focus();
+          }
+          if (new URL(client.url).origin === self.location.origin) {
+            if ('navigate' in client) {
+              client.navigate(targetUrl);
+            }
+            return client.focus();
+          }
         }
       }
-      // Otherwise open new window
+      // 2. Otherwise open a new window
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }

@@ -4,6 +4,10 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import {
+  detectPushCapabilities,
+  type PushCapabilityDetails,
+} from '@/lib/notifications/push-capabilities';
 
 interface WebPushGateModalProps {
   currentPath?: string;
@@ -12,21 +16,65 @@ interface WebPushGateModalProps {
 export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
   const [isChecking, setIsChecking] = useState(true);
   const [isGateLocked, setIsGateLocked] = useState(false);
-  const [gateReason, setGateReason] = useState<'unsupported' | 'permission_denied' | 'not_registered' | null>(null);
+  const [capability, setCapability] = useState<PushCapabilityDetails | null>(null);
+  const [gateReason, setGateReason] = useState<
+    'unsupported' | 'insecure_context' | 'permission_denied' | 'not_registered' | null
+  >(null);
 
-  const resolvedPath = currentPath || (typeof window !== 'undefined' ? window.location.pathname : '/admin');
+  const resolvedPath =
+    currentPath || (typeof window !== 'undefined' ? window.location.pathname : '/admin');
 
   useEffect(() => {
     let isMounted = true;
 
     async function evaluatePushSubscription() {
-      // 1. Browser capability check
-      if (
-        typeof window === 'undefined' ||
-        !('serviceWorker' in navigator) ||
-        !('PushManager' in window) ||
-        !('Notification' in window)
-      ) {
+      // 1. Browser capability and context detection
+      const caps = detectPushCapabilities();
+      if (isMounted) {
+        setCapability(caps);
+      }
+
+      // Handle insecure context (e.g., LAN HTTP http://192.168.0.93:3000)
+      if (caps.status === 'INSECURE_CONTEXT') {
+        if (isMounted) {
+          if (caps.isMobileOrTablet) {
+            // Mobile/tablet in insecure LAN: do NOT lock screen; display accessible notice
+            setIsGateLocked(false);
+            setGateReason('insecure_context');
+            setIsChecking(false);
+          } else {
+            // Desktop workstation: enforce secure context policy
+            setIsGateLocked(true);
+            setGateReason('insecure_context');
+            setIsChecking(false);
+          }
+        }
+        return;
+      }
+
+      // Handle iOS/iPadOS Safari tab requiring Home Screen PWA installation
+      if (caps.status === 'IOS_STANDALONE_REQUIRED') {
+        if (isMounted) {
+          // Do NOT lock mobile users out of dashboard
+          setIsGateLocked(false);
+          setGateReason('unsupported');
+          setIsChecking(false);
+        }
+        return;
+      }
+
+      // Handle genuinely unsupported mobile browser
+      if (caps.status === 'UNSUPPORTED_MOBILE') {
+        if (isMounted) {
+          setIsGateLocked(false);
+          setGateReason('unsupported');
+          setIsChecking(false);
+        }
+        return;
+      }
+
+      // Handle unsupported desktop browser
+      if (caps.status === 'UNSUPPORTED_DESKTOP') {
         if (isMounted) {
           setIsGateLocked(true);
           setGateReason('unsupported');
@@ -35,9 +83,19 @@ export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
         return;
       }
 
-      // 2. Browser permission check
+      // 2. Notification permission check
       if (Notification.permission === 'denied') {
         if (isMounted) {
+          if (caps.isMobileOrTablet) {
+            // Check if mobile user acknowledged in-app mode
+            const hasAckCookie = document.cookie.includes('hl_in_app_acknowledged=true');
+            if (hasAckCookie) {
+              setIsGateLocked(false);
+              setGateReason('permission_denied');
+              setIsChecking(false);
+              return;
+            }
+          }
           setIsGateLocked(true);
           setGateReason('permission_denied');
           setIsChecking(false);
@@ -45,7 +103,7 @@ export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
         return;
       }
 
-      // 3. Database registration status check
+      // 3. Subscription status check against server
       try {
         const res = await fetch('/api/push/status');
         if (res.ok) {
@@ -53,21 +111,39 @@ export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
           if (data.active && Notification.permission === 'granted') {
             if (isMounted) {
               setIsGateLocked(false);
+              setGateReason(null);
               setIsChecking(false);
             }
             return;
           }
         }
+
+        // If subscription is missing
         if (isMounted) {
+          if (caps.isMobileOrTablet) {
+            const hasAckCookie = document.cookie.includes('hl_in_app_acknowledged=true');
+            if (hasAckCookie) {
+              setIsGateLocked(false);
+              setGateReason('not_registered');
+              setIsChecking(false);
+              return;
+            }
+          }
           setIsGateLocked(true);
           setGateReason('not_registered');
           setIsChecking(false);
         }
       } catch {
         if (isMounted) {
-          setIsGateLocked(true);
-          setGateReason('not_registered');
-          setIsChecking(false);
+          if (caps.isMobileOrTablet) {
+            setIsGateLocked(false);
+            setGateReason('not_registered');
+            setIsChecking(false);
+          } else {
+            setIsGateLocked(true);
+            setGateReason('not_registered');
+            setIsChecking(false);
+          }
         }
       }
     }
@@ -79,10 +155,60 @@ export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
     };
   }, []);
 
-  if (isChecking || !isGateLocked) {
+  if (isChecking) {
     return null;
   }
 
+  // Mobile / Tablet persistent status banner when push is unavailable or unconfigured
+  if (capability?.isMobileOrTablet && !isGateLocked && gateReason !== null) {
+    return (
+      <div
+        role="status"
+        aria-label="Notification Channel Status"
+        className="sticky top-0 z-40 bg-surface-subtle border-b border-border-subtle px-4 py-2.5 text-xs text-text-secondary flex flex-wrap items-center justify-between gap-3 shadow-xs"
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="w-2 h-2 rounded-full bg-status-warning-text shrink-0 animate-pulse" />
+          <div>
+            {capability.status === 'INSECURE_CONTEXT' && (
+              <span>
+                <strong>Local LAN HTTP Context:</strong> Web Push requires HTTPS or localhost. Real-time in-app alerts and email notifications are active.
+              </span>
+            )}
+            {capability.status === 'IOS_STANDALONE_REQUIRED' && (
+              <span>
+                <strong>iOS Safari Notice:</strong> Instant Web Push requires adding HackLeague to your Home Screen. In-app alerts are active in this tab.
+              </span>
+            )}
+            {capability.status === 'UNSUPPORTED_MOBILE' && (
+              <span>
+                <strong>Mobile Browser Notice:</strong> Web Push is unavailable in this browser. Real-time in-app alerts and email notices are active.
+              </span>
+            )}
+            {capability.status === 'SUPPORTED' && (
+              <span>
+                <strong>Push Alerts Inactive:</strong> Web Push is not configured on this device. Real-time in-app alerts are active.
+              </span>
+            )}
+          </div>
+        </div>
+
+        <Link
+          href={`/enable-push?redirectTo=${encodeURIComponent(resolvedPath)}`}
+          className="text-xs font-semibold text-text-primary underline hover:text-interactive-accent transition-colors shrink-0"
+        >
+          {capability.status === 'IOS_STANDALONE_REQUIRED' ? 'Install App' : 'Notification Setup'}
+        </Link>
+      </div>
+    );
+  }
+
+  // If gate is not locked and no persistent mobile banner is needed, render nothing
+  if (!isGateLocked) {
+    return null;
+  }
+
+  // Locked gate modal for desktop workstations or un-acknowledged environments
   return (
     <div
       role="dialog"
@@ -111,17 +237,28 @@ export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
               Mandatory Web Push Notification Gate
             </h2>
             <p className="text-xs text-text-secondary">
-              Platform Policy: Dashboard access locked until push notifications are active.
+              Platform Policy: Desktop workstation access locked until push notifications are active.
             </p>
           </div>
         </div>
 
+        {gateReason === 'insecure_context' && (
+          <Alert variant="error" title="Secure Context Required">
+            <p className="text-xs">
+              Web Push requires a Secure Context (HTTPS or localhost). Your browser is accessing HackLeague
+              over unencrypted LAN HTTP. Please access HackLeague via{' '}
+              <code className="font-mono bg-surface-subtle px-1 py-0.5 rounded">http://localhost:3000</code> or
+              configure an HTTPS certificate.
+            </p>
+          </Alert>
+        )}
+
         {gateReason === 'unsupported' && (
-          <Alert variant="error" title="Unsupported Browser Environment">
+          <Alert variant="error" title="Unsupported Desktop Environment">
             <p className="text-xs">
               Your browser does not support the Web Push API or Service Workers. In accordance with NMIT HackLeague
-              security and operational rules, administrative access cannot proceed on unsupported clients.
-              Email fallback is strictly disabled. Please use a modern standard browser (Chrome, Edge, Firefox, Safari 16+).
+              security and operational rules, desktop access cannot proceed on unsupported clients.
+              Please use a modern standard browser (Chrome, Edge, Firefox, or Safari 16.4+).
             </p>
           </Alert>
         )}
@@ -129,7 +266,7 @@ export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
         {gateReason === 'permission_denied' && (
           <Alert variant="warning" title="Notifications Blocked in Browser Settings">
             <p className="text-xs">
-              Notification permissions have been blocked for this domain. To unlock the administrative workspace,
+              Notification permissions have been blocked for this domain. To unlock the workspace,
               please reset permission to &quot;Allow&quot; in your browser address bar and reload this page.
             </p>
           </Alert>
@@ -138,7 +275,7 @@ export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
         {gateReason === 'not_registered' && (
           <Alert variant="info" title="Push Device Activation Required">
             <p className="text-xs">
-              Institutional security controls require every administrator to have an active Web Push endpoint for
+              Institutional security controls require an active Web Push endpoint for
               immediate broadcast notices, escalation alerts, and session integrity verification.
             </p>
           </Alert>
@@ -147,16 +284,31 @@ export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
         <div className="rounded-md border border-border-subtle p-3.5 bg-surface-subtle text-xs text-text-secondary space-y-1.5">
           <div className="flex items-center gap-2 text-text-primary font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-interactive-accent" />
-            <span>Zero Email Fallback Operational Invariant</span>
+            <span>Capability-Gated Notification Invariant</span>
           </div>
           <p className="text-[11px] leading-relaxed">
-            NMIT HackLeague guarantees immediate delivery of critical round status updates and emergency revocations
-            via end-to-end encrypted Web Push. Standard email notifications are not used for time-critical operational triggers.
+            HackLeague guarantees immediate delivery of critical round status updates and emergency revocations
+            via end-to-end encrypted Web Push on desktop workstations.
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
-          {gateReason === 'unsupported' ? (
+          {gateReason === 'insecure_context' ? (
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full sm:w-auto text-xs"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  const localUrl = new URL(window.location.href);
+                  localUrl.hostname = 'localhost';
+                  window.location.href = localUrl.toString();
+                }
+              }}
+            >
+              Switch to localhost:3000
+            </Button>
+          ) : gateReason === 'unsupported' ? (
             <Button
               type="button"
               variant="secondary"

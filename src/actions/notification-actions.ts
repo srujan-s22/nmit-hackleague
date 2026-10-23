@@ -52,6 +52,9 @@ export async function publishAnnouncementAction(
   metadata?: Record<string, unknown>
 ): Promise<PublishAnnouncementResult> {
   try {
+    // 1. Enforce admin permission
+    await requireAdmin('manage_notifications');
+
     const supabase = await createClient();
 
     if (!title || !title.trim()) {
@@ -125,12 +128,16 @@ export async function publishAnnouncementAction(
           const studentIds = (studentUsers || []).map((u) => u.id);
           if (studentIds.length > 0) {
             query = query.in('user_id', studentIds);
+          } else {
+            query = query.in('user_id', ['00000000-0000-0000-0000-000000000000']);
           }
         } else if (targetRole === 'admins') {
           const { data: adminUsers } = await adminClient.from('admin_profiles').select('id');
           const adminIds = (adminUsers || []).map((u) => u.id);
           if (adminIds.length > 0) {
             query = query.in('user_id', adminIds);
+          } else {
+            query = query.in('user_id', ['00000000-0000-0000-0000-000000000000']);
           }
         }
       }
@@ -146,8 +153,8 @@ export async function publishAnnouncementAction(
           tag: `hackleague-${announcementType}`,
         };
 
-        // Asynchronously dispatch push to subscribers with audit logging
-        Promise.allSettled(
+        // Dispatch push to active subscribers with bounded retries and audit logging
+        await Promise.allSettled(
           subscriptions.map((sub) =>
             sendWebPushNotification(
               { ...sub, userId: sub.user_id },
@@ -155,7 +162,7 @@ export async function publishAnnouncementAction(
               { announcementId: newAnnouncementId, userId: sub.user_id }
             )
           )
-        ).catch(() => {});
+        );
       }
     } catch {
       // Non-blocking: Announcement remains published in DB even if push gateway fails
@@ -163,6 +170,8 @@ export async function publishAnnouncementAction(
 
     revalidatePath('/admin/notifications');
     revalidatePath('/student/hackathons');
+    revalidatePath('/student');
+    revalidatePath('/admin');
 
     return {
       success: true,

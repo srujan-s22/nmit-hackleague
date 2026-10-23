@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { publishAnnouncementAction } from '@/actions/notification-actions';
+import { publishAnnouncementAction, getNotificationDeliveryStatsAction } from '@/actions/notification-actions';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { formatNotificationTimestamp } from '@/lib/notifications/format-timestamp';
 
 interface AnnouncementItem {
   id: string;
@@ -33,12 +34,16 @@ interface NotificationsClientProps {
   initialAnnouncements: AnnouncementItem[];
   hackathons?: HackathonOption[];
   initialStats?: DeliveryStats;
+  announcementsError?: string | null;
+  statsError?: string | null;
 }
 
 export function NotificationsClient({
   initialAnnouncements,
   hackathons = [],
   initialStats = { delivered: 0, failed: 0, expired: 0, pending: 0, totalAttempts: 0 },
+  announcementsError = null,
+  statsError = null,
 }: NotificationsClientProps) {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(initialAnnouncements);
   const [stats, setStats] = useState<DeliveryStats>(initialStats);
@@ -92,12 +97,25 @@ export function NotificationsClient({
       ...prev,
     ]);
 
-    if (res.subscribersTargeted && res.subscribersTargeted > 0) {
-      setStats((prev) => ({
-        ...prev,
-        delivered: prev.delivered + res.subscribersTargeted!,
-        totalAttempts: prev.totalAttempts + res.subscribersTargeted!,
-      }));
+    try {
+      const latestStats = await getNotificationDeliveryStatsAction();
+      if (latestStats.success && latestStats.stats) {
+        setStats(latestStats.stats);
+      } else if (res.subscribersTargeted && res.subscribersTargeted > 0) {
+        setStats((prev) => ({
+          ...prev,
+          delivered: prev.delivered + res.subscribersTargeted!,
+          totalAttempts: prev.totalAttempts + res.subscribersTargeted!,
+        }));
+      }
+    } catch {
+      if (res.subscribersTargeted && res.subscribersTargeted > 0) {
+        setStats((prev) => ({
+          ...prev,
+          delivered: prev.delivered + res.subscribersTargeted!,
+          totalAttempts: prev.totalAttempts + res.subscribersTargeted!,
+        }));
+      }
     }
 
     setTitle('');
@@ -136,6 +154,12 @@ export function NotificationsClient({
           <span className="text-[11px] text-text-helper">Audited in PostgreSQL</span>
         </div>
       </div>
+
+      {statsError && (
+        <Alert variant="warning" title="Delivery Statistics Notice">
+          Push delivery metrics could not be fully aggregated from PostgreSQL: {statsError}
+        </Alert>
+      )}
 
       {statusMessage && (
         <Alert
@@ -267,7 +291,22 @@ export function NotificationsClient({
       <div className="bg-surface-canvas border border-border-subtle rounded-xl p-6 shadow-xs space-y-4">
         <h2 className="text-base font-semibold text-text-primary">Broadcast History</h2>
 
-        {announcements.length === 0 ? (
+        {announcementsError ? (
+          <div className="py-4 text-center space-y-2">
+            <p className="text-xs text-status-error-border font-medium">
+              Unable to retrieve broadcast history: {announcementsError}
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="text-xs"
+            >
+              Retry
+            </Button>
+          </div>
+        ) : announcements.length === 0 ? (
           <p className="text-xs text-text-helper py-4 text-center">No broadcast announcements published yet.</p>
         ) : (
           <div className="divide-y divide-border-subtle">
@@ -290,13 +329,7 @@ export function NotificationsClient({
                       {ann.target_role.toUpperCase()}
                     </Badge>
                     <span className="text-[11px] text-text-helper">
-                      {new Date(ann.created_at).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatNotificationTimestamp(ann.created_at)}
                     </span>
                   </div>
                 </div>
