@@ -13,6 +13,7 @@ function LoginCard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlError = searchParams.get('error');
+  const redirectToParam = searchParams.get('redirectTo') || searchParams.get('next') || undefined;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +27,7 @@ function LoginCard() {
     setFieldErrors({});
 
     startTransition(async () => {
-      const result = await loginAction({ email, password });
+      const result = await loginAction({ email, password, redirectTo: redirectToParam });
       if (!result.success) {
         setErrorMessage(result.error || 'Authentication failed. Please check your credentials.');
         if (result.fieldErrors) {

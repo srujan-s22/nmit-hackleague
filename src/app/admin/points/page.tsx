@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/guards';
+import { AdminShell } from '@/components/shells/admin-shell';
 import { getPointConfigurations } from '@/lib/points/leaderboard-queries';
 import { AdminPointsClient } from './admin-points-client';
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminPointsPage() {
-  const { admin } = await requireAdmin('manage_points');
+  const { admin, permissions } = await requireAdmin('manage_points');
   const supabase = await createClient();
 
   // Query hackathons for event-scoped adjustments
@@ -27,13 +28,19 @@ export default async function AdminPointsPage() {
   const { data: configs, error: configError } = await getPointConfigurations();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <AdminPointsClient
-        admin={admin}
-        configs={configs}
-        hackathons={(hackathonsData as Array<{ id: string; title: string; status: string }>) || []}
-        configError={configError}
-      />
-    </div>
+    <AdminShell
+      currentPath="/admin/points"
+      adminProfile={admin}
+      permissions={permissions}
+    >
+      <div className="space-y-6">
+        <AdminPointsClient
+          admin={admin}
+          configs={configs}
+          hackathons={(hackathonsData as Array<{ id: string; title: string; status: string }>) || []}
+          configError={configError}
+        />
+      </div>
+    </AdminShell>
   );
 }

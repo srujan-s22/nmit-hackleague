@@ -113,7 +113,7 @@ SELECT throws_ok(
   DECLARE
     v_job_id UUID;
   BEGIN
-    SELECT id INTO v_job_id FROM public.storage_deletion_queue LIMIT 1;
+    SELECT id INTO v_job_id FROM public.storage_deletion_queue WHERE status = 'claimed' LIMIT 1;
     PERFORM public.complete_storage_deletion_job(v_job_id, gen_random_uuid());
   END $do$;
   $$,

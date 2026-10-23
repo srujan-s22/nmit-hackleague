@@ -15,12 +15,19 @@ export interface PushDeliveryResult {
   statusCode?: number;
   unregistered?: boolean;
   error?: string;
+  retried?: boolean;
+}
+
+export interface SendPushOptions {
+  announcementId?: string;
+  userId?: string;
+  maxRetries?: number;
 }
 
 /**
  * Sends a Web Push notification to an authenticated subscriber endpoint.
  * Enforces pre-connect SSRF checks, domain allowlists, and VAPID key verification before network dispatch.
- * Automatically deactivates 404 / 410 Gone stale subscriptions.
+ * Automatically deactivates 404 / 410 Gone stale subscriptions and logs all outcomes to push_delivery_logs.
  */
 export async function sendWebPushNotification(
   subscription: {
@@ -29,19 +36,44 @@ export async function sendWebPushNotification(
     p256dh: string;
     auth: string;
     deviceFingerprint?: string;
+    userId?: string;
   },
-  payload: PushPayload
+  payload: PushPayload,
+  options?: SendPushOptions
 ): Promise<PushDeliveryResult> {
-  // Pre-connect SSRF defense & domain allowlist validation
+  const adminClient = createAdminClient();
+  const announcementId = options?.announcementId;
+  const targetUserId = options?.userId || subscription.userId;
+  const maxRetries = options?.maxRetries ?? 1;
+
+  // 1. Pre-connect SSRF defense & domain allowlist validation
   const validation = await validatePushEndpoint(subscription.endpoint);
   if (!validation.valid) {
+    const errorMsg = validation.error || 'Blocked by push endpoint security policy.';
+    try {
+      if (targetUserId) {
+        await adminClient.rpc('log_push_delivery_outcome', {
+          p_announcement_id: announcementId || undefined,
+          p_subscription_id: subscription.id || undefined,
+          p_user_id: targetUserId,
+          p_endpoint: subscription.endpoint,
+          p_status: 'failed',
+          p_status_code: 400,
+          p_error_message: errorMsg,
+          p_attempt_count: 1,
+        });
+      }
+    } catch {
+      // Non-blocking logging
+    }
+
     return {
       success: false,
-      error: validation.error || 'Blocked by push endpoint security policy.',
+      error: errorMsg,
     };
   }
 
-  // Production VAPID & Mock-Credential Verification
+  // 2. Production VAPID & Mock-Credential Verification
   const vapidCheck = validateVapidConfiguration();
   const isProduction = process.env.NODE_ENV === 'production';
 
@@ -61,54 +93,125 @@ export async function sendWebPushNotification(
     }
   }
 
-  const adminClient = createAdminClient();
+  // 3. Dispatch with retry loop on transient errors
+  let attempt = 0;
+  let lastError: string | undefined;
+  let lastStatus: number | undefined;
 
-  try {
-    const response = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        TTL: '86400', // 24 hours retention on push gateway
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10000), // 10 second timeout
-    });
+  while (attempt <= maxRetries) {
+    attempt++;
+    try {
+      const response = await fetch(subscription.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          TTL: '86400', // 24 hours retention on push gateway
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+        redirect: 'error',
+      });
 
-    if (response.ok || response.status === 201) {
-      return {
-        success: true,
-        statusCode: response.status,
-      };
-    }
+      lastStatus = response.status;
 
-    // 404 or 410 Gone indicates device unsubscribed or subscription expired at gateway
-    if (response.status === 404 || response.status === 410) {
-      if (subscription.id) {
-        await adminClient
-          .from('user_push_subscriptions')
-          .update({ active: false, updated_at: new Date().toISOString() })
-          .eq('id', subscription.id);
+      if (response.ok || response.status === 201) {
+        try {
+          if (targetUserId) {
+            await adminClient.rpc('log_push_delivery_outcome', {
+              p_announcement_id: announcementId || undefined,
+              p_subscription_id: subscription.id || undefined,
+              p_user_id: targetUserId,
+              p_endpoint: subscription.endpoint,
+              p_status: 'delivered',
+              p_status_code: response.status,
+              p_error_message: undefined,
+              p_attempt_count: attempt,
+            });
+          }
+        } catch {
+          // Non-blocking logging
+        }
+
+        return {
+          success: true,
+          statusCode: response.status,
+          retried: attempt > 1,
+        };
       }
-      return {
-        success: false,
-        statusCode: response.status,
-        unregistered: true,
-        error: 'Subscription expired or unregistered at push gateway.',
-      };
-    }
 
-    return {
-      success: false,
-      statusCode: response.status,
-      error: `Push service rejected notification with HTTP ${response.status}`,
-    };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown network failure during push dispatch';
-    return {
-      success: false,
-      error: msg,
-    };
+      // 404 or 410 Gone indicates device unsubscribed or subscription expired at gateway
+      if (response.status === 404 || response.status === 410) {
+        try {
+          if (targetUserId) {
+            await adminClient.rpc('log_push_delivery_outcome', {
+              p_announcement_id: announcementId || undefined,
+              p_subscription_id: subscription.id || undefined,
+              p_user_id: targetUserId,
+              p_endpoint: subscription.endpoint,
+              p_status: 'expired',
+              p_status_code: response.status,
+              p_error_message: 'Subscription expired or unregistered at push gateway.',
+              p_attempt_count: attempt,
+            });
+          } else if (subscription.id) {
+            await adminClient
+              .from('user_push_subscriptions')
+              .update({ active: false, updated_at: new Date().toISOString() })
+              .eq('id', subscription.id);
+          }
+        } catch {
+          // Non-blocking
+        }
+
+        return {
+          success: false,
+          statusCode: response.status,
+          unregistered: true,
+          error: 'Subscription expired or unregistered at push gateway.',
+        };
+      }
+
+      // If server error (5xx), allow retry
+      if (response.status >= 500 && attempt <= maxRetries) {
+        await new Promise((r) => setTimeout(r, 500));
+        continue;
+      }
+
+      lastError = `Push service rejected notification with HTTP ${response.status}`;
+      break;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : 'Unknown network failure during push dispatch';
+      if (attempt <= maxRetries) {
+        await new Promise((r) => setTimeout(r, 500));
+        continue;
+      }
+    }
   }
+
+  // Record failed outcome
+  try {
+    if (targetUserId) {
+      await adminClient.rpc('log_push_delivery_outcome', {
+        p_announcement_id: announcementId || undefined,
+        p_subscription_id: subscription.id || undefined,
+        p_user_id: targetUserId,
+        p_endpoint: subscription.endpoint,
+        p_status: 'failed',
+        p_status_code: lastStatus || 500,
+        p_error_message: lastError || 'Delivery attempt exhausted',
+        p_attempt_count: attempt,
+      });
+    }
+  } catch {
+    // Non-blocking
+  }
+
+  return {
+    success: false,
+    statusCode: lastStatus,
+    error: lastError,
+    retried: attempt > 1,
+  };
 }
 
 /**
@@ -133,13 +236,14 @@ export async function hasActivePushSubscription(userId: string): Promise<boolean
  */
 export async function dispatchNotificationToUser(
   userId: string,
-  payload: PushPayload
+  payload: PushPayload,
+  announcementId?: string
 ): Promise<{ dispatched: number; failed: number }> {
   const adminClient = createAdminClient();
 
   const { data: subs, error } = await adminClient
     .from('user_push_subscriptions')
-    .select('id, endpoint, p256dh, auth')
+    .select('id, endpoint, p256dh, auth, user_id')
     .eq('user_id', userId)
     .eq('active', true);
 
@@ -151,7 +255,11 @@ export async function dispatchNotificationToUser(
   let failed = 0;
 
   for (const sub of subs) {
-    const res = await sendWebPushNotification(sub, payload);
+    const res = await sendWebPushNotification(
+      { ...sub, userId: sub.user_id },
+      payload,
+      { announcementId, userId }
+    );
     if (res.success) {
       dispatched++;
     } else {

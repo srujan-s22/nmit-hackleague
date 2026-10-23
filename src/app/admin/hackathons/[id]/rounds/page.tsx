@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireHackathonScope } from '@/lib/auth/guards';
+import { AdminShell } from '@/components/shells/admin-shell';
 import { RoundConfigForm } from '@/components/hackathons/round-config-form';
 import type { Hackathon, HackathonRound } from '@/types/hackathon';
 
@@ -18,7 +19,7 @@ interface RoundsPageProps {
 
 export default async function HackathonRoundsPage({ params }: RoundsPageProps) {
   const { id } = await params;
-  await requireHackathonScope(id, 'manage_hackathons');
+  const { admin, permissions } = await requireHackathonScope(id, 'manage_hackathons');
   const supabase = await createClient();
 
   const { data: hackathon, error: hError } = await supabase
@@ -41,39 +42,45 @@ export default async function HackathonRoundsPage({ params }: RoundsPageProps) {
   const initialRounds = (rounds as HackathonRound[]) || [];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-6">
-        <Link
-          href="/admin/hackathons"
-          className="text-xs text-brand-primary hover:underline flex items-center gap-1 mb-2"
-        >
-          &larr; Back to Hackathons
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary tracking-tight">
-              Round Architecture: {h.title}
-            </h1>
-            <p className="text-sm text-text-secondary mt-1">
-              Configure sequential evaluation rounds. At least one round is required before an event can be published.
-            </p>
-          </div>
+    <AdminShell
+      currentPath="/admin/hackathons"
+      adminProfile={admin}
+      permissions={permissions}
+    >
+      <div className="max-w-4xl space-y-6">
+        <div className="mb-6">
           <Link
-            href={`/admin/hackathons/${h.id}/edit`}
-            className="text-xs text-text-secondary hover:text-text-primary hover:underline"
+            href="/admin/hackathons"
+            className="text-xs text-brand-primary hover:underline flex items-center gap-1 mb-2"
           >
-            Edit Event Info
+            &larr; Back to Hackathons
           </Link>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-text-primary tracking-tight">
+                Round Architecture: {h.title}
+              </h1>
+              <p className="text-sm text-text-secondary mt-1">
+                Configure sequential evaluation rounds. At least one round is required before an event can be published.
+              </p>
+            </div>
+            <Link
+              href={`/admin/hackathons/${h.id}/edit`}
+              className="text-xs text-text-secondary hover:text-text-primary hover:underline"
+            >
+              Edit Event Info
+            </Link>
+          </div>
         </div>
-      </div>
 
-      <RoundConfigForm
-        hackathonId={h.id}
-        hackathonTitle={h.title}
-        eventStartAt={h.event_start_at}
-        eventEndAt={h.event_end_at}
-        initialRounds={initialRounds}
-      />
-    </div>
+        <RoundConfigForm
+          hackathonId={h.id}
+          hackathonTitle={h.title}
+          eventStartAt={h.event_start_at}
+          eventEndAt={h.event_end_at}
+          initialRounds={initialRounds}
+        />
+      </div>
+    </AdminShell>
   );
 }

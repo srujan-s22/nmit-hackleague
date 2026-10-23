@@ -462,3 +462,27 @@ export async function getStudentProfileHistoryAction(): Promise<
     data: data || [],
   };
 }
+
+// Aliases matching plan conventions
+export const updateStudentPhoneAction = updatePhoneNumberAction;
+export const submitProfileChangeRequestAction = submitProfileCorrectionAction;
+export const reviewProfileChangeRequestAction = reviewProfileCorrectionAction;
+export const getStudentProfileChangeRequestsAction = getStudentProfileHistoryAction;
+
+/**
+ * Action to fetch categorized participation history for the authenticated student.
+ */
+export async function getStudentParticipationHistoryAction(): Promise<
+  ActionResult<Awaited<ReturnType<typeof import('@/lib/student/queries').getStudentParticipationTimeline>>>
+> {
+  try {
+    const { getStudentParticipationTimeline } = await import('@/lib/student/queries');
+    const data = await getStudentParticipationTimeline();
+    return { success: true, data };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Failed to fetch participation history.',
+    };
+  }
+}

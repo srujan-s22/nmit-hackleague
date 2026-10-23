@@ -97,14 +97,14 @@ isOneToOne: false
                   ]
                 },"announcements": {
                   Row: {
-                    "body": string,"created_at": string,"created_by": string,"id": string,"push_dispatched_count": number,"push_failed_count": number,"target_role": string,"title": string,"updated_at": string
+                    "announcement_type": string,"body": string,"created_at": string,"created_by": string,"hackathon_id": string | null,"id": string,"metadata": NonNullable<Json>,"push_dispatched_count": number,"push_failed_count": number,"target_role": string,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"created_at"?: string,"created_by": string,"id"?: string,"push_dispatched_count"?: number,"push_failed_count"?: number,"target_role"?: string,"title": string,"updated_at"?: string
+                    "announcement_type"?: string,"body": string,"created_at"?: string,"created_by": string,"hackathon_id"?: string | null,"id"?: string,"metadata"?: NonNullable<Json>,"push_dispatched_count"?: number,"push_failed_count"?: number,"target_role"?: string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"created_by"?: string,"id"?: string,"push_dispatched_count"?: number,"push_failed_count"?: number,"target_role"?: string,"title"?: string,"updated_at"?: string
+                    "announcement_type"?: string,"body"?: string,"created_at"?: string,"created_by"?: string,"hackathon_id"?: string | null,"id"?: string,"metadata"?: NonNullable<Json>,"push_dispatched_count"?: number,"push_failed_count"?: number,"target_role"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -112,6 +112,18 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "announcements_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "announcements_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons_public_view"
       referencedColumns: ["id"]
     }
                   ]
@@ -125,6 +137,20 @@ isOneToOne: false
                   }
                   Update: {
                     "action"?: string,"actor_id"?: string | null,"actor_role"?: string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"ip_address"?: unknown,"target_id"?: string | null,"target_type"?: string,"user_agent"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"email_delivery_logs": {
+                  Row: {
+                    "attempt_count": number,"created_at": string,"id": string,"idempotency_key": string | null,"last_error": string | null,"max_attempts": number,"payload": NonNullable<Json>,"recipient_email": string,"sent_at": string | null,"status": string,"subject": string,"template_name": string,"updated_at": string,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempt_count"?: number,"created_at"?: string,"id"?: string,"idempotency_key"?: string | null,"last_error"?: string | null,"max_attempts"?: number,"payload"?: NonNullable<Json>,"recipient_email": string,"sent_at"?: string | null,"status"?: string,"subject": string,"template_name": string,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "attempt_count"?: number,"created_at"?: string,"id"?: string,"idempotency_key"?: string | null,"last_error"?: string | null,"max_attempts"?: number,"payload"?: NonNullable<Json>,"recipient_email"?: string,"sent_at"?: string | null,"status"?: string,"subject"?: string,"template_name"?: string,"updated_at"?: string,"user_id"?: string | null
                   }
                   Relationships: [
                     
@@ -333,17 +359,23 @@ isOneToOne: false
                   ]
                 },"profile_action_authorizations": {
                   Row: {
-                    "action_type": string,"created_at": string,"id": string,"new_value": string | null,"old_value": string | null,"student_id": string,"xact_id": string
+                    "action_type": string,"created_at": string,"id": string,"new_value": string | null,"old_value": string | null,"request_id": string | null,"student_id": string,"xact_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "action_type": string,"created_at"?: string,"id"?: string,"new_value"?: string | null,"old_value"?: string | null,"student_id": string,"xact_id": string
+                    "action_type": string,"created_at"?: string,"id"?: string,"new_value"?: string | null,"old_value"?: string | null,"request_id"?: string | null,"student_id": string,"xact_id": string
                   }
                   Update: {
-                    "action_type"?: string,"created_at"?: string,"id"?: string,"new_value"?: string | null,"old_value"?: string | null,"student_id"?: string,"xact_id"?: string
+                    "action_type"?: string,"created_at"?: string,"id"?: string,"new_value"?: string | null,"old_value"?: string | null,"request_id"?: string | null,"student_id"?: string,"xact_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "profile_action_authorizations_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "profile_change_requests"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "profile_action_authorizations_student_id_fkey"
       columns: ["student_id"]
 isOneToOne: false
@@ -394,6 +426,32 @@ isOneToOne: false
       columns: ["reviewed_by"]
 isOneToOne: false
       referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"push_delivery_logs": {
+                  Row: {
+                    "announcement_id": string | null,"attempt_count": number,"created_at": string,"endpoint": string,"error_message": string | null,"id": string,"status": string,"status_code": number | null,"subscription_id": string | null,"updated_at": string,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "announcement_id"?: string | null,"attempt_count"?: number,"created_at"?: string,"endpoint": string,"error_message"?: string | null,"id"?: string,"status": string,"status_code"?: number | null,"subscription_id"?: string | null,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "announcement_id"?: string | null,"attempt_count"?: number,"created_at"?: string,"endpoint"?: string,"error_message"?: string | null,"id"?: string,"status"?: string,"status_code"?: number | null,"subscription_id"?: string | null,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_delivery_logs_announcement_id_fkey"
+      columns: ["announcement_id"]
+isOneToOne: false
+      referencedRelation: "announcements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "push_delivery_logs_subscription_id_fkey"
+      columns: ["subscription_id"]
+isOneToOne: false
+      referencedRelation: "user_push_subscriptions"
       referencedColumns: ["id"]
     }
                   ]
@@ -682,7 +740,7 @@ isOneToOne: false
 { Args: { "p_hackathon_id": string,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: string
                            },
 "approve_profile_change_request":
-{ Args: { "p_request_id": string }; Returns: Json
+{ Args: { "p_request_id": string }; Returns: boolean
                            },
 "audit_data_export":
 { Args: { "p_dataset": string,"p_filters"?: Json,"p_format": string,"p_hackathon_id"?: string }; Returns: undefined
@@ -707,6 +765,9 @@ isOneToOne: false
                            },
 "can_upload_team_round_evidence":
 { Args: { "p_round_id": string,"p_team_id": string }; Returns: boolean
+                           },
+"can_view_profile_photo":
+{ Args: { "p_student_id_text": string }; Returns: boolean
                            },
 "can_view_registration_proof":
 { Args: { "p_team_id_text": string }; Returns: boolean
@@ -775,6 +836,27 @@ isOneToOne: false
 "enqueue_storage_deletion_job":
 { Args: { "p_bucket_id": string,"p_object_path": string,"p_target_id": string,"p_target_type": string }; Returns: string
                            },
+"export_profile_change_requests_report":
+{ Args: { "p_status_filter"?: string }; Returns: {
+              "created_at": string,
+"field_name": string,
+"id": string,
+"new_value": string,
+"old_value": string,
+"reason": string,
+"rejection_reason": string | null,
+"reviewed_at": string | null,
+"reviewed_by": string | null,
+"status": string,
+"student_id": string,
+"updated_at": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "profile_change_requests"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "extend_hackathon_event_deadline":
 { Args: { "p_hackathon_id": string,"p_new_event_end_at": string,"p_reason": string }; Returns: Json
                            },
@@ -784,6 +866,9 @@ isOneToOne: false
 "finalize_submission_upload":
 { Args: { "p_object_path": string,"p_sha256": string,"p_submission_id": string }; Returns: Json
                            },
+"get_admin_dashboard_metrics":
+{ Args: { "p_hackathon_id"?: string }; Returns: Json
+                           },
 "get_platform_leaderboard":
 { Args: { "p_academic_year"?: number,"p_event_academic_year"?: string,"p_event_term"?: string,"p_limit"?: number,"p_offset"?: number }; Returns: {
               "academic_year": number,"branch": string,"full_name": string,"rank": number,"student_id": string,"total_points": number,"verified_qualifications_count": number
@@ -792,9 +877,12 @@ isOneToOne: false
 "get_student_points_summary":
 { Args: { "p_student_id": string }; Returns: Json
                            },
+"get_system_health":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "get_team_roster":
 { Args: { "p_team_id": string }; Returns: {
-              "academic_year": number,"branch": string,"full_name": string,"id": string,"profile_photo_path": string | null,"role": string,"student_id": string
+              "academic_year": number,"branch": string,"full_name": string,"id": string,"joined_at": string,"profile_photo_path": string,"role": string,"student_id": string,"team_id": string
             }[]
                            },
 "is_push_registered":
@@ -808,6 +896,9 @@ isOneToOne: false
                            },
 "lock_team_roster":
 { Args: { "p_team_id": string }; Returns: undefined
+                           },
+"log_push_delivery_outcome":
+{ Args: { "p_announcement_id"?: string,"p_attempt_count"?: number,"p_endpoint"?: string,"p_error_message"?: string,"p_status"?: string,"p_status_code"?: number,"p_subscription_id"?: string,"p_user_id"?: string }; Returns: string
                            },
 "manage_admin_permissions":
 { Args: { "p_permissions": (string)[],"p_target_admin_id": string }; Returns: Json
@@ -831,7 +922,10 @@ isOneToOne: false
 { Args: { "p_batch_size"?: number }; Returns: number
                            },
 "publish_announcement":
-{ Args: { "p_body": string,"p_target_role"?: string,"p_title": string }; Returns: Json
+{ Args: { "p_announcement_type"?: string,"p_body": string,"p_hackathon_id"?: string,"p_metadata"?: Json,"p_target_role"?: string,"p_title": string }; Returns: Json
+                           },
+"publish_deadline_reminder":
+{ Args: { "p_custom_message"?: string,"p_deadline": string,"p_hackathon_id": string,"p_round_id": string }; Returns: Json
                            },
 "quarantine_expired_dispatches":
 { Args: { "p_batch_size"?: number,"p_cooldown_seconds"?: number }; Returns: {
@@ -851,7 +945,7 @@ isOneToOne: false
 { Args: { "p_auth": string,"p_device_fingerprint": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: Json
                            },
 "reject_profile_change_request":
-{ Args: { "p_rejection_reason": string,"p_request_id": string }; Returns: Json
+{ Args: { "p_rejection_reason": string,"p_request_id": string }; Returns: boolean
                            },
 "remove_team_member":
 { Args: { "p_student_id": string,"p_team_id": string }; Returns: Json
@@ -899,7 +993,7 @@ isOneToOne: false
 { Args: { "p_academic_term": string,"p_academic_year": string,"p_hackathon_id": string }; Returns: Json
                            },
 "submit_profile_change_request":
-{ Args: { "p_field_name": string,"p_new_value": string,"p_reason": string }; Returns: Json
+{ Args: { "p_field_name": string,"p_new_value": string,"p_reason": string }; Returns: string
                            },
 "submit_profile_for_review":
 { Args: Record<PropertyKey, never>; Returns: Json

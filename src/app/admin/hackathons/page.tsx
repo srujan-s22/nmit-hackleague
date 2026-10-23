@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/guards';
+import { AdminShell } from '@/components/shells/admin-shell';
 import { HackathonsClient } from './hackathons-client';
 import type { Hackathon } from '@/types/hackathon';
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminHackathonsPage() {
-  await requireAdmin('manage_hackathons');
+  const { admin, permissions } = await requireAdmin('manage_hackathons');
   const supabase = await createClient();
 
   // Queries base table hackathons (accessible to authorized admins via RLS policy hackathons_admin_manage)
@@ -25,8 +26,14 @@ export default async function AdminHackathonsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <HackathonsClient initialHackathons={(hackathons as Hackathon[]) || []} />
-    </div>
+    <AdminShell
+      currentPath="/admin/hackathons"
+      adminProfile={admin}
+      permissions={permissions}
+    >
+      <div className="space-y-6">
+        <HackathonsClient initialHackathons={(hackathons as Hackathon[]) || []} />
+      </div>
+    </AdminShell>
   );
 }

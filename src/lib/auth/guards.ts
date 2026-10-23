@@ -1,7 +1,22 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import type { StudentProfile, AdminProfile } from '@/types/auth';
+
+async function resolveCurrentPath(fallback: string, explicitPath?: string): Promise<string> {
+  if (explicitPath) return explicitPath;
+  try {
+    const headerList = await headers();
+    const pathname = headerList.get('x-pathname');
+    if (pathname && pathname.startsWith('/') && !pathname.startsWith('//') && !pathname.startsWith('/\\')) {
+      return pathname;
+    }
+  } catch {
+    // headers() might not be available in non-request contexts
+  }
+  return fallback;
+}
 
 export async function requireAuth() {
   const supabase = await createClient();
@@ -57,13 +72,15 @@ export async function requirePushSubscription(userId: string, redirectTo = '/stu
   return { hasActiveSubscription: true };
 }
 
-export async function requireApprovedStudent(): Promise<{ profile: StudentProfile; user: { id: string; email?: string } }> {
+export async function requireApprovedStudent(redirectTo?: string): Promise<{ profile: StudentProfile; user: { id: string; email?: string } }> {
   const { profile, user } = await requireStudent();
 
   switch (profile.registration_status) {
-    case 'approved':
-      await requirePushSubscription(user.id, '/student');
+    case 'approved': {
+      const destination = await resolveCurrentPath('/student', redirectTo);
+      await requirePushSubscription(user.id, destination);
       return { profile, user };
+    }
     case 'draft':
       redirect('/onboarding');
     case 'under_review':
@@ -79,7 +96,10 @@ export async function requireApprovedStudent(): Promise<{ profile: StudentProfil
   }
 }
 
-export async function requireAdmin(requiredPermission?: string): Promise<{
+export async function requireAdmin(
+  requiredPermission?: string,
+  redirectTo?: string
+): Promise<{
   admin: AdminProfile;
   permissions: string[];
   user: { id: string; email?: string };
@@ -109,7 +129,8 @@ export async function requireAdmin(requiredPermission?: string): Promise<{
     }
   }
 
-  await requirePushSubscription(user.id, '/admin/hackathons');
+  const destination = await resolveCurrentPath('/admin', redirectTo);
+  await requirePushSubscription(user.id, destination);
 
   return {
     admin: admin as unknown as AdminProfile,
@@ -118,7 +139,7 @@ export async function requireAdmin(requiredPermission?: string): Promise<{
   };
 }
 
-export async function requireSuperAdmin(): Promise<{
+export async function requireSuperAdmin(redirectTo?: string): Promise<{
   admin: AdminProfile;
   user: { id: string; email?: string };
 }> {
@@ -134,7 +155,8 @@ export async function requireSuperAdmin(): Promise<{
     redirect('/login');
   }
 
-  await requirePushSubscription(user.id, '/admin/admins');
+  const destination = await resolveCurrentPath('/admin/admins', redirectTo);
+  await requirePushSubscription(user.id, destination);
 
   return {
     admin: admin as unknown as AdminProfile,

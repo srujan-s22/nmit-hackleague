@@ -9,10 +9,12 @@ interface WebPushGateModalProps {
   currentPath?: string;
 }
 
-export function WebPushGateModal({ currentPath = '/admin/hackathons' }: WebPushGateModalProps) {
+export function WebPushGateModal({ currentPath }: WebPushGateModalProps) {
   const [isChecking, setIsChecking] = useState(true);
   const [isGateLocked, setIsGateLocked] = useState(false);
   const [gateReason, setGateReason] = useState<'unsupported' | 'permission_denied' | 'not_registered' | null>(null);
+
+  const resolvedPath = currentPath || (typeof window !== 'undefined' ? window.location.pathname : '/admin');
 
   useEffect(() => {
     let isMounted = true;
@@ -165,7 +167,7 @@ export function WebPushGateModal({ currentPath = '/admin/hackathons' }: WebPushG
             </Button>
           ) : (
             <Link
-              href={`/enable-push?redirectTo=${encodeURIComponent(currentPath)}`}
+              href={`/enable-push?redirectTo=${encodeURIComponent(resolvedPath)}`}
               className="w-full sm:w-auto"
             >
               <Button type="button" variant="primary" className="w-full text-xs">

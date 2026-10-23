@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export interface NavItem {
   label: string;
@@ -22,12 +24,39 @@ export interface SidebarNavProps {
   onClose?: () => void;
 }
 
+function isRouteActive(currentPath: string, itemHref: string): boolean {
+  if (!currentPath || !itemHref) return false;
+  if (currentPath === itemHref) return true;
+  if (itemHref === '/admin' || itemHref === '/student' || itemHref === '/') {
+    return false;
+  }
+  return currentPath.startsWith(itemHref + '/');
+}
+
 export function SidebarNav({
   sections,
   currentPath = '',
   isOpen = false,
   onClose,
 }: SidebarNavProps) {
+  const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      await fetch('/auth/signout', { method: 'POST' });
+    } catch {
+      // Continue to redirect even on network/client error
+    } finally {
+      router.push('/login');
+      router.refresh();
+    }
+  };
+
   // Accessible Escape-key dismissal while mobile drawer is open
   useEffect(() => {
     if (!isOpen || !onClose) return;
@@ -46,46 +75,75 @@ export function SidebarNav({
 
   const navContent = (
     <div className="flex flex-col h-full py-4 px-3 overflow-y-auto">
-      {sections.map((section, secIdx) => (
-        <div key={secIdx} className="mb-6 last:mb-0">
-          {section.title && (
-            <h5 className="px-3 mb-2 text-[11px] font-semibold tracking-wider text-text-helper uppercase select-none">
-              {section.title}
-            </h5>
-          )}
-          <nav className="flex flex-col gap-0.5">
-            {section.items.map((item, itemIdx) => {
-              const isActive = currentPath === item.href;
-              return (
-                <Link
-                  key={itemIdx}
-                  href={item.href}
-                  onClick={onClose}
-                  className={`flex items-center justify-between px-3 py-2 rounded-sm text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus ${
-                    isActive
-                      ? 'bg-surface-subtle text-text-primary font-medium border-l-2 border-text-primary pl-2.5 shadow-xs'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    {item.icon && (
-                      <span className="w-4 h-4 shrink-0 text-text-secondary" aria-hidden="true">
-                        {item.icon}
+      <div className="flex-1">
+        {sections.map((section, secIdx) => (
+          <div key={secIdx} className="mb-6 last:mb-0">
+            {section.title && (
+              <h5 className="px-3 mb-2 text-[11px] font-semibold tracking-wider text-text-helper uppercase select-none">
+                {section.title}
+              </h5>
+            )}
+            <nav className="flex flex-col gap-0.5">
+              {section.items.map((item, itemIdx) => {
+                const isActive = isRouteActive(currentPath, item.href);
+                return (
+                  <Link
+                    key={itemIdx}
+                    href={item.href}
+                    onClick={onClose}
+                    className={`flex items-center justify-between px-3 py-2 rounded-sm text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus ${
+                      isActive
+                        ? 'bg-surface-subtle text-text-primary font-medium border-l-2 border-text-primary pl-2.5 shadow-xs'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      {item.icon && (
+                        <span className="w-4 h-4 shrink-0 text-text-secondary" aria-hidden="true">
+                          {item.icon}
+                        </span>
+                      )}
+                      <span className="truncate">{item.label}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="text-[11px] font-medium px-1.5 py-0.2 rounded-xs bg-surface-muted text-text-secondary">
+                        {item.badge}
                       </span>
                     )}
-                    <span className="truncate">{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="text-[11px] font-medium px-1.5 py-0.2 rounded-xs bg-surface-muted text-text-secondary">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      ))}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        ))}
+      </div>
+
+      {/* Accessible Sidebar Sign Out action */}
+      <div className="mt-auto pt-4 border-t border-border-subtle">
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          aria-label="Sign out of account"
+          className="flex w-full items-center gap-2.5 px-3 py-2 rounded-sm text-sm text-text-secondary hover:text-status-error-text hover:bg-surface-subtle transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        >
+          <span className="w-4 h-4 shrink-0 text-text-secondary" aria-hidden="true">
+            {isSigningOut ? (
+              <svg className="animate-spin w-4 h-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            )}
+          </span>
+          <span className="font-medium">{isSigningOut ? 'Signing out...' : 'Sign Out'}</span>
+        </button>
+      </div>
     </div>
   );
 

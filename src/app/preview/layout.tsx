@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import React from 'react';
 
 export const metadata: Metadata = {
@@ -15,6 +16,9 @@ export default function PreviewLayout({
 }: {
   children: React.ReactNode;
 }) {
+  if (process.env.NODE_ENV === 'production') {
+    notFound();
+  }
   return (
     <div className="min-h-screen flex flex-col bg-surface-canvas text-text-primary">
       {/* Required Phase 2 Global Preview Alert Banner */}

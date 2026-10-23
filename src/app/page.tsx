@@ -66,22 +66,27 @@ export default async function HomePage() {
     <div className="min-h-screen flex flex-col justify-between bg-surface-canvas text-text-primary">
       {/* Centered Minimal Content */}
       <main className="flex-1 flex items-center justify-center px-4 sm:px-8 py-12">
-        <div className="flex flex-col items-center text-center max-w-md w-full space-y-6">
-          {/* NMIT Institutional Logo — Centered */}
-          <BrandLogo asset="nmit" size="md" priority />
+        <div className="w-full max-w-xl bg-surface-canvas rounded-lg border border-border-default p-8 sm:p-12 shadow-sm flex flex-col items-center text-center space-y-8">
+          {/* Enlarged NMIT Institutional Logo */}
+          <div className="w-full flex justify-center pb-2">
+            <BrandLogo asset="nmit" size="lg" priority className="max-w-full" />
+          </div>
 
-          {/* HackLeague Emblem — Centered */}
-          <BrandLogo asset="hackleague" size="lg" priority />
+          {/* HackLeague Logo and Title in One Line */}
+          <div className="space-y-3 w-full">
+            <div className="flex items-center justify-center gap-3 sm:gap-3.5">
+              <BrandLogo asset="hackleague" size="lg" priority />
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
+                NMIT HackLeague
+              </h1>
+            </div>
 
-          <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary">
-              NMIT HackLeague
-            </h1>
-            <p className="text-base text-text-secondary">
+            <p className="text-base sm:text-lg text-text-secondary">
               The hackathon portal for NMIT students.
             </p>
           </div>
 
+          {/* Two Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 w-full justify-center">
             <ButtonLink href="/login" variant="primary" size="md" className="w-full sm:w-36 text-center">
               Login

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireHackathonScope } from '@/lib/auth/guards';
+import { AdminShell } from '@/components/shells/admin-shell';
 import { HackathonForm } from '@/components/hackathons/hackathon-form';
 import type { Hackathon, PrizeTier } from '@/types/hackathon';
 
@@ -18,7 +19,7 @@ interface EditPageProps {
 
 export default async function EditHackathonPage({ params }: EditPageProps) {
   const { id } = await params;
-  await requireHackathonScope(id, 'manage_hackathons');
+  const { admin, permissions } = await requireHackathonScope(id, 'manage_hackathons');
   const supabase = await createClient();
 
   const { data: hackathon, error } = await supabase
@@ -60,32 +61,38 @@ export default async function EditHackathonPage({ params }: EditPageProps) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
+    <AdminShell
+      currentPath="/admin/hackathons"
+      adminProfile={admin}
+      permissions={permissions}
+    >
+      <div className="max-w-4xl space-y-6">
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <Link
+              href="/admin/hackathons"
+              className="text-xs text-brand-primary hover:underline flex items-center gap-1 mb-2"
+            >
+              &larr; Back to Hackathons
+            </Link>
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">
+              Edit Hackathon: {h.title}
+            </h1>
+            <p className="text-sm text-text-secondary mt-1">
+              Status: <span className="font-semibold capitalize text-text-primary">{h.status}</span>
+            </p>
+          </div>
+
           <Link
-            href="/admin/hackathons"
-            className="text-xs text-brand-primary hover:underline flex items-center gap-1 mb-2"
+            href={`/admin/hackathons/${h.id}/rounds`}
+            className="text-xs font-semibold px-3 py-1.5 rounded-xs border border-border-subtle bg-surface-subtle hover:bg-surface-canvas text-text-primary transition-colors"
           >
-            &larr; Back to Hackathons
+            Manage Rounds &rarr;
           </Link>
-          <h1 className="text-2xl font-bold text-text-primary tracking-tight">
-            Edit Hackathon: {h.title}
-          </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Status: <span className="font-semibold capitalize text-text-primary">{h.status}</span>
-          </p>
         </div>
 
-        <Link
-          href={`/admin/hackathons/${h.id}/rounds`}
-          className="text-xs font-semibold px-3 py-1.5 rounded-xs border border-border-subtle bg-surface-subtle hover:bg-surface-canvas text-text-primary transition-colors"
-        >
-          Manage Rounds &rarr;
-        </Link>
+        <HackathonForm initialData={initialData} isEdit={true} />
       </div>
-
-      <HackathonForm initialData={initialData} isEdit={true} />
-    </div>
+    </AdminShell>
   );
 }

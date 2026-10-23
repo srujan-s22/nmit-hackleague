@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireApprovedStudent } from '@/lib/auth/guards';
+import { StudentShell } from '@/components/shells/student-shell';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RegistrationStateBadge } from '@/components/hackathons/registration-state-badge';
@@ -43,7 +44,7 @@ export async function generateMetadata({ params }: StudentEventDetailPageProps):
 }
 
 export default async function StudentEventDetailPage({ params }: StudentEventDetailPageProps) {
-  await requireApprovedStudent();
+  const { profile } = await requireApprovedStudent();
   const { slug } = await params;
   const supabase = await createClient();
 
@@ -86,13 +87,14 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
   const existingTeam = studentTeams[0] || null;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <Link
-        href="/student/hackathons"
-        className="text-xs text-brand-primary hover:underline flex items-center gap-1 mb-4"
-      >
-        &larr; Back to All Hackathons
-      </Link>
+    <StudentShell currentPath="/student/hackathons" studentProfile={profile}>
+      <div className="max-w-5xl space-y-6">
+        <Link
+          href="/student/hackathons"
+          className="text-xs text-brand-primary hover:underline flex items-center gap-1 mb-4"
+        >
+          &larr; Back to All Hackathons
+        </Link>
 
       {/* Hero Header */}
       <div className="bg-surface-canvas rounded-lg border border-border-subtle p-6 md:p-8 mb-8 shadow-xs">
@@ -395,5 +397,6 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
         </div>
       </div>
     </div>
-  );
+  </StudentShell>
+);
 }

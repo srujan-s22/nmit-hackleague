@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { requireApprovedStudent } from '@/lib/auth/guards';
+import { StudentShell } from '@/components/shells/student-shell';
 import { StudentHackathonsClient } from './student-hackathons-client';
 import type { HackathonPublicView } from '@/types/hackathon';
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StudentHackathonsPage() {
-  await requireApprovedStudent();
+  const { profile } = await requireApprovedStudent();
   const supabase = await createClient();
 
   // Queries public projection view hackathons_public_view
@@ -26,8 +27,10 @@ export default async function StudentHackathonsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <StudentHackathonsClient initialHackathons={(hackathons as HackathonPublicView[]) || []} />
-    </div>
+    <StudentShell currentPath="/student/hackathons" studentProfile={profile}>
+      <div className="space-y-6">
+        <StudentHackathonsClient initialHackathons={(hackathons as HackathonPublicView[]) || []} />
+      </div>
+    </StudentShell>
   );
 }

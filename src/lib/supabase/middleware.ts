@@ -3,9 +3,12 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/types/database';
 
 export async function updateSession(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', request.nextUrl.pathname);
+
   let supabaseResponse = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: requestHeaders,
     },
   });
 
@@ -24,7 +27,9 @@ export async function updateSession(request: NextRequest) {
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         supabaseResponse = NextResponse.next({
-          request,
+          request: {
+            headers: requestHeaders,
+          },
         });
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options)
@@ -46,7 +51,9 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/student') ||
     path.startsWith('/onboarding') ||
     path.startsWith('/status') ||
-    path.startsWith('/admin');
+    path.startsWith('/admin') ||
+    path === '/hackathons' ||
+    path === '/points';
 
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone();

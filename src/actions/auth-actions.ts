@@ -26,6 +26,17 @@ export interface ActionResult<T = unknown> {
   redirectTo?: string;
 }
 
+function getSafeRedirectUrl(url?: string | null): string | null {
+  if (!url) return null;
+  // Must start with '/' and not '//' or '/\' to avoid open redirects
+  if (url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')) {
+    if (!url.includes(':')) {
+      return url;
+    }
+  }
+  return null;
+}
+
 /**
  * Live Login Action
  * Authenticates user credentials via Supabase Auth and returns the appropriate post-login redirect path.
@@ -38,6 +49,7 @@ export async function loginAction(
       ? {
           email: input.get('email'),
           password: input.get('password'),
+          redirectTo: input.get('redirectTo') || undefined,
         }
       : input;
 
@@ -51,6 +63,7 @@ export async function loginAction(
   }
 
   const { email, password } = parsed.data;
+  const safeRedirect = getSafeRedirectUrl(parsed.data.redirectTo);
   const supabase = await createClient();
 
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -80,9 +93,17 @@ export async function loginAction(
         error: 'Your administrator account has been deactivated. Please contact the Super Admin.',
       };
     }
+
+    if (safeRedirect && !safeRedirect.startsWith('/login')) {
+      return {
+        success: true,
+        redirectTo: safeRedirect,
+      };
+    }
+
     return {
       success: true,
-      redirectTo: '/admin/verifications',
+      redirectTo: '/admin',
     };
   }
 
@@ -98,6 +119,13 @@ export async function loginAction(
     return {
       success: true,
       redirectTo: '/onboarding',
+    };
+  }
+
+  if (studentProfile.registration_status === 'approved' && safeRedirect && !safeRedirect.startsWith('/login')) {
+    return {
+      success: true,
+      redirectTo: safeRedirect,
     };
   }
 

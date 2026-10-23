@@ -13,6 +13,7 @@ export const loginSchema = z.object({
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters long.'),
+  redirectTo: z.string().optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

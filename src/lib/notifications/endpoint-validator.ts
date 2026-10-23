@@ -143,6 +143,14 @@ export async function validatePushEndpoint(
     return { valid: false, error: 'Push endpoint must use HTTPS.' };
   }
 
+  if (parsed.username || parsed.password) {
+    return { valid: false, error: 'Push endpoint must not contain user credentials.' };
+  }
+
+  if (parsed.port && parsed.port !== '443') {
+    return { valid: false, error: 'Push endpoint must use standard HTTPS port (443).' };
+  }
+
   if (!isAllowedPushDomain(endpointUrl)) {
     return {
       valid: false,

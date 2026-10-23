@@ -1,11 +1,13 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BrandLogo } from '../ui/brand-logo';
 import { IconButton } from '../ui/icon-button';
 import { NotificationCenter } from './notification-center';
+import { createClient } from '@/lib/supabase/client';
 
 export interface AppHeaderProps {
   roleTitle: string;
@@ -26,6 +28,23 @@ export function AppHeader({
   onToggleSidebar,
   isSidebarOpen = false,
 }: AppHeaderProps) {
+  const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      await fetch('/auth/signout', { method: 'POST' });
+    } catch {
+      // Continue to redirect even on network/client error
+    } finally {
+      router.push('/login');
+      router.refresh();
+    }
+  };
   return (
     <header className="h-16 sticky top-0 z-30 w-full border-b border-border-subtle bg-surface-canvas/95 backdrop-blur-xs px-4 sm:px-6 flex items-center justify-between">
       {/* Left: Mobile hamburger + Brand */}
@@ -114,6 +133,56 @@ export function AppHeader({
             </span>
           </div>
         </div>
+
+        {/* Accessible Sign Out action */}
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          aria-label="Sign out of account"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border border-border-subtle bg-surface-subtle hover:bg-surface-muted text-text-secondary hover:text-status-error-text text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+        >
+          {isSigningOut ? (
+            <svg
+              className="animate-spin w-3.5 h-3.5 text-current"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8H4z"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-3.5 h-3.5 stroke-current shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          )}
+          <span className="hidden sm:inline">
+            {isSigningOut ? 'Signing out...' : 'Sign Out'}
+          </span>
+        </button>
       </div>
     </header>
   );

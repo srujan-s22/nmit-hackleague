@@ -39,3 +39,6 @@ yarn-error.log*
 *.suo
 *.ntvs*
 *.njsproj
+
+# Database Backups
+/backups/
