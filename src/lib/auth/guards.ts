@@ -116,6 +116,17 @@ export async function requireAdmin(
     redirect('/login');
   }
 
+  // Enforce mandatory password change for newly provisioned administrators
+  const appMeta = user.app_metadata || {};
+  const mustChange =
+    typeof admin.must_change_password === 'boolean'
+      ? admin.must_change_password
+      : Boolean(appMeta.must_change_password);
+
+  if (mustChange) {
+    redirect('/auth/complete-setup');
+  }
+
   const { data: permissionsData } = await supabase
     .from('admin_permissions')
     .select('permission')
@@ -153,6 +164,16 @@ export async function requireSuperAdmin(redirectTo?: string): Promise<{
 
   if (error || !admin || !admin.is_active || !admin.is_super_admin) {
     redirect('/login');
+  }
+
+  const appMeta = user.app_metadata || {};
+  const mustChange =
+    typeof admin.must_change_password === 'boolean'
+      ? admin.must_change_password
+      : Boolean(appMeta.must_change_password);
+
+  if (mustChange) {
+    redirect('/auth/complete-setup');
   }
 
   const destination = await resolveCurrentPath('/admin/admins', redirectTo);

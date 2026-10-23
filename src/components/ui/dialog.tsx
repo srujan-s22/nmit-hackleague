@@ -77,10 +77,10 @@ export function Dialog({
       onClick={handleBackdropClick}
       aria-labelledby="dialog-title"
       aria-describedby={description ? 'dialog-desc' : undefined}
-      className={`fixed inset-0 m-auto w-full ${maxWidthClasses[maxWidth]} rounded-md border border-border-subtle bg-surface-canvas text-text-primary p-0 shadow-dialog backdrop:bg-surface-inverse/45 backdrop:backdrop-blur-xs open:flex open:flex-col overflow-hidden`}
+      className={`fixed inset-0 m-auto w-full ${maxWidthClasses[maxWidth]} rounded-lg border border-border-subtle bg-surface-canvas text-text-primary p-0 shadow-lg backdrop:bg-surface-inverse/40 backdrop:backdrop-blur-xs open:flex open:flex-col overflow-hidden`}
     >
       {/* Header */}
-      <div className="flex items-start justify-between p-5 border-b border-border-subtle bg-surface-subtle/50">
+      <div className="flex items-start justify-between p-5 border-b border-border-subtle bg-surface-canvas">
         <div className="flex flex-col gap-1 pr-4">
           <h2 id="dialog-title" className="text-base font-semibold text-text-primary leading-tight">
             {title}
@@ -114,13 +114,13 @@ export function Dialog({
       </div>
 
       {/* Body Content */}
-      <div className="p-5 overflow-y-auto max-h-[70vh] text-sm text-text-primary leading-relaxed">
+      <div className="p-5 overflow-y-auto max-h-[70vh] text-sm text-text-primary leading-relaxed bg-surface-canvas">
         {children}
       </div>
 
       {/* Footer */}
       {footer && (
-        <div className="p-4 sm:p-5 border-t border-border-subtle bg-surface-subtle/30 flex items-center justify-end gap-3">
+        <div className="p-4 sm:p-5 border-t border-border-subtle bg-surface-canvas flex items-center justify-end gap-3">
           {footer}
         </div>
       )}

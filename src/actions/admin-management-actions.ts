@@ -5,6 +5,13 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireSuperAdmin } from '@/lib/auth/guards';
 import { checkRateLimit } from '@/lib/auth/rate-limiter';
 import {
+  generateSecureTemporaryPassword,
+  getInitialAdminProvisioningPassword,
+  DEV_ADMIN_TEMP_PASSWORD_FALLBACK,
+} from '@/lib/auth/password-generator';
+import { sendTransactionalEmail } from '@/lib/email/resend-service';
+import { headers } from 'next/headers';
+import {
   adminCreationSchema,
   adminPermissionsUpdateSchema,
   adminStatusSchema,
@@ -17,6 +24,20 @@ import type {
   ActionResult,
 } from '@/types/auth';
 
+async function getAppUrl(): Promise<string> {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  }
+  try {
+    const headerList = await headers();
+    const host = headerList.get('host') || 'localhost:3000';
+    const protocol = headerList.get('x-forwarded-proto') || 'http';
+    return `${protocol}://${host}`;
+  } catch {
+    return 'http://localhost:3000';
+  }
+}
+
 /**
  * Fetch all administrator accounts with their explicit permissions and assigned active hackathons.
  * Restricted strictly to active Super Admin.
@@ -25,6 +46,7 @@ export async function fetchAdminsAction(): Promise<ActionResult<AdminWithPermiss
   try {
     await requireSuperAdmin();
     const supabase = await createClient();
+    const adminClient = createAdminClient();
 
     const { data: admins, error: adminsError } = await supabase
       .from('admin_profiles')
@@ -69,10 +91,38 @@ export async function fetchAdminsAction(): Promise<ActionResult<AdminWithPermiss
       }
     }
 
+    // Query GoTrue user metadata to ensure onboarding state is accurate even if forward-only DB migration is unapplied
+    const { data: userListData } = await adminClient.auth.admin.listUsers();
+    const userMetaMap = new Map<string, Record<string, unknown>>();
+    for (const u of userListData?.users || []) {
+      userMetaMap.set(u.id, u.app_metadata || {});
+    }
+
+    const nowMs = Date.now();
+
     const result: AdminWithPermissions[] = (admins || []).map((admin) => {
       const activeEvents = hackathonMap.get(admin.id) || [];
+      const appMeta = userMetaMap.get(admin.id) || {};
+      const mustChange =
+        typeof admin.must_change_password === 'boolean'
+          ? admin.must_change_password
+          : Boolean(appMeta.must_change_password);
+      const expiresAt =
+        admin.onboarding_expires_at ||
+        (typeof appMeta.onboarding_expires_at === 'string' ? appMeta.onboarding_expires_at : null);
+      const status =
+        admin.onboarding_status ||
+        (typeof appMeta.onboarding_status === 'string' ? appMeta.onboarding_status : 'completed');
+      const isExpired = Boolean(
+        mustChange && expiresAt && new Date(expiresAt).getTime() < nowMs
+      );
+
       return {
         ...admin,
+        must_change_password: mustChange,
+        onboarding_expires_at: expiresAt,
+        onboarding_status: status,
+        isOnboardingExpired: isExpired,
         permissions: (permMap.get(admin.id) || []) as AdminWithPermissions['permissions'],
         activeHackathons: activeEvents,
         activeHackathonsCount: activeEvents.length,
@@ -131,11 +181,22 @@ export async function createAdminAction(
   const adminClient = createAdminClient();
 
   // 3. Pre-check email exclusivity in public.profiles (Student)
-  const { data: existingStudent } = await adminClient
+  const { data: existingStudent, error: studentCheckError } = await adminClient
     .from('profiles')
     .select('id')
     .ilike('email', email.trim())
     .maybeSingle();
+
+  if (studentCheckError) {
+    console.error('[ADMIN_PROVISION_ERROR] [STUDENT_PRECHECK_FAILED]', {
+      email,
+      error: studentCheckError.message,
+    });
+    return {
+      success: false,
+      error: 'Unable to verify email availability. Please verify server connectivity and try again.',
+    };
+  }
 
   if (existingStudent) {
     return {
@@ -145,11 +206,22 @@ export async function createAdminAction(
   }
 
   // 4. Pre-check email exclusivity in public.admin_profiles
-  const { data: existingAdmin } = await adminClient
+  const { data: existingAdmin, error: adminCheckError } = await adminClient
     .from('admin_profiles')
     .select('id')
     .ilike('email', email.trim())
     .maybeSingle();
+
+  if (adminCheckError) {
+    console.error('[ADMIN_PROVISION_ERROR] [ADMIN_PRECHECK_FAILED]', {
+      email,
+      error: adminCheckError.message,
+    });
+    return {
+      success: false,
+      error: 'Unable to verify administrator directory. Please verify server connectivity and try again.',
+    };
+  }
 
   if (existingAdmin) {
     return {
@@ -158,43 +230,108 @@ export async function createAdminAction(
     };
   }
 
-  // 5. Check if user already exists in GoTrue (e.g. from an interrupted prior attempt)
+  // 5. Temporary development fallback ('Hackleague@nmit') or secure cryptographic password
+  const { password: tempPassword, isDevFallback } = getInitialAdminProvisioningPassword();
+  const onboardingExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  // 6. Check if user already exists in GoTrue (e.g. from an interrupted prior attempt)
   let targetAuthUid: string | null = null;
   let isNewlyCreatedAuthUser = false;
 
-  const { data: userListData } = await adminClient.auth.admin.listUsers();
+  const { data: userListData, error: listUsersError } = await adminClient.auth.admin.listUsers();
+  if (listUsersError) {
+    console.error('[ADMIN_PROVISION_ERROR] [AUTH_LIST_USERS_FAILED]', {
+      email,
+      error: listUsersError.message,
+    });
+    return {
+      success: false,
+      error: 'Authentication store unreachable or misconfigured. Please verify server credentials.',
+    };
+  }
+
   const existingAuthUser = (userListData?.users || []).find(
     (u) => u.email?.toLowerCase().trim() === email.toLowerCase().trim()
   );
 
   if (existingAuthUser) {
-    // User exists in GoTrue: verify if it has any DB profile
-    targetAuthUid = existingAuthUser.id;
-  } else {
-    // 6. GoTrue Invitation
-    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
-      email,
-      {
-        data: {
-          role: 'admin',
-          full_name: fullName,
-        },
-      }
-    );
-
-    if (inviteError || !inviteData?.user) {
-      const msg = inviteError?.message || 'Failed to dispatch administrator invitation.';
-      if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists')) {
-        return { success: false, error: 'An account with this email already exists.' };
-      }
-      return { success: false, error: msg };
+    // If existing account is already completed or is a super admin, fail closed
+    const currentMeta = existingAuthUser.app_metadata || {};
+    if (currentMeta.role === 'super_admin' || currentMeta.must_change_password === false) {
+      return {
+        success: false,
+        error: 'An existing administrator account with this email already exists and cannot be modified.',
+      };
     }
 
-    targetAuthUid = inviteData.user.id;
+    // User exists in GoTrue: update credentials and server-controlled app_metadata
+    targetAuthUid = existingAuthUser.id;
+    const { error: updateExistingError } = await adminClient.auth.admin.updateUserById(targetAuthUid, {
+      password: tempPassword,
+      user_metadata: {
+        role: 'admin',
+        full_name: fullName,
+      },
+      app_metadata: {
+        role: 'admin',
+        must_change_password: true,
+        onboarding_expires_at: onboardingExpiresAt,
+        onboarding_status: 'pending',
+      },
+    });
+
+    if (updateExistingError) {
+      console.error('[ADMIN_PROVISION_ERROR] [AUTH_UPDATE_EXISTING_FAILED]', {
+        email,
+        error: updateExistingError.message,
+      });
+      return {
+        success: false,
+        error: 'Failed to update credentials for existing authentication account.',
+      };
+    }
+  } else {
+    // 7. GoTrue Account Creation with verified email and secure temporary password
+    const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        role: 'admin',
+        full_name: fullName,
+      },
+      app_metadata: {
+        role: 'admin',
+        must_change_password: true,
+        onboarding_expires_at: onboardingExpiresAt,
+        onboarding_status: 'pending',
+      },
+    });
+
+    if (createError || !createData?.user) {
+      const rawMsg = (createError?.message || '').toLowerCase();
+      console.error('[ADMIN_PROVISION_ERROR] [AUTH_CREATE_USER_FAILED]', {
+        email,
+        error: createError?.message,
+      });
+
+      if (rawMsg.includes('already') || rawMsg.includes('exists') || rawMsg.includes('duplicate')) {
+        return { success: false, error: 'An account with this email already exists in the authentication system.' };
+      }
+      if (rawMsg.includes('api key') || rawMsg.includes('jwt') || rawMsg.includes('unauthorized') || rawMsg.includes('forbidden')) {
+        return {
+          success: false,
+          error: 'Authentication store configuration error (invalid credentials). Please check server configuration.',
+        };
+      }
+      return { success: false, error: 'Failed to establish administrator authentication identity.' };
+    }
+
+    targetAuthUid = createData.user.id;
     isNewlyCreatedAuthUser = true;
   }
 
-  // 7. Atomic Database Provisioning via provision_admin_profile RPC
+  // 8. Atomic Database Provisioning via provision_admin_profile RPC
   const { data: rpcData, error: rpcError } = await supabase.rpc('provision_admin_profile', {
     p_auth_uid: targetAuthUid,
     p_email: email,
@@ -203,7 +340,7 @@ export async function createAdminAction(
   });
 
   if (rpcError) {
-    // 8. Compensating Cleanup if newly created in this saga
+    // Compensating Cleanup if newly created in this saga
     if (isNewlyCreatedAuthUser && targetAuthUid) {
       try {
         await adminClient.auth.admin.deleteUser(targetAuthUid);
@@ -226,10 +363,290 @@ export async function createAdminAction(
     };
   }
 
+  // 9. Update admin_profiles table onboarding columns if migration is applied
+  try {
+    await adminClient
+      .from('admin_profiles')
+      .update({
+        must_change_password: true,
+        onboarding_expires_at: onboardingExpiresAt,
+        onboarding_status: 'pending',
+      })
+      .eq('id', targetAuthUid);
+  } catch {
+    // Non-blocking if table columns are not yet present in DB
+  }
+
+  // 10. Dispatch Transactional Onboarding Email via Resend
+  const appUrl = await getAppUrl();
+  const emailResult = await sendTransactionalEmail({
+    to: email,
+    subject: 'NMIT HackLeague — Administrator Account Setup & Credentials',
+    template: 'admin_onboarding',
+    variables: {
+      name: fullName,
+      email,
+      temporaryPassword: tempPassword,
+      loginUrl: `${appUrl}/login`,
+    },
+    userId: targetAuthUid,
+    idempotencyKey: `onboarding-${targetAuthUid}-${Date.now()}`,
+  });
+
+  const finalStatus = emailResult.success ? 'sent' : 'email_failed';
+
+  await adminClient.auth.admin.updateUserById(targetAuthUid, {
+    app_metadata: {
+      role: 'admin',
+      must_change_password: true,
+      onboarding_expires_at: onboardingExpiresAt,
+      onboarding_status: finalStatus,
+    },
+  });
+
+  try {
+    await adminClient
+      .from('admin_profiles')
+      .update({ onboarding_status: finalStatus })
+      .eq('id', targetAuthUid);
+  } catch {
+    // Ignore if column not present
+  }
+
+  if (!emailResult.success) {
+    console.warn('[ADMIN_ONBOARDING_EMAIL_FAILED]', {
+      email,
+      error: emailResult.error,
+    });
+    const failureDetail = emailResult.error ? ` (${emailResult.error})` : '';
+    const failureExplanation = isDevFallback
+      ? `Administrator account was provisioned, but email delivery failed${failureDetail}. In local development, the initial temporary password is set to ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK} (first-login password change is mandatory).`
+      : `Administrator account was provisioned, but email delivery failed${failureDetail}. You can safely retry email delivery from the Administrator list once email configuration is resolved.`;
+
+    return {
+      success: true,
+      error: failureExplanation,
+      message: failureExplanation,
+      data: { adminId: targetAuthUid },
+    };
+  }
+
+  const successMessage = emailResult.isSimulated
+    ? `Administrator ${fullName} provisioned successfully (email delivery simulated in development).${
+        isDevFallback ? ` In local development, temporary initial password is ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK}.` : ''
+      }`
+    : `Administrator ${fullName} provisioned successfully and temporary credentials sent to ${email}.${
+        isDevFallback ? ` (Local development note: temporary password is ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK}).` : ''
+      }`;
+
   return {
     success: true,
-    message: 'Administrator provisioned successfully and invitation dispatched.',
+    message: successMessage,
     data: { adminId: targetAuthUid },
+  };
+}
+
+/**
+ * Safe retry action for administrator onboarding.
+ * Generates a fresh temporary password, updates GoTrue Auth user, resets 24h expiration,
+ * dispatches email, and audits the action.
+ * Plaintext temporary password is NEVER logged or returned to client.
+ */
+export async function retryAdminOnboardingAction(
+  adminId: string
+): Promise<ActionResult> {
+  let callerSuperAdmin: { admin: { id: string }; user: { id: string } };
+  try {
+    callerSuperAdmin = await requireSuperAdmin();
+  } catch {
+    return { success: false, error: 'Unauthorized: Super Admin authority required' };
+  }
+
+  if (!adminId || typeof adminId !== 'string') {
+    return { success: false, error: 'Invalid administrator ID.' };
+  }
+
+  // Prevent retrying Super Admin
+  if (adminId === callerSuperAdmin.admin.id || adminId === callerSuperAdmin.user.id) {
+    return { success: false, error: 'Cannot re-onboard the active Super Admin account.' };
+  }
+
+  // Rate limiting check
+  try {
+    const allowed = await checkRateLimit('admin_management');
+    if (!allowed) {
+      return { success: false, error: 'Rate limit exceeded: please wait a moment before retrying.' };
+    }
+  } catch {
+    // Proceed cautiously if rate limiter table is unavailable
+  }
+
+  const supabase = await createClient();
+  const adminClient = createAdminClient();
+
+  // Verify target administrator exists and is active
+  const { data: targetAdmin, error: adminErr } = await supabase
+    .from('admin_profiles')
+    .select('*')
+    .eq('id', adminId)
+    .single();
+
+  if (adminErr || !targetAdmin) {
+    return { success: false, error: 'Administrator account not found.' };
+  }
+
+  if (targetAdmin.is_super_admin) {
+    return { success: false, error: 'Protected system role cannot be re-onboarded.' };
+  }
+
+  // Verify target user in GoTrue
+  const { data: authUser, error: authUserErr } = await adminClient.auth.admin.getUserById(adminId);
+  if (authUserErr || !authUser.user) {
+    console.error('[ADMIN_RETRY_ERROR] [AUTH_GET_USER_FAILED]', {
+      adminId,
+      error: authUserErr?.message,
+    });
+    return { success: false, error: 'Authentication identity for administrator was not found or is inaccessible.' };
+  }
+
+  // Check if onboarding is already completed or if state is ambiguous (fail closed)
+  const currentAppMeta = authUser.user.app_metadata || {};
+  const isCompleted =
+    currentAppMeta.must_change_password === false ||
+    targetAdmin.must_change_password === false ||
+    currentAppMeta.onboarding_status === 'completed' ||
+    targetAdmin.onboarding_status === 'completed';
+
+  const isExplicitlyPending =
+    currentAppMeta.must_change_password === true ||
+    targetAdmin.must_change_password === true;
+
+  if (isCompleted || !isExplicitlyPending) {
+    return {
+      success: false,
+      error: 'Administrator has already completed setup and verified their permanent password.',
+    };
+  }
+
+  // Generate fresh temporary password and 24-hour expiration window
+  const newTempPassword = generateSecureTemporaryPassword(24);
+  const newExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  // Update password in Supabase Auth GoTrue
+  const { error: updateAuthErr } = await adminClient.auth.admin.updateUserById(adminId, {
+    password: newTempPassword,
+    app_metadata: {
+      ...currentAppMeta,
+      role: 'admin',
+      must_change_password: true,
+      onboarding_expires_at: newExpiresAt,
+      onboarding_status: 'pending',
+    },
+  });
+
+  if (updateAuthErr) {
+    console.error('[ADMIN_RETRY_ERROR] [AUTH_UPDATE_PASSWORD_FAILED]', {
+      adminId,
+      error: updateAuthErr.message,
+    });
+    const rawMsg = (updateAuthErr.message || '').toLowerCase();
+    if (rawMsg.includes('api key') || rawMsg.includes('jwt') || rawMsg.includes('unauthorized')) {
+      return {
+        success: false,
+        error: 'Authentication store configuration error (invalid credentials). Please check server configuration.',
+      };
+    }
+    return {
+      success: false,
+      error: 'Failed to update temporary credential in authentication store.',
+    };
+  }
+
+  try {
+    await adminClient
+      .from('admin_profiles')
+      .update({
+        must_change_password: true,
+        onboarding_expires_at: newExpiresAt,
+        onboarding_status: 'pending',
+      })
+      .eq('id', adminId);
+  } catch {
+    // Ignore if column not present
+  }
+
+  // Dispatch new onboarding email
+  const appUrl = await getAppUrl();
+  const emailResult = await sendTransactionalEmail({
+    to: targetAdmin.email,
+    subject: 'NMIT HackLeague — Reissued Administrator Credentials',
+    template: 'admin_onboarding',
+    variables: {
+      name: targetAdmin.full_name,
+      email: targetAdmin.email,
+      temporaryPassword: newTempPassword,
+      loginUrl: `${appUrl}/login`,
+    },
+    userId: adminId,
+    idempotencyKey: `onboarding-retry-${adminId}-${Date.now()}`,
+  });
+
+  const finalStatus = emailResult.success ? 'sent' : 'email_failed';
+
+  await adminClient.auth.admin.updateUserById(adminId, {
+    app_metadata: {
+      ...currentAppMeta,
+      must_change_password: true,
+      onboarding_expires_at: newExpiresAt,
+      onboarding_status: finalStatus,
+    },
+  });
+
+  try {
+    await adminClient
+      .from('admin_profiles')
+      .update({ onboarding_status: finalStatus })
+      .eq('id', adminId);
+  } catch {
+    // Ignore
+  }
+
+  // Insert structured audit log without secrets
+  try {
+    await supabase.from('audit_logs').insert({
+      actor_id: callerSuperAdmin.user.id,
+      actor_role: 'super_admin',
+      action: 'admin.onboarding_reissued',
+      target_type: 'admin_profile',
+      target_id: adminId,
+      details: {
+        email: targetAdmin.email,
+        email_delivery_status: finalStatus,
+        reissued_at: new Date().toISOString(),
+      },
+    });
+  } catch {
+    // Non-blocking
+  }
+
+  if (!emailResult.success) {
+    console.warn('[ADMIN_ONBOARDING_RETRY_EMAIL_FAILED]', {
+      email: targetAdmin.email,
+      error: emailResult.error,
+    });
+    return {
+      success: false,
+      error: emailResult.error
+        ? `New credentials generated, but email delivery failed: ${emailResult.error}`
+        : 'New credentials generated, but email delivery failed. Please verify email configuration.',
+    };
+  }
+
+  return {
+    success: true,
+    message: emailResult.isSimulated
+      ? `Fresh temporary credentials generated (email delivery simulated in development). Valid for 24 hours.`
+      : `Fresh temporary credentials dispatched to ${targetAdmin.email}. Valid for 24 hours.`,
   };
 }
 

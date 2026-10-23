@@ -48,6 +48,7 @@ export interface AdminWithPermissions extends AdminProfile {
   permissions: import('@/lib/auth/permissions').AdminPermissionKey[];
   activeHackathons?: ActiveHackathonSummary[];
   activeHackathonsCount?: number;
+  isOnboardingExpired?: boolean;
 }
 
 export interface SignupInput {

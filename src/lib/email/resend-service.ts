@@ -7,7 +7,8 @@ export type EmailTemplateName =
   | 'password_recovery'
   | 'profile_change_decision'
   | 'team_invitation'
-  | 'deadline_reminder';
+  | 'deadline_reminder'
+  | 'admin_onboarding';
 
 export interface SendEmailOptions {
   to: string;
@@ -111,6 +112,40 @@ function renderTemplateHtml(template: EmailTemplateName, vars: Record<string, st
       `;
       break;
 
+    case 'admin_onboarding':
+      content = `
+        <h3 style="color: #0f172a; margin-top: 0; font-size: 18px;">Administrator Onboarding & Credentials</h3>
+        <p style="color: #334155; font-size: 14px; line-height: 1.6;">Hello <strong>${String(vars.name || 'Administrator')}</strong>,</p>
+        <p style="color: #334155; font-size: 14px; line-height: 1.6;">An institutional administrator account has been provisioned for you on the <strong>NMIT HackLeague</strong> portal.</p>
+        
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 18px; margin: 24px 0;">
+          <p style="margin: 0 0 6px; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Your Sign-In Email</p>
+          <p style="margin: 0 0 16px; font-size: 15px; color: #0f172a; font-family: monospace; font-weight: 600;">${String(vars.email || '')}</p>
+
+          <p style="margin: 0 0 6px; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Temporary Initial Password</p>
+          <div style="background-color: #ffffff; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 12px; margin: 0 0 12px; text-align: center;">
+            <code style="font-size: 18px; font-weight: bold; color: #0f172a; letter-spacing: 0.05em; word-break: break-all;">${String(vars.temporaryPassword || '------')}</code>
+          </div>
+          <p style="margin: 0; font-size: 12px; color: #dc2626; font-weight: 600;">&#9888; This temporary password expires in 24 hours.</p>
+        </div>
+
+        <div style="margin: 24px 0; text-align: center;">
+          <a href="${String(vars.loginUrl || '#')}" style="background-color: #1e293b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block;">Sign In to Complete Setup</a>
+        </div>
+
+        <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 13px; font-weight: 600; color: #92400e;">Mandatory Security Requirement:</p>
+          <p style="margin: 4px 0 0; font-size: 13px; color: #78350f; line-height: 1.5;">
+            You will be prompted to set a permanent, secure password upon your first sign in. Normal administrative dashboard access is strictly blocked until this password change is completed.
+          </p>
+        </div>
+
+        <p style="color: #64748b; font-size: 12px; line-height: 1.5;">
+          Never share this credential with anyone. If this credential expires or you encounter issues signing in, please contact the institutional Super Admin to safely reissue your onboarding credentials.
+        </p>
+      `;
+      break;
+
     default:
       content = `<p style="color: #334155; font-size: 14px;">${String(vars.message || 'Notification from NMIT HackLeague.')}</p>`;
       break;
@@ -167,10 +202,12 @@ export async function sendTransactionalEmail(options: SendEmailOptions): Promise
     };
   }
 
-  // Sanitize variables for payload storage (exclude sensitive fields like passwords and OTPs)
+  // Sanitize variables for payload storage (exclude sensitive fields like passwords, temp credentials, and OTPs)
   const safePayload: Record<string, unknown> = { ...variables };
   delete safePayload.password;
   delete safePayload.token;
+  delete safePayload.temporaryPassword;
+  delete safePayload.tempPassword;
   if ('otp' in safePayload) {
     safePayload.otp = '[REDACTED]';
   }

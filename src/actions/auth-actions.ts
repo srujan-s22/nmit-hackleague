@@ -1,7 +1,9 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/auth/rate-limiter';
+import { DEV_ADMIN_TEMP_PASSWORD_FALLBACK } from '@/lib/auth/password-generator';
 import {
   loginSchema,
   signupSchema,
@@ -81,7 +83,7 @@ export async function loginAction(
   // Check if authenticated user is an administrator
   const { data: adminProfile } = await supabase
     .from('admin_profiles')
-    .select('is_active, is_super_admin')
+    .select('*')
     .eq('id', authData.user.id)
     .maybeSingle();
 
@@ -94,7 +96,39 @@ export async function loginAction(
       };
     }
 
-    if (safeRedirect && !safeRedirect.startsWith('/login')) {
+    // Determine server-controlled must_change_password and expiration
+    const appMeta = authData.user.app_metadata || {};
+    const mustChangePassword =
+      typeof adminProfile.must_change_password === 'boolean'
+        ? adminProfile.must_change_password
+        : Boolean(appMeta.must_change_password);
+
+    const onboardingExpiresAt =
+      adminProfile.onboarding_expires_at ||
+      (typeof appMeta.onboarding_expires_at === 'string' ? appMeta.onboarding_expires_at : null);
+
+    if (mustChangePassword) {
+      // Check 24-hour expiration
+      if (onboardingExpiresAt) {
+        const expTime = new Date(onboardingExpiresAt).getTime();
+        if (!isNaN(expTime) && expTime < Date.now()) {
+          await supabase.auth.signOut();
+          return {
+            success: false,
+            error:
+              'Your temporary onboarding credentials have expired (24-hour window). Please contact the Super Admin to reissue your credentials.',
+          };
+        }
+      }
+
+      // Route newly provisioned administrator exclusively to forced password-change page
+      return {
+        success: true,
+        redirectTo: '/auth/complete-setup',
+      };
+    }
+
+    if (safeRedirect && !safeRedirect.startsWith('/login') && !safeRedirect.startsWith('/auth/complete-setup')) {
       return {
         success: true,
         redirectTo: safeRedirect,
@@ -426,6 +460,167 @@ export async function resetPasswordAction(
     success: true,
     message: 'Password updated successfully. You may now sign in with your new password.',
     redirectTo: '/login',
+  };
+}
+
+/**
+ * Complete Admin Setup Action
+ * Mandatory initial password update for newly provisioned administrators.
+ * Uses authenticated self-service Supabase Auth session (supabase.auth.updateUser),
+ * then updates server-controlled onboarding state, audits completion, and returns redirect.
+ */
+export async function completeAdminSetupAction(
+  input: FormData | ResetPasswordInput
+): Promise<ActionResult<{ redirectTo: string }>> {
+  const rawData =
+    input instanceof FormData
+      ? {
+          password: input.get('password'),
+          confirmPassword: input.get('confirmPassword'),
+        }
+      : input;
+
+  const parsed = resetPasswordSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: 'Passwords do not meet complexity requirements or do not match.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const { password } = parsed.data;
+
+  // Enforce that the temporary development password cannot be retained as permanent password
+  if (password.toLowerCase() === DEV_ADMIN_TEMP_PASSWORD_FALLBACK.toLowerCase()) {
+    return {
+      success: false,
+      error: 'Your new permanent password cannot be the shared temporary onboarding password.',
+    };
+  }
+
+  const supabase = await createClient();
+
+  // 1. Validate caller authentication
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return {
+      success: false,
+      error: 'Session expired or unauthenticated. Please sign in again.',
+      redirectTo: '/login',
+    };
+  }
+
+  // 2. Determine admin record
+  const { data: adminProfile, error: profileErr } = await supabase
+    .from('admin_profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profileErr || !adminProfile || !adminProfile.is_active) {
+    await supabase.auth.signOut();
+    return {
+      success: false,
+      error: 'Administrator record not found or deactivated. Access denied.',
+      redirectTo: '/login',
+    };
+  }
+
+  // 3. Verify user is actually in must_change_password state
+  const appMeta = user.app_metadata || {};
+  const mustChangePassword =
+    typeof adminProfile.must_change_password === 'boolean'
+      ? adminProfile.must_change_password
+      : Boolean(appMeta.must_change_password);
+
+  if (!mustChangePassword) {
+    return {
+      success: false,
+      error: 'Administrator setup has already been completed.',
+      redirectTo: '/admin',
+    };
+  }
+
+  // 4. Verify onboarding has not expired
+  const expiresAt =
+    adminProfile.onboarding_expires_at ||
+    (typeof appMeta.onboarding_expires_at === 'string' ? appMeta.onboarding_expires_at : null);
+
+  if (expiresAt) {
+    const expTime = new Date(expiresAt).getTime();
+    if (!isNaN(expTime) && expTime < Date.now()) {
+      await supabase.auth.signOut();
+      return {
+        success: false,
+        error: 'Temporary onboarding window has expired (24-hour limit). Please contact the Super Admin to reissue your credentials.',
+        redirectTo: '/login',
+      };
+    }
+  }
+
+  // 4. Update password using authenticated self-service Supabase Auth client
+  const { error: updateErr } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (updateErr) {
+    return {
+      success: false,
+      error: updateErr.message || 'Failed to update password. Please check password criteria and try again.',
+    };
+  }
+
+  // 5. Atomically clear must_change_password state via trusted server-side admin client
+  const adminClient = createAdminClient();
+  const nowIso = new Date().toISOString();
+
+  await adminClient.auth.admin.updateUserById(user.id, {
+    app_metadata: {
+      ...appMeta,
+      must_change_password: false,
+      onboarding_status: 'completed',
+      password_changed_at: nowIso,
+    },
+  });
+
+  try {
+    await adminClient
+      .from('admin_profiles')
+      .update({
+        must_change_password: false,
+        onboarding_status: 'completed',
+      })
+      .eq('id', user.id);
+  } catch {
+    // Non-blocking if table columns not yet migrated
+  }
+
+  // 6. Record completion in structured audit log without storing passwords or tokens
+  try {
+    await supabase.from('audit_logs').insert({
+      actor_id: user.id,
+      actor_role: adminProfile.is_super_admin ? 'super_admin' : 'admin',
+      action: 'admin.password_setup_completed',
+      target_type: 'admin_profile',
+      target_id: user.id,
+      details: {
+        email: adminProfile.email,
+        completed_at: nowIso,
+      },
+    });
+  } catch {
+    // Non-blocking
+  }
+
+  return {
+    success: true,
+    message: 'Password successfully updated. Welcome to NMIT HackLeague!',
+    redirectTo: '/admin',
   };
 }
 

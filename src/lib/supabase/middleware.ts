@@ -46,20 +46,47 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  // Protected route redirects for unauthenticated users
+  // Unauthenticated user trying to access protected routes
   const isProtectedPath =
     path.startsWith('/student') ||
     path.startsWith('/onboarding') ||
     path.startsWith('/status') ||
     path.startsWith('/admin') ||
     path === '/hackathons' ||
-    path === '/points';
+    path === '/points' ||
+    path === '/auth/complete-setup';
 
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectTo', path);
     return NextResponse.redirect(url);
+  }
+
+  // Enforce server-side must_change_password for authenticated users
+  if (user) {
+    const appMeta = user.app_metadata || {};
+    const mustChangePassword = Boolean(appMeta.must_change_password);
+
+    if (mustChangePassword) {
+      const isAllowedSetupPath =
+        path === '/auth/complete-setup' ||
+        path.startsWith('/auth/signout') ||
+        path === '/login';
+
+      if (!isAllowedSetupPath) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/auth/complete-setup';
+        url.search = '';
+        return NextResponse.redirect(url);
+      }
+    } else if (path === '/auth/complete-setup') {
+      // Completed users attempting to visit complete-setup route are redirected to admin/home
+      const url = request.nextUrl.clone();
+      url.pathname = appMeta.role === 'admin' ? '/admin' : '/student';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
