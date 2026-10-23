@@ -307,11 +307,17 @@ export async function verifyOtpAction(
         }
       : input;
 
-  const parsed = verifyOtpSchema.safeParse(rawData);
+  // Sanitize input before validation (strip spaces and hyphens from token)
+  const normalizedRaw = {
+    email: typeof rawData.email === 'string' ? rawData.email.trim().toLowerCase() : rawData.email,
+    token: typeof rawData.token === 'string' ? rawData.token.replace(/\D/g, '') : rawData.token,
+  };
+
+  const parsed = verifyOtpSchema.safeParse(normalizedRaw);
   if (!parsed.success) {
     return {
       success: false,
-      error: 'Please enter a valid 6-digit verification code.',
+      error: 'Please enter a valid 6-digit numeric verification code.',
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -319,32 +325,114 @@ export async function verifyOtpAction(
   const { email, token } = parsed.data;
   const supabase = await createClient();
 
+  // 1. Primary verification: type 'signup' for email confirmation codes
   const { data, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: 'signup',
   });
 
-  if (error || !data.session) {
-    // Also attempt 'email' OTP type in case Supabase issued magic link/email token
+  let verifiedSession = data?.session;
+  let verificationError = error;
+
+  // 2. Fallback verification: type 'email' in case Supabase issued email token
+  if (error || !verifiedSession) {
     const fallback = await supabase.auth.verifyOtp({
       email,
       token,
       type: 'email',
     });
 
-    if (fallback.error || !fallback.data.session) {
+    if (fallback.data?.session) {
+      verifiedSession = fallback.data.session;
+      verificationError = null;
+    } else {
+      verificationError = fallback.error || error;
+    }
+  }
+
+  if (verificationError || !verifiedSession) {
+    const errorMsg = (verificationError?.message || '').toLowerCase();
+    if (errorMsg.includes('expired')) {
       return {
         success: false,
-        error: error?.message || fallback.error?.message || 'Invalid or expired verification code.',
+        error: 'This verification code has expired. Please click "Resend Code" to receive a new one.',
       };
+    }
+    if (errorMsg.includes('invalid') || errorMsg.includes('token')) {
+      return {
+        success: false,
+        error: 'Invalid verification code. Please double-check the 6-digit code sent to your email.',
+      };
+    }
+    if (errorMsg.includes('rate') || errorMsg.includes('too many') || (verificationError as { status?: number })?.status === 429) {
+      return {
+        success: false,
+        error: 'Too many verification attempts. Please wait a few moments before trying again.',
+      };
+    }
+    return {
+      success: false,
+      error: verificationError?.message || 'Verification failed. Please check your code or request a new one.',
+    };
+  }
+
+  // 3. Resolve destination based on confirmed user profile
+  let redirectTo = '/onboarding';
+  const userId = verifiedSession.user?.id;
+
+  if (userId) {
+    // Check if user is an admin
+    const { data: adminProfile } = await supabase
+      .from('admin_profiles')
+      .select('id, is_active, must_change_password')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (adminProfile) {
+      if (adminProfile.must_change_password) {
+        redirectTo = '/auth/complete-setup';
+      } else {
+        redirectTo = '/admin';
+      }
+    } else {
+      // Check student registration status
+      const { data: studentProfile } = await supabase
+        .from('profiles')
+        .select('registration_status')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (studentProfile) {
+        switch (studentProfile.registration_status) {
+          case 'draft':
+            redirectTo = '/onboarding';
+            break;
+          case 'under_review':
+          case 'pending_verification':
+            redirectTo = '/status/pending';
+            break;
+          case 'approved':
+            redirectTo = '/student';
+            break;
+          case 'correction_required':
+          case 'rejected':
+            redirectTo = '/status/rejected';
+            break;
+          case 'suspended':
+            redirectTo = '/status/suspended';
+            break;
+          default:
+            redirectTo = '/onboarding';
+        }
+      }
     }
   }
 
   return {
     success: true,
-    message: 'Email verified successfully.',
-    redirectTo: '/onboarding',
+    message: 'Email verified successfully. Welcome to NMIT HackLeague!',
+    redirectTo,
   };
 }
 
@@ -356,13 +444,37 @@ export async function resendOtpAction(email: string): Promise<ActionResult> {
     return { success: false, error: 'Valid email address is required.' };
   }
 
+  const normalizedEmail = email.trim().toLowerCase();
   const supabase = await createClient();
+
   const { error } = await supabase.auth.resend({
     type: 'signup',
-    email: email.trim().toLowerCase(),
+    email: normalizedEmail,
   });
 
   if (error) {
+    const msg = error.message.toLowerCase();
+    const isRateLimit =
+      msg.includes('rate limit') ||
+      msg.includes('security purposes') ||
+      msg.includes('once every') ||
+      msg.includes('too many') ||
+      (error as { status?: number }).status === 429;
+
+    if (isRateLimit) {
+      return {
+        success: false,
+        error: 'For security purposes, you can only request a new code once every 60 seconds. Please wait before trying again.',
+      };
+    }
+
+    if (msg.includes('already registered') || msg.includes('already confirmed') || msg.includes('already verified')) {
+      return {
+        success: false,
+        error: 'This email address is already verified. Please sign in to your account.',
+      };
+    }
+
     return {
       success: false,
       error: error.message || 'Failed to resend verification code. Please wait a few moments.',

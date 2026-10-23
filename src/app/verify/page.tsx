@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, Suspense } from 'react';
+import React, { useState, useTransition, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BrandLogo } from '@/components/ui/brand-logo';
@@ -9,28 +9,128 @@ import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { verifyOtpAction, resendOtpAction } from '@/actions/auth-actions';
 
+const EMAIL_STORAGE_KEY = 'nmit_pending_verification_email';
+const COOLDOWN_STORAGE_KEY = 'nmit_resend_cooldown_expiry';
+
 function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailParam = searchParams.get('email') || '';
 
-  const [email, setEmail] = useState(emailParam);
+  // Lazy state initializers read query param or cached sessionStorage without cascading effects
+  const [email, setEmail] = useState<string>(() => {
+    if (emailParam) return emailParam;
+    if (typeof window !== 'undefined') {
+      try {
+        return sessionStorage.getItem(EMAIL_STORAGE_KEY) || '';
+      } catch {
+        return '';
+      }
+    }
+    return '';
+  });
+
   const [token, setToken] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isResending, setIsResending] = useState(false);
 
+  const [cooldown, setCooldown] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const expiry = sessionStorage.getItem(COOLDOWN_STORAGE_KEY);
+        if (expiry) {
+          const remainingSeconds = Math.ceil((parseInt(expiry, 10) - Date.now()) / 1000);
+          if (remainingSeconds > 0) return remainingSeconds;
+          sessionStorage.removeItem(COOLDOWN_STORAGE_KEY);
+        }
+      } catch {
+        return 0;
+      }
+    }
+    return 0;
+  });
+
+  // Synchronize emailParam to sessionStorage if provided
+  useEffect(() => {
+    if (emailParam) {
+      try {
+        sessionStorage.setItem(EMAIL_STORAGE_KEY, emailParam);
+      } catch {
+        // Non-blocking if storage is restricted
+      }
+    }
+  }, [emailParam]);
+
+  // Handle active countdown timer
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          try {
+            sessionStorage.removeItem(COOLDOWN_STORAGE_KEY);
+          } catch {
+            // Non-blocking
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
+
+  const handleEmailChange = (newEmail: string) => {
+    setEmail(newEmail);
+    try {
+      sessionStorage.setItem(EMAIL_STORAGE_KEY, newEmail);
+    } catch {
+      // Non-blocking
+    }
+  };
+
+  const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setToken(digitsOnly);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text');
+    const digitsOnly = pastedText.replace(/\D/g, '').slice(0, 6);
+    if (digitsOnly) {
+      setToken(digitsOnly);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    if (!email) {
+      setErrorMessage('Please provide your registered email address.');
+      return;
+    }
+
+    if (token.length !== 6) {
+      setErrorMessage('Please enter all 6 digits of the verification code.');
+      return;
+    }
 
     startTransition(async () => {
       const result = await verifyOtpAction({ email, token });
       if (!result.success) {
         setErrorMessage(result.error || 'Verification failed. Please check your code.');
       } else if (result.redirectTo) {
+        try {
+          sessionStorage.removeItem(EMAIL_STORAGE_KEY);
+          sessionStorage.removeItem(COOLDOWN_STORAGE_KEY);
+        } catch {
+          // Non-blocking
+        }
         router.push(result.redirectTo);
       }
     });
@@ -41,6 +141,8 @@ function VerifyContent() {
       setErrorMessage('Please provide your email address to resend the code.');
       return;
     }
+    if (cooldown > 0 || isResending) return;
+
     setErrorMessage(null);
     setSuccessMessage(null);
     setIsResending(true);
@@ -48,7 +150,13 @@ function VerifyContent() {
     try {
       const result = await resendOtpAction(email);
       if (result.success) {
-        setSuccessMessage(result.message || 'A new code has been sent.');
+        setSuccessMessage(result.message || 'A new verification code has been dispatched.');
+        setCooldown(60);
+        try {
+          sessionStorage.setItem(COOLDOWN_STORAGE_KEY, (Date.now() + 60000).toString());
+        } catch {
+          // Non-blocking
+        }
       } else {
         setErrorMessage(result.error || 'Failed to resend code.');
       }
@@ -95,23 +203,27 @@ function VerifyContent() {
           label="Registered Email Address"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => handleEmailChange(e.target.value)}
           required
           disabled={isPending || !!emailParam}
+          helperText={emailParam ? undefined : 'Enter the email you used during registration.'}
         />
 
         <Input
           id="verify-token"
           label="6-Digit Verification Code"
           type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           placeholder="123456"
           maxLength={6}
           value={token}
-          onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
+          onChange={handleTokenChange}
+          onPaste={handlePaste}
           required
           disabled={isPending}
           autoComplete="one-time-code"
-          helperText="Check your spam/junk folder if you don't see it in your inbox."
+          helperText="Check your spam/junk folder if you do not see it in your inbox."
         />
 
         <Button
@@ -119,7 +231,7 @@ function VerifyContent() {
           variant="primary"
           className="w-full mt-2"
           isLoading={isPending}
-          disabled={isPending || token.length !== 6}
+          disabled={isPending || token.length !== 6 || !email}
         >
           Verify Code & Continue
         </Button>
@@ -129,12 +241,16 @@ function VerifyContent() {
         <button
           type="button"
           onClick={handleResend}
-          disabled={isResending || isPending}
-          className="text-text-primary hover:underline font-medium disabled:opacity-50 cursor-pointer"
+          disabled={isResending || isPending || cooldown > 0 || !email}
+          className="text-text-primary hover:underline font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline cursor-pointer transition-colors"
         >
-          {isResending ? 'Sending...' : 'Resend Code'}
+          {isResending
+            ? 'Sending...'
+            : cooldown > 0
+            ? `Resend Code in ${cooldown}s`
+            : 'Resend Code'}
         </button>
-        <Link href="/login" className="text-text-secondary hover:text-text-primary">
+        <Link href="/login" className="text-text-secondary hover:text-text-primary transition-colors">
           Back to Sign In
         </Link>
       </div>
@@ -158,7 +274,7 @@ export default function VerifyPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center py-10">
-        <Suspense fallback={<div className="text-sm text-text-secondary">Loading...</div>}>
+        <Suspense fallback={<div className="text-sm text-text-secondary">Loading verification...</div>}>
           <VerifyContent />
         </Suspense>
       </main>

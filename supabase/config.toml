@@ -246,7 +246,7 @@ otp_expiry = 3600
 
 # Confirmation email template displaying 6-digit OTP code
 [auth.email.template.confirmation]
-subject = "Confirm your signup"
+subject = "Your NMIT HackLeague verification code"
 content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize email template
