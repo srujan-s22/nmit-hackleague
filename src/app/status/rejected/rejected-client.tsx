@@ -4,6 +4,7 @@ import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import { createClient } from '@/lib/supabase/client';
 import {
   replaceCollegeIdAction,
   submitProfileForReviewAction,
@@ -30,15 +31,52 @@ export function RejectedClient({ profile }: RejectedClientProps) {
 
   const handleReplaceId = async () => {
     if (!idFile) return;
+
+    // 1. Client-side pre-flight validation
+    const ext = idFile.name.split('.').pop()?.toLowerCase();
+    const allowedExts = ['png', 'jpg', 'jpeg', 'webp', 'pdf'];
+    if (!ext || !allowedExts.includes(ext)) {
+      setErrorMessage('Invalid file format. Please upload a PNG, JPEG, WebP, or PDF file.');
+      return;
+    }
+
+    const isImage = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
+    const maxSizeBytes = isImage ? 1.5 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (idFile.size > maxSizeBytes) {
+      setErrorMessage(
+        isImage
+          ? `Replacement image size exceeds maximum limit of 1.5MB (${(idFile.size / 1024 / 1024).toFixed(2)} MB).`
+          : `Replacement document size exceeds maximum limit of 5MB (${(idFile.size / 1024 / 1024).toFixed(2)} MB).`
+      );
+      return;
+    }
+
     setIsUploading(true);
     setErrorMessage(null);
     setFeedbackMessage(null);
 
-    const formData = new FormData();
-    formData.append('collegeId', idFile);
-
     try {
-      const result = await replaceCollegeIdAction(formData);
+      // 2. Direct authenticated browser upload to Supabase Storage
+      const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const storagePath = `${profile.id}/${uniqueId}.${ext}`;
+
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from('college-ids')
+        .upload(storagePath, idFile, {
+          contentType: idFile.type || (ext === 'pdf' ? 'application/pdf' : 'image/jpeg'),
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setErrorMessage(uploadError.message || 'Direct storage upload failed.');
+        return;
+      }
+
+      // 3. Register replacement metadata and verify binary integrity via Server Action
+      const result = await replaceCollegeIdAction({ storagePath });
       if (result.success) {
         setHasReplacedId(true);
         setFeedbackMessage(
@@ -47,6 +85,8 @@ export function RejectedClient({ profile }: RejectedClientProps) {
       } else {
         setErrorMessage(result.error || 'Failed to replace College ID.');
       }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Unexpected upload error occurred.');
     } finally {
       setIsUploading(false);
     }

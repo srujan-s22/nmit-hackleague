@@ -4,6 +4,7 @@ import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import { createClient } from '@/lib/supabase/client';
 import {
   uploadCollegeIdAction,
   uploadProfilePhotoAction,
@@ -34,21 +35,60 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
 
   const handleUploadId = async () => {
     if (!idFile) return;
+
+    // 1. Client-side pre-flight validation
+    const ext = idFile.name.split('.').pop()?.toLowerCase();
+    const allowedExts = ['png', 'jpg', 'jpeg', 'webp', 'pdf'];
+    if (!ext || !allowedExts.includes(ext)) {
+      setErrorMessage('Invalid file format. Please upload a PNG, JPEG, WebP, or PDF file.');
+      return;
+    }
+
+    const isImage = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
+    const maxSizeBytes = isImage ? 1.5 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (idFile.size > maxSizeBytes) {
+      setErrorMessage(
+        isImage
+          ? `College ID image size exceeds maximum limit of 1.5MB (${(idFile.size / 1024 / 1024).toFixed(2)} MB).`
+          : `College ID document size exceeds maximum limit of 5MB (${(idFile.size / 1024 / 1024).toFixed(2)} MB).`
+      );
+      return;
+    }
+
     setIsUploadingId(true);
     setErrorMessage(null);
     setFeedbackMessage(null);
 
-    const formData = new FormData();
-    formData.append('collegeId', idFile);
-
     try {
-      const result = await uploadCollegeIdAction(formData);
+      // 2. Direct authenticated browser upload to Supabase Storage
+      const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const storagePath = `${profile.id}/${uniqueId}.${ext}`;
+
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from('college-ids')
+        .upload(storagePath, idFile, {
+          contentType: idFile.type || (ext === 'pdf' ? 'application/pdf' : 'image/jpeg'),
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setErrorMessage(uploadError.message || 'Direct storage upload failed.');
+        return;
+      }
+
+      // 3. Register metadata and verify binary integrity via lightweight Server Action
+      const result = await uploadCollegeIdAction({ storagePath });
       if (result.success && result.data?.path) {
         setCollegeIdPath(result.data.path);
         setFeedbackMessage('College ID uploaded successfully.');
       } else {
-        setErrorMessage(result.error || 'Failed to upload College ID.');
+        setErrorMessage(result.error || 'Failed to register uploaded College ID.');
       }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Unexpected upload error occurred.');
     } finally {
       setIsUploadingId(false);
     }
@@ -56,21 +96,58 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
 
   const handleUploadPhoto = async () => {
     if (!photoFile) return;
+
+    // 1. Client-side pre-flight validation
+    const ext = photoFile.name.split('.').pop()?.toLowerCase();
+    const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
+    if (!ext || !allowedExts.includes(ext)) {
+      setErrorMessage('Invalid image format. Please upload a PNG, JPEG, or WebP photo.');
+      return;
+    }
+
+    // Enforce 1MB storage constraint
+    const maxPhotoSize = 1 * 1024 * 1024;
+    if (photoFile.size > maxPhotoSize) {
+      setErrorMessage(
+        `Profile photo size exceeds maximum limit of 1MB (${(photoFile.size / 1024 / 1024).toFixed(2)} MB). Please select an image under 1MB.`
+      );
+      return;
+    }
+
     setIsUploadingPhoto(true);
     setErrorMessage(null);
     setFeedbackMessage(null);
 
-    const formData = new FormData();
-    formData.append('profilePhoto', photoFile);
-
     try {
-      const result = await uploadProfilePhotoAction(formData);
+      // 2. Direct authenticated browser upload to Supabase Storage
+      const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const storagePath = `${profile.id}/${uniqueId}.${ext}`;
+
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(storagePath, photoFile, {
+          contentType: photoFile.type || 'image/jpeg',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setErrorMessage(uploadError.message || 'Direct photo upload failed.');
+        return;
+      }
+
+      // 3. Register metadata and verify binary integrity via lightweight Server Action
+      const result = await uploadProfilePhotoAction({ storagePath });
       if (result.success && result.data?.path) {
         setProfilePhotoPath(result.data.path);
         setFeedbackMessage('Profile photo uploaded successfully.');
       } else {
-        setErrorMessage(result.error || 'Failed to upload profile photo.');
+        setErrorMessage(result.error || 'Failed to register uploaded profile photo.');
       }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Unexpected photo upload error occurred.');
     } finally {
       setIsUploadingPhoto(false);
     }

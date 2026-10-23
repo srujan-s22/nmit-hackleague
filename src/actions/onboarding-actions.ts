@@ -9,17 +9,15 @@ import {
 } from '@/lib/storage/upload-service';
 import type { ActionResult } from '@/actions/auth-actions';
 
+export type UploadFileInput = FormData | { storagePath: string };
+
 /**
  * Upload College ID Card (Draft mode)
+ * Accepts either direct storagePath metadata or legacy FormData for backward compatibility.
  */
 export async function uploadCollegeIdAction(
-  formData: FormData
+  input: UploadFileInput
 ): Promise<ActionResult<{ path: string }>> {
-  const file = formData.get('collegeId') as File | null;
-  if (!file) {
-    return { success: false, error: 'Please select a College ID document to upload.' };
-  }
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,16 +28,54 @@ export async function uploadCollegeIdAction(
     return { success: false, error: 'Unauthorized. Please sign in.' };
   }
 
-  // Upload to storage
-  const uploadResult = await uploadCollegeIdDocument(user.id, file);
-  if (!uploadResult.success || !uploadResult.path) {
-    return { success: false, error: uploadResult.error || 'Upload failed.' };
+  let finalPath: string;
+
+  if (input && typeof input === 'object' && 'storagePath' in input && typeof input.storagePath === 'string') {
+    const storagePath = input.storagePath.trim();
+
+    // 1. Strict path containment & traversal check
+    if (!storagePath || storagePath.includes('..') || !storagePath.startsWith(`${user.id}/`)) {
+      return { success: false, error: 'Unauthorized storage path: must reside in your own student folder.' };
+    }
+
+    // 2. Authoritative server binary content & size verification
+    const binaryValidation = await validateStorageObjectBinary(
+      'college-ids',
+      storagePath,
+      'college-id',
+      supabase
+    );
+
+    if (!binaryValidation.valid) {
+      // Compensating rollback: remove invalid/disguised file from storage
+      await supabase.storage.from('college-ids').remove([storagePath]);
+      return {
+        success: false,
+        error: binaryValidation.error || 'College ID document failed binary content validation.',
+      };
+    }
+
+    finalPath = storagePath;
+  } else if (input instanceof FormData || (input && typeof (input as any).get === 'function')) {
+    const file = (input as FormData).get('collegeId') as File | null;
+    if (!file) {
+      return { success: false, error: 'Please select a College ID document to upload.' };
+    }
+
+    // Upload to storage via server
+    const uploadResult = await uploadCollegeIdDocument(user.id, file);
+    if (!uploadResult.success || !uploadResult.path) {
+      return { success: false, error: uploadResult.error || 'Upload failed.' };
+    }
+    finalPath = uploadResult.path;
+  } else {
+    return { success: false, error: 'Invalid upload request payload.' };
   }
 
   // Update profile
   const { error: profileError } = await supabase
     .from('profiles')
-    .update({ college_id_path: uploadResult.path })
+    .update({ college_id_path: finalPath })
     .eq('id', user.id);
 
   if (profileError) {
@@ -52,21 +88,17 @@ export async function uploadCollegeIdAction(
   return {
     success: true,
     message: 'College ID document uploaded successfully.',
-    data: { path: uploadResult.path },
+    data: { path: finalPath },
   };
 }
 
 /**
  * Upload Profile Photo (Draft mode)
+ * Accepts either direct storagePath metadata or legacy FormData for backward compatibility.
  */
 export async function uploadProfilePhotoAction(
-  formData: FormData
+  input: UploadFileInput
 ): Promise<ActionResult<{ path: string }>> {
-  const file = formData.get('profilePhoto') as File | null;
-  if (!file) {
-    return { success: false, error: 'Please select a profile photo to upload.' };
-  }
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -77,14 +109,51 @@ export async function uploadProfilePhotoAction(
     return { success: false, error: 'Unauthorized. Please sign in.' };
   }
 
-  const uploadResult = await uploadProfilePhoto(user.id, file);
-  if (!uploadResult.success || !uploadResult.path) {
-    return { success: false, error: uploadResult.error || 'Upload failed.' };
+  let finalPath: string;
+
+  if (input && typeof input === 'object' && 'storagePath' in input && typeof input.storagePath === 'string') {
+    const storagePath = input.storagePath.trim();
+
+    // 1. Strict path containment & traversal check
+    if (!storagePath || storagePath.includes('..') || !storagePath.startsWith(`${user.id}/`)) {
+      return { success: false, error: 'Unauthorized storage path: must reside in your own student folder.' };
+    }
+
+    // 2. Authoritative server binary content & size verification
+    const binaryValidation = await validateStorageObjectBinary(
+      'profile-photos',
+      storagePath,
+      'profile-photo',
+      supabase
+    );
+
+    if (!binaryValidation.valid) {
+      await supabase.storage.from('profile-photos').remove([storagePath]);
+      return {
+        success: false,
+        error: binaryValidation.error || 'Profile photo failed binary content validation.',
+      };
+    }
+
+    finalPath = storagePath;
+  } else if (input instanceof FormData || (input && typeof (input as any).get === 'function')) {
+    const file = (input as FormData).get('profilePhoto') as File | null;
+    if (!file) {
+      return { success: false, error: 'Please select a profile photo to upload.' };
+    }
+
+    const uploadResult = await uploadProfilePhoto(user.id, file);
+    if (!uploadResult.success || !uploadResult.path) {
+      return { success: false, error: uploadResult.error || 'Upload failed.' };
+    }
+    finalPath = uploadResult.path;
+  } else {
+    return { success: false, error: 'Invalid profile photo payload.' };
   }
 
   const { error: profileError } = await supabase
     .from('profiles')
-    .update({ profile_photo_path: uploadResult.path })
+    .update({ profile_photo_path: finalPath })
     .eq('id', user.id);
 
   if (profileError) {
@@ -97,22 +166,18 @@ export async function uploadProfilePhotoAction(
   return {
     success: true,
     message: 'Profile photo uploaded successfully.',
-    data: { path: uploadResult.path },
+    data: { path: finalPath },
   };
 }
 
 /**
  * Replace College ID Card (Correction Required mode)
  * Executes atomic replace_college_id RPC: enqueues old ID for deletion and sets new ID with transaction token.
+ * Accepts either direct storagePath metadata or legacy FormData for backward compatibility.
  */
 export async function replaceCollegeIdAction(
-  formData: FormData
+  input: UploadFileInput
 ): Promise<ActionResult<{ path: string }>> {
-  const file = formData.get('collegeId') as File | null;
-  if (!file) {
-    return { success: false, error: 'Please select a replacement College ID document.' };
-  }
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -123,17 +188,53 @@ export async function replaceCollegeIdAction(
     return { success: false, error: 'Unauthorized. Please sign in.' };
   }
 
-  // Upload new document to user folder in college-ids bucket
-  const uploadResult = await uploadCollegeIdDocument(user.id, file);
-  if (!uploadResult.success || !uploadResult.path) {
-    return { success: false, error: uploadResult.error || 'Upload failed.' };
+  let finalPath: string;
+
+  if (input && typeof input === 'object' && 'storagePath' in input && typeof input.storagePath === 'string') {
+    const storagePath = input.storagePath.trim();
+
+    // 1. Strict path containment & traversal check
+    if (!storagePath || storagePath.includes('..') || !storagePath.startsWith(`${user.id}/`)) {
+      return { success: false, error: 'Unauthorized storage path: must reside in your own student folder.' };
+    }
+
+    // 2. Authoritative server binary content & size verification
+    const binaryValidation = await validateStorageObjectBinary(
+      'college-ids',
+      storagePath,
+      'college-id',
+      supabase
+    );
+
+    if (!binaryValidation.valid) {
+      await supabase.storage.from('college-ids').remove([storagePath]);
+      return {
+        success: false,
+        error: binaryValidation.error || 'Replacement College ID document failed binary content validation.',
+      };
+    }
+
+    finalPath = storagePath;
+  } else if (input instanceof FormData || (input && typeof (input as any).get === 'function')) {
+    const file = (input as FormData).get('collegeId') as File | null;
+    if (!file) {
+      return { success: false, error: 'Please select a replacement College ID document.' };
+    }
+
+    const uploadResult = await uploadCollegeIdDocument(user.id, file);
+    if (!uploadResult.success || !uploadResult.path) {
+      return { success: false, error: uploadResult.error || 'Upload failed.' };
+    }
+    finalPath = uploadResult.path;
+  } else {
+    return { success: false, error: 'Invalid replacement request payload.' };
   }
 
   // Call PostgreSQL replace_college_id RPC
   const { data: rpcData, error: rpcError } = await supabase.rpc(
     'replace_college_id' as never,
     {
-      p_new_storage_path: uploadResult.path,
+      p_new_storage_path: finalPath,
     } as never
   );
 
@@ -155,7 +256,7 @@ export async function replaceCollegeIdAction(
   return {
     success: true,
     message: 'College ID document updated successfully.',
-    data: { path: uploadResult.path },
+    data: { path: finalPath },
   };
 }
 

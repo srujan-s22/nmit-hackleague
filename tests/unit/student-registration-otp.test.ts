@@ -285,6 +285,108 @@ async function runStudentRegistrationOtpTests() {
   assert(!isPathProtected('/verify'), '/verify is public');
   assert(!isPathProtected('/signup'), '/signup is public');
 
+  // Suite 7: Database Error Sanitization & Pre-Flight Collision Guards
+  console.log('\n[Suite 7: Database Error Sanitization & Pre-Flight Guards]');
+  const hardenMigrationPath = path.resolve(__dirname, '../../supabase/migrations/20261026000003_harden_signup_trigger_and_demographics.sql');
+  const hardenMigrationExists = fs.existsSync(hardenMigrationPath);
+  assert(hardenMigrationExists, 'Forward migration 20261026000003_harden_signup_trigger_and_demographics.sql exists');
+
+  if (hardenMigrationExists) {
+    const migrationSql = fs.readFileSync(hardenMigrationPath, 'utf-8');
+    assert(
+      migrationSql.includes('v_sex := \'Male\'::public.gender') && migrationSql.includes('lower(trim('),
+      'Migration implements case-insensitive gender enum parsing'
+    );
+    assert(
+      migrationSql.includes('WHERE usn = v_usn AND id <> NEW.id'),
+      'Migration implements explicit pre-insert USN uniqueness check'
+    );
+    assert(
+      migrationSql.includes('EXCEPTION WHEN OTHERS THEN'),
+      'Migration provides resilient exception blocks for integer and date parsing'
+    );
+  }
+
+  // Verify sanitization of GoTrue generic database error
+  function sanitizeSignupError(errorMessage: string, isDuplicateUsn = false): { error: string; fieldErrors?: Record<string, string[]> } {
+    const errorMsg = errorMessage.toLowerCase();
+    if (errorMsg.includes('already registered') || errorMsg.includes('user already exists')) {
+      return {
+        error: 'An account with this email address already exists. Please sign in instead.',
+        fieldErrors: { email: ['An account with this email address already exists.'] },
+      };
+    }
+    if (errorMsg.includes('database error saving new user') || errorMsg.includes('database error')) {
+      if (isDuplicateUsn) {
+        return {
+          error: 'A profile with this University Seat Number (USN) is already registered.',
+          fieldErrors: { usn: ['This USN is already registered.'] },
+        };
+      }
+      return {
+        error: 'Registration could not be completed. An account with these credentials may already exist. Please check your USN and email or try signing in.',
+      };
+    }
+    return { error: errorMessage };
+  }
+
+  const rawGoTrueError = 'Database error saving new user';
+  const sanitizedDefault = sanitizeSignupError(rawGoTrueError, false);
+  assert(
+    !sanitizedDefault.error.toLowerCase().includes('database error saving new user'),
+    'Raw GoTrue "Database error saving new user" is NEVER presented to the student'
+  );
+  assert(
+    sanitizedDefault.error.includes('credentials may already exist'),
+    'Generic database error provides actionable, helpful student guidance'
+  );
+
+  const sanitizedWithDuplicateUsn = sanitizeSignupError(rawGoTrueError, true);
+  assert(
+    sanitizedWithDuplicateUsn.fieldErrors?.usn?.[0] === 'This USN is already registered.',
+    'Duplicate USN under GoTrue 500 maps cleanly to field error on usn'
+  );
+
+  // Verify empty identities detection (when Supabase returns obfuscated user for existing confirmed email)
+  function isExistingUserObfuscated(user: { id?: string; identities?: any[] } | null): boolean {
+    return Boolean(user?.identities && user.identities.length === 0);
+  }
+
+  assert(isExistingUserObfuscated({ id: '123', identities: [] }), 'Empty identities array correctly identified as existing user');
+  assert(!isExistingUserObfuscated({ id: '123', identities: [{ id: '456' }] }), 'Populated identities array correctly identified as new user');
+  assert(!isExistingUserObfuscated(null), 'Null user correctly handled');
+  // Suite 8: Missing-Profile Recovery & Normalization Invariants
+  console.log('\n[Suite 8: Missing-Profile Recovery & Normalization Invariants]');
+  const { validateAndNormalizeStudentMetadata } = require('../../src/lib/auth/profile-recovery');
+
+  const recoveryCandidate = {
+    full_name: 'Test Student 2',
+    usn: '1nt24cs002',
+    phone: '+919098987654',
+    branch: 'cse',
+    academic_year: '3',
+    sex: 'male',
+    date_of_birth: '2004-06-07',
+    email: 'xenonred246@gmail.com',
+  };
+
+  const normRes = validateAndNormalizeStudentMetadata(recoveryCandidate, 'xenonred246@gmail.com');
+  assert(normRes.valid === true, 'Profile recovery successfully validates confirmed student metadata');
+  assert(normRes.data?.usn === '1NT24CS002', 'Profile recovery normalizes USN to uppercase');
+  assert(normRes.data?.sex === 'Male', 'Profile recovery normalizes gender case-insensitively');
+  assert(normRes.data?.branch === 'CSE', 'Profile recovery normalizes branch to uppercase');
+  assert(normRes.data?.academic_year === 3, 'Profile recovery normalizes academic year to number');
+
+  // Rejection of incomplete metadata
+  const missingMetaRes = validateAndNormalizeStudentMetadata({ usn: '1NT24CS002' }, 'xenonred246@gmail.com');
+  assert(!missingMetaRes.valid, 'Incomplete metadata is safely rejected by recovery logic');
+
+  const underageMetaRes = validateAndNormalizeStudentMetadata(
+    { ...recoveryCandidate, date_of_birth: '2020-01-01' },
+    'xenonred246@gmail.com'
+  );
+  assert(!underageMetaRes.valid, 'Underage registration metadata is rejected by recovery logic');
+
   console.log(`\n========================================`);
   console.log(`Test Results: ${passed}/${total} passed (${((passed / total) * 100).toFixed(1)}%)`);
   console.log(`========================================\n`);

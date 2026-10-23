@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/auth/rate-limiter';
 import { DEV_ADMIN_TEMP_PASSWORD_FALLBACK } from '@/lib/auth/password-generator';
+import { recoverStudentProfile } from '@/lib/auth/profile-recovery';
 import {
   loginSchema,
   signupSchema,
@@ -141,11 +142,19 @@ export async function loginAction(
   }
 
   // Query student profile status to resolve target route
-  const { data: studentProfile } = await supabase
+  let { data: studentProfile } = await supabase
     .from('profiles')
     .select('registration_status')
     .eq('id', authData.user.id)
     .maybeSingle();
+
+  // If student profile row is missing, attempt safe recovery from user metadata
+  if (!studentProfile && authData.user) {
+    const recovery = await recoverStudentProfile(authData.user);
+    if (recovery.success && recovery.profile) {
+      studentProfile = { registration_status: recovery.profile.registration_status };
+    }
+  }
 
   if (!studentProfile) {
     // If auth user exists but has no student profile yet, send to onboarding
@@ -239,18 +248,75 @@ export async function signupAction(
     date_of_birth,
   } = parsed.data;
 
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedUsn = usn.trim().toUpperCase();
+
+  // Authoritative server-side pre-flight collision checks using service-role client
+  const adminClient = createAdminClient();
+
+  // 1. Guard against email collision with existing administrator
+  const { data: adminExists } = await adminClient
+    .from('admin_profiles')
+    .select('id')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (adminExists) {
+    return {
+      success: false,
+      error: 'This email address is registered as an administrator. Please sign in via the administrative portal.',
+      fieldErrors: {
+        email: ['Email already associated with an administrator account.'],
+      },
+    };
+  }
+
+  // 2. Guard against duplicate email in student profiles
+  const { data: existingStudentByEmail } = await adminClient
+    .from('profiles')
+    .select('id, registration_status')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (existingStudentByEmail) {
+    return {
+      success: false,
+      error: 'An account with this email address already exists. Please sign in instead.',
+      fieldErrors: {
+        email: ['An account with this email address already exists.'],
+      },
+    };
+  }
+
+  // 3. Guard against duplicate USN in student profiles
+  const { data: existingStudentByUsn } = await adminClient
+    .from('profiles')
+    .select('id, email')
+    .eq('usn', normalizedUsn)
+    .maybeSingle();
+
+  if (existingStudentByUsn) {
+    return {
+      success: false,
+      error: 'A profile with this University Seat Number (USN) is already registered. If this is your account, please sign in or verify your email.',
+      fieldErrors: {
+        usn: ['This USN is already registered.'],
+      },
+    };
+  }
+
   const supabase = await createClient();
 
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
+    email: normalizedEmail,
     password,
     options: {
       data: {
-        full_name,
-        usn,
-        phone,
+        full_name: full_name.trim(),
+        usn: normalizedUsn,
+        phone: phone.trim(),
         branch,
-        academic_year,
+        academic_year: Number(academic_year),
         sex,
         date_of_birth,
       },
@@ -259,25 +325,88 @@ export async function signupAction(
 
   if (signUpError) {
     const errorMsg = signUpError.message.toLowerCase();
+    const isRateLimit =
+      errorMsg.includes('rate limit') ||
+      errorMsg.includes('security purposes') ||
+      errorMsg.includes('once every') ||
+      errorMsg.includes('too many') ||
+      (signUpError as { status?: number })?.status === 429;
+
+    if (isRateLimit) {
+      return {
+        success: false,
+        error: 'For security purposes, you can only request registration once every 60 seconds. Please wait before trying again.',
+      };
+    }
+
     if (errorMsg.includes('already registered') || errorMsg.includes('user already exists')) {
       return {
         success: false,
         error: 'An account with this email address already exists. Please sign in instead.',
+        fieldErrors: {
+          email: ['An account with this email address already exists.'],
+        },
       };
     }
+
     if (errorMsg.includes('usn') || errorMsg.includes('duplicate key') || errorMsg.includes('chk_profiles_usn')) {
       return {
         success: false,
         error: 'A profile with this University Seat Number (USN) is already registered.',
+        fieldErrors: {
+          usn: ['This USN is already registered.'],
+        },
       };
     }
+
+    // GoTrue generic database error: inspect failure details safely and log server-side
+    if (errorMsg.includes('database error saving new user') || errorMsg.includes('database error')) {
+      console.error('[SIGNUP_DATABASE_ERROR]', {
+        emailDomain: normalizedEmail.split('@')[1] || 'unknown',
+        error: signUpError.message,
+      });
+
+      // Targeted check to see if USN collided concurrently
+      const { data: usnCheck } = await adminClient
+        .from('profiles')
+        .select('id')
+        .eq('usn', normalizedUsn)
+        .maybeSingle();
+
+      if (usnCheck) {
+        return {
+          success: false,
+          error: 'A profile with this University Seat Number (USN) is already registered.',
+          fieldErrors: {
+            usn: ['This USN is already registered.'],
+          },
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Registration could not be completed. An account with these credentials may already exist. Please check your USN and email or try signing in.',
+      };
+    }
+
     return {
       success: false,
       error: signUpError.message || 'Registration failed. Please verify your details.',
     };
   }
 
-  if (!signUpData.user) {
+  // Supabase Auth returns an empty identities array when email is already registered and confirmed
+  if (signUpData?.user?.identities && signUpData.user.identities.length === 0) {
+    return {
+      success: false,
+      error: 'An account with this email address already exists. Please sign in instead.',
+      fieldErrors: {
+        email: ['An account with this email address already exists.'],
+      },
+    };
+  }
+
+  if (!signUpData?.user) {
     return {
       success: false,
       error: 'Failed to create student account. Please try again.',
@@ -287,8 +416,8 @@ export async function signupAction(
   return {
     success: true,
     message: 'Registration successful! Please check your email for the 6-digit verification code.',
-    data: { email },
-    redirectTo: `/verify?email=${encodeURIComponent(email)}`,
+    data: { email: normalizedEmail },
+    redirectTo: `/verify?email=${encodeURIComponent(normalizedEmail)}`,
   };
 }
 
@@ -397,11 +526,19 @@ export async function verifyOtpAction(
       }
     } else {
       // Check student registration status
-      const { data: studentProfile } = await supabase
+      let { data: studentProfile } = await supabase
         .from('profiles')
         .select('registration_status')
         .eq('id', userId)
         .maybeSingle();
+
+      // If student profile row is missing, attempt safe recovery from confirmed user metadata
+      if (!studentProfile && verifiedSession.user) {
+        const recovery = await recoverStudentProfile(verifiedSession.user);
+        if (recovery.success && recovery.profile) {
+          studentProfile = { registration_status: recovery.profile.registration_status };
+        }
+      }
 
       if (studentProfile) {
         switch (studentProfile.registration_status) {

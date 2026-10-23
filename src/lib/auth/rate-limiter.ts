@@ -62,6 +62,12 @@ export async function checkRateLimit(
   }
 
   if (action === 'signup') {
+    // In development mode, bypass the application-level signup rate limit
+    // to allow repeated testing without exhausting the hosted database quota.
+    if (process.env.NODE_ENV === 'development') {
+      return true;
+    }
+
     // Unauthenticated signup action requires service_role authority and client IP HMAC
     const key = providedKey || (await getClientIpKey());
     const admin = createAdminClient();

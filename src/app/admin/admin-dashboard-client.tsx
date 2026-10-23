@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,23 @@ import {
   getAdminDashboardMetricsAction,
   type AdminDashboardMetrics,
 } from '@/actions/report-actions';
+
+const emptySubscribe = () => () => {};
+
+export function formatUpdatedTime(
+  timestamp: string | null | undefined,
+  isMounted: boolean
+): string {
+  if (!isMounted || !timestamp) {
+    return 'Just now';
+  }
+  try {
+    const d = new Date(timestamp);
+    return isNaN(d.getTime()) ? 'Just now' : d.toLocaleTimeString();
+  } catch {
+    return 'Just now';
+  }
+}
 
 interface AdminDashboardClientProps {
   initialMetrics: AdminDashboardMetrics;
@@ -30,6 +47,11 @@ export function AdminDashboardClient({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   const handleScopeChange = async (newHackathonId: string) => {
     setSelectedHackathon(newHackathonId);
@@ -90,7 +112,7 @@ export function AdminDashboardClient({
         </div>
 
         <div className="flex items-center gap-3 text-xs text-text-tertiary">
-          <span>Updated: {metrics.generated_at ? new Date(metrics.generated_at).toLocaleTimeString() : 'Just now'}</span>
+          <span>Updated: {formatUpdatedTime(metrics.generated_at, isMounted)}</span>
           <Button
             variant="outline"
             size="sm"

@@ -163,14 +163,10 @@ export function inspectBinaryMagicBytes(buffer: Buffer): BinarySignatureInspecti
     };
   }
 
-  // PDF: 25 50 44 46 (%PDF)
-  if (
-    buffer.length >= 4 &&
-    buffer[0] === 0x25 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x44 &&
-    buffer[3] === 0x46
-  ) {
+  // PDF: '%PDF-' (0x25 0x50 0x44 0x46 0x2D) within first 1024 bytes per ISO 32000-1 (e.g. following UTF-8 BOM or leading comment)
+  const headerWindow = buffer.subarray(0, Math.min(1024, buffer.length));
+  const pdfOffset = headerWindow.indexOf(Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d]));
+  if (pdfOffset !== -1) {
     return {
       detectedMime: 'application/pdf',
       isExecutable: false,
@@ -245,9 +241,10 @@ export function validateStorageFileBinary(
   }
 
   if (!inspection.detectedMime) {
+    const desc = inspection.threatDescription || 'File content does not match any allowed binary signature (PNG, JPEG, WebP, PDF, or ZIP).';
     return {
       valid: false,
-      error: `Binary validation failed: ${inspection.threatDescription || 'File content does not match any allowed binary signature (PNG, JPEG, WebP, PDF, or ZIP)'}.`,
+      error: `Binary validation failed: ${desc.endsWith('.') ? desc : `${desc}.`}`,
     };
   }
 
