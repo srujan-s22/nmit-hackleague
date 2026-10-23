@@ -12,11 +12,6 @@ import {
   type ProfileChangeRequestInput,
   type ReviewProfileChangeRequestInput,
 } from '@/lib/validation/profile-schemas';
-import {
-  validateStorageFileBinary,
-  generateProfilePhotoStoragePath,
-  MAX_PROFILE_PHOTO_SIZE,
-} from '@/lib/storage/paths';
 
 /**
  * Three-tier post-commit deletion helper for old or failed avatar files
@@ -110,182 +105,27 @@ export async function updatePhoneNumberAction(
 }
 
 /**
- * Multi-phase profile photo upload with atomic failure recovery.
+ * Disabled: Student profile photo upload is removed from student workflows.
  */
 export async function uploadProfilePhotoAction(
-  formData: FormData
+  _formData?: FormData
 ): Promise<ActionResult<{ path: string; avatarUrl: string | null }>> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userErr,
-  } = await supabase.auth.getUser();
-
-  if (userErr || !user) {
-    return { success: false, error: 'Authentication required.' };
-  }
-
-  const file = formData.get('photo') as File | null;
-  if (!file || typeof file === 'string') {
-    return { success: false, error: 'No photo provided for upload.' };
-  }
-
-  if (file.size > MAX_PROFILE_PHOTO_SIZE) {
-    return {
-      success: false,
-      error: `File size exceeds the 1MB limit (${(file.size / (1024 * 1024)).toFixed(2)} MB).`,
-    };
-  }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  const binaryValidation = validateStorageFileBinary(
-    buffer,
-    'profile-photo',
-    file.name,
-    file.type
-  );
-
-  if (!binaryValidation.valid) {
-    return {
-      success: false,
-      error: binaryValidation.error || 'Invalid image format. Allowed: PNG, JPEG, WebP.',
-    };
-  }
-
-  const ext =
-    binaryValidation.detectedMime === 'image/jpeg'
-      ? 'jpg'
-      : binaryValidation.detectedMime === 'image/webp'
-      ? 'webp'
-      : 'png';
-
-  const newPath = generateProfilePhotoStoragePath(user.id, ext);
-
-  // Fetch current profile to record old_photo_path before upload
-  const { data: currentProfile, error: fetchErr } = await supabase
-    .from('profiles')
-    .select('profile_photo_path')
-    .eq('id', user.id)
-    .single();
-
-  if (fetchErr) {
-    return { success: false, error: 'Failed to retrieve current profile.' };
-  }
-
-  const oldPhotoPath = currentProfile?.profile_photo_path;
-
-  // Step 1: Upload new photo to profile-photos bucket
-  const adminClient = createAdminClient();
-  const { error: uploadErr } = await adminClient.storage
-    .from('profile-photos')
-    .upload(newPath, buffer, {
-      contentType: binaryValidation.detectedMime || file.type,
-      upsert: false,
-    });
-
-  if (uploadErr) {
-    return {
-      success: false,
-      error: `Failed to upload avatar: ${uploadErr.message}`,
-    };
-  }
-
-  // Step 2: Commit new path to database
-  const { error: dbErr } = await supabase
-    .from('profiles')
-    .update({
-      profile_photo_path: newPath,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id);
-
-  if (dbErr) {
-    // Compensating rollback: Delete newly uploaded file because DB commit failed
-    await cleanupAvatarStorage(adminClient, user.id, newPath);
-    return {
-      success: false,
-      error: `Profile update failed: ${dbErr.message}. Avatar was rolled back.`,
-    };
-  }
-
-  // Step 3: Post-commit cleanup of old avatar (if existed)
-  if (oldPhotoPath && oldPhotoPath !== newPath) {
-    await cleanupAvatarStorage(adminClient, user.id, oldPhotoPath);
-  }
-
-  revalidatePath('/student/profile');
-  revalidatePath('/student');
-
-  const { data: signedData } = await supabase.storage
-    .from('profile-photos')
-    .createSignedUrl(newPath, 900);
-
   return {
-    success: true,
-    data: { path: newPath, avatarUrl: signedData?.signedUrl || null },
-    message: 'Profile photo updated successfully.',
+    success: false,
+    error: 'Profile photo management has been removed.',
   };
 }
 
 /**
- * Removes student profile photo and enqueues old avatar for storage cleanup.
+ * Disabled: Student profile photo removal is removed from student workflows.
  */
 export async function removeProfilePhotoAction(): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userErr,
-  } = await supabase.auth.getUser();
-
-  if (userErr || !user) {
-    return { success: false, error: 'Authentication required.' };
-  }
-
-  const { data: currentProfile, error: fetchErr } = await supabase
-    .from('profiles')
-    .select('profile_photo_path')
-    .eq('id', user.id)
-    .single();
-
-  if (fetchErr) {
-    return { success: false, error: 'Failed to retrieve current profile.' };
-  }
-
-  const oldPhotoPath = currentProfile?.profile_photo_path;
-  if (!oldPhotoPath) {
-    return { success: true, message: 'No photo to remove.' };
-  }
-
-  // Step 1: Set profile_photo_path to NULL in database
-  const { error: dbErr } = await supabase
-    .from('profiles')
-    .update({
-      profile_photo_path: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id);
-
-  if (dbErr) {
-    return {
-      success: false,
-      error: `Failed to remove profile photo: ${dbErr.message}`,
-    };
-  }
-
-  // Step 2: Post-commit cleanup of old avatar
-  const adminClient = createAdminClient();
-  await cleanupAvatarStorage(adminClient, user.id, oldPhotoPath);
-
-  revalidatePath('/student/profile');
-  revalidatePath('/student');
-
   return {
-    success: true,
-    message: 'Profile photo removed successfully.',
+    success: false,
+    error: 'Profile photo management has been removed.',
   };
 }
+
 
 /**
  * Submits an institutional profile correction request for administrative review.

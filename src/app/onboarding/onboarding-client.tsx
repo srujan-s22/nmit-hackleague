@@ -7,7 +7,6 @@ import { Alert } from '@/components/ui/alert';
 import { createClient } from '@/lib/supabase/client';
 import {
   uploadCollegeIdAction,
-  uploadProfilePhotoAction,
   submitProfileForReviewAction,
 } from '@/actions/onboarding-actions';
 import type { Database } from '@/types/database';
@@ -21,13 +20,10 @@ interface OnboardingClientProps {
 export function OnboardingClient({ profile }: OnboardingClientProps) {
   const router = useRouter();
   const [collegeIdPath, setCollegeIdPath] = useState<string | null>(profile.college_id_path);
-  const [profilePhotoPath, setProfilePhotoPath] = useState<string | null>(profile.profile_photo_path);
 
   const [idFile, setIdFile] = useState<File | null>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const [isUploadingId, setIsUploadingId] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isSubmitting, startSubmission] = useTransition();
 
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -91,65 +87,6 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
       setErrorMessage(err?.message || 'Unexpected upload error occurred.');
     } finally {
       setIsUploadingId(false);
-    }
-  };
-
-  const handleUploadPhoto = async () => {
-    if (!photoFile) return;
-
-    // 1. Client-side pre-flight validation
-    const ext = photoFile.name.split('.').pop()?.toLowerCase();
-    const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
-    if (!ext || !allowedExts.includes(ext)) {
-      setErrorMessage('Invalid image format. Please upload a PNG, JPEG, or WebP photo.');
-      return;
-    }
-
-    // Enforce 1MB storage constraint
-    const maxPhotoSize = 1 * 1024 * 1024;
-    if (photoFile.size > maxPhotoSize) {
-      setErrorMessage(
-        `Profile photo size exceeds maximum limit of 1MB (${(photoFile.size / 1024 / 1024).toFixed(2)} MB). Please select an image under 1MB.`
-      );
-      return;
-    }
-
-    setIsUploadingPhoto(true);
-    setErrorMessage(null);
-    setFeedbackMessage(null);
-
-    try {
-      // 2. Direct authenticated browser upload to Supabase Storage
-      const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).substring(2) + Date.now().toString(36);
-      const storagePath = `${profile.id}/${uniqueId}.${ext}`;
-
-      const supabase = createClient();
-      const { error: uploadError } = await supabase.storage
-        .from('profile-photos')
-        .upload(storagePath, photoFile, {
-          contentType: photoFile.type || 'image/jpeg',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        setErrorMessage(uploadError.message || 'Direct photo upload failed.');
-        return;
-      }
-
-      // 3. Register metadata and verify binary integrity via lightweight Server Action
-      const result = await uploadProfilePhotoAction({ storagePath });
-      if (result.success && result.data?.path) {
-        setProfilePhotoPath(result.data.path);
-        setFeedbackMessage('Profile photo uploaded successfully.');
-      } else {
-        setErrorMessage(result.error || 'Failed to register uploaded profile photo.');
-      }
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Unexpected photo upload error occurred.');
-    } finally {
-      setIsUploadingPhoto(false);
     }
   };
 
@@ -229,101 +166,50 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
         </div>
       </div>
 
-      {/* Document Uploads Box */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* College ID Card */}
-        <div className="bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-base font-semibold text-text-primary">
-                2. College ID Card <span className="text-brand-error">*</span>
-              </h2>
-              {collegeIdPath ? (
-                <span className="text-[11px] font-medium text-brand-success bg-brand-success/10 px-2 py-0.5 rounded-xs">
-                  ✓ Uploaded
-                </span>
-              ) : (
-                <span className="text-[11px] font-medium text-text-secondary bg-surface-subtle px-2 py-0.5 rounded-xs">
-                  Pending
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-text-secondary mb-4">
-              Clear front photo or PDF of your official NMIT Student ID card (Max 5MB).
-            </p>
+      {/* College ID Document Verification */}
+      <div className="bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-base font-semibold text-text-primary">
+            2. College ID Document <span className="text-brand-error">*</span>
+          </h2>
+          {collegeIdPath ? (
+            <span className="text-[11px] font-medium text-brand-success bg-brand-success/10 px-2 py-0.5 rounded-xs">
+              ✓ Uploaded
+            </span>
+          ) : (
+            <span className="text-[11px] font-medium text-text-secondary bg-surface-subtle px-2 py-0.5 rounded-xs">
+              Pending
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-text-secondary mb-4">
+          Clear front photo or PDF of your official NMIT Student ID card (Max 5MB).
+        </p>
 
-            <input
-              type="file"
-              accept=".png,.jpg,.jpeg,.pdf"
-              id="college-id-input"
-              onChange={(e) => setIdFile(e.target.files?.[0] || null)}
-              disabled={isUploadingId || isSubmitting}
-              className="text-xs text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border file:border-border-subtle file:text-xs file:font-medium file:bg-surface-subtle hover:file:bg-surface-canvas file:cursor-pointer"
-            />
-            {idFile && (
-              <p className="text-[11px] text-text-secondary mt-1 font-mono">
-                Selected: {idFile.name} ({(idFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
-            )}
-          </div>
+        <input
+          type="file"
+          accept=".png,.jpg,.jpeg,.pdf"
+          id="college-id-input"
+          onChange={(e) => setIdFile(e.target.files?.[0] || null)}
+          disabled={isUploadingId || isSubmitting}
+          className="text-xs text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border file:border-border-subtle file:text-xs file:font-medium file:bg-surface-subtle hover:file:bg-surface-canvas file:cursor-pointer"
+        />
+        {idFile && (
+          <p className="text-[11px] text-text-secondary mt-1 font-mono">
+            Selected: {idFile.name} ({(idFile.size / 1024 / 1024).toFixed(2)} MB)
+          </p>
+        )}
 
+        <div className="pt-2">
           <Button
             type="button"
             variant="secondary"
-            className="w-full mt-4"
+            className="w-full sm:w-auto mt-4"
             onClick={handleUploadId}
             disabled={!idFile || isUploadingId || isSubmitting}
             isLoading={isUploadingId}
           >
             {collegeIdPath ? 'Re-upload College ID' : 'Upload College ID Document'}
-          </Button>
-        </div>
-
-        {/* Profile Photo */}
-        <div className="bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-base font-semibold text-text-primary">
-                3. Profile Photo <span className="text-text-muted text-xs font-normal">(Optional)</span>
-              </h2>
-              {profilePhotoPath ? (
-                <span className="text-[11px] font-medium text-brand-success bg-brand-success/10 px-2 py-0.5 rounded-xs">
-                  ✓ Uploaded
-                </span>
-              ) : (
-                <span className="text-[11px] font-medium text-text-secondary bg-surface-subtle px-2 py-0.5 rounded-xs">
-                  Optional
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-text-secondary mb-4">
-              A clear passport-style headshot for hackathon badge printing (Max 2MB, PNG/JPEG).
-            </p>
-
-            <input
-              type="file"
-              accept=".png,.jpg,.jpeg"
-              id="profile-photo-input"
-              onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
-              disabled={isUploadingPhoto || isSubmitting}
-              className="text-xs text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border file:border-border-subtle file:text-xs file:font-medium file:bg-surface-subtle hover:file:bg-surface-canvas file:cursor-pointer"
-            />
-            {photoFile && (
-              <p className="text-[11px] text-text-secondary mt-1 font-mono">
-                Selected: {photoFile.name} ({(photoFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
-            )}
-          </div>
-
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full mt-4"
-            onClick={handleUploadPhoto}
-            disabled={!photoFile || isUploadingPhoto || isSubmitting}
-            isLoading={isUploadingPhoto}
-          >
-            {profilePhotoPath ? 'Re-upload Profile Photo' : 'Upload Profile Photo'}
           </Button>
         </div>
       </div>

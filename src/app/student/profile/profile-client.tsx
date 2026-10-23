@@ -1,7 +1,7 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useState, useTransition, useRef } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +14,6 @@ import { Alert } from '@/components/ui/alert';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import {
   updatePhoneNumberAction,
-  uploadProfilePhotoAction,
-  removeProfilePhotoAction,
   submitProfileCorrectionAction,
 } from '@/actions/profile-actions';
 import { BRANCHES, ACADEMIC_YEARS } from '@/lib/validation/auth-schemas';
@@ -40,12 +38,10 @@ export function ProfileClient({
   completedCompetitions,
 }: ProfileClientProps) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Profile and Avatar State
   const [profile, setProfile] = useState(initialData.profile);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialData.avatarUrl);
-  const [isPhotoPending, startPhotoTransition] = useTransition();
+  const [avatarUrl] = useState<string | null>(initialData.avatarUrl);
 
   // Direct Phone State
   const [isEditingPhone, setIsEditingPhone] = useState(false);
@@ -90,61 +86,7 @@ export function ProfileClient({
     });
   };
 
-  // 2. Avatar Upload Handler
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setFeedback(null);
-
-    // Validate size client-side (1MB)
-    if (file.size > 1 * 1024 * 1024) {
-      setFeedback({ type: 'error', message: 'Profile photo size must not exceed 1 MB.' });
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    // Validate type client-side
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      setFeedback({ type: 'error', message: 'Only genuine JPEG or PNG images are accepted.' });
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('photo', file);
-
-    startPhotoTransition(async () => {
-      const res = await uploadProfilePhotoAction(formData);
-      if (res.success && res.data) {
-        setProfile((prev) => ({ ...prev, profile_photo_path: res.data!.path }));
-        setAvatarUrl(res.data!.avatarUrl);
-        setFeedback({ type: 'success', message: 'Profile photo updated successfully.' });
-        router.refresh();
-      } else {
-        setFeedback({ type: 'error', message: res.error || 'Failed to upload profile photo.' });
-      }
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    });
-  };
-
-  // 3. Avatar Removal Handler
-  const handleRemovePhoto = () => {
-    setFeedback(null);
-    startPhotoTransition(async () => {
-      const res = await removeProfilePhotoAction();
-      if (res.success) {
-        setProfile((prev) => ({ ...prev, profile_photo_path: null }));
-        setAvatarUrl(null);
-        setFeedback({ type: 'success', message: 'Profile photo removed.' });
-        router.refresh();
-      } else {
-        setFeedback({ type: 'error', message: res.error || 'Failed to remove profile photo.' });
-      }
-    });
-  };
-
-  // 4. Change Request Submission Handler
+  // 2. Change Request Submission Handler
   const handleSubmitCorrection = () => {
     setFormError(null);
     setFeedback(null);
@@ -232,8 +174,8 @@ export function ProfileClient({
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            {/* Avatar Capsule & Upload */}
-            <div className="relative group shrink-0">
+            {/* Avatar Capsule (Display Only) */}
+            <div className="shrink-0">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -250,16 +192,6 @@ export function ProfileClient({
                     .toUpperCase()}
                 </div>
               )}
-
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg"
-                className="hidden"
-                onChange={handleFileChange}
-                disabled={isPhotoPending}
-              />
             </div>
 
             {/* Profile Overview */}
@@ -276,29 +208,6 @@ export function ProfileClient({
               <p className="text-xs text-text-secondary">
                 {profile.branch} Department • Year {profile.academic_year} • {profile.email}
               </p>
-
-              <div className="flex items-center gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isPhotoPending}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {isPhotoPending ? 'Uploading...' : avatarUrl ? 'Change Photo' : 'Upload Photo'}
-                </Button>
-
-                {avatarUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isPhotoPending}
-                    onClick={handleRemovePhoto}
-                    className="text-status-error hover:bg-status-error/10 border-status-error/30"
-                  >
-                    Remove Photo
-                  </Button>
-                )}
-              </div>
             </div>
 
             {/* Quick Metrics Capsule */}

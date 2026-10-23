@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server';
 import {
   uploadCollegeIdDocument,
-  uploadProfilePhoto,
   getSignedPreviewUrl,
   validateStorageObjectBinary,
 } from '@/lib/storage/upload-service';
@@ -93,80 +92,14 @@ export async function uploadCollegeIdAction(
 }
 
 /**
- * Upload Profile Photo (Draft mode)
- * Accepts either direct storagePath metadata or legacy FormData for backward compatibility.
+ * Disabled: Profile photo management has been removed from student onboarding workflows.
  */
 export async function uploadProfilePhotoAction(
-  input: UploadFileInput
+  _input?: UploadFileInput
 ): Promise<ActionResult<{ path: string }>> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return { success: false, error: 'Unauthorized. Please sign in.' };
-  }
-
-  let finalPath: string;
-
-  if (input && typeof input === 'object' && 'storagePath' in input && typeof input.storagePath === 'string') {
-    const storagePath = input.storagePath.trim();
-
-    // 1. Strict path containment & traversal check
-    if (!storagePath || storagePath.includes('..') || !storagePath.startsWith(`${user.id}/`)) {
-      return { success: false, error: 'Unauthorized storage path: must reside in your own student folder.' };
-    }
-
-    // 2. Authoritative server binary content & size verification
-    const binaryValidation = await validateStorageObjectBinary(
-      'profile-photos',
-      storagePath,
-      'profile-photo',
-      supabase
-    );
-
-    if (!binaryValidation.valid) {
-      await supabase.storage.from('profile-photos').remove([storagePath]);
-      return {
-        success: false,
-        error: binaryValidation.error || 'Profile photo failed binary content validation.',
-      };
-    }
-
-    finalPath = storagePath;
-  } else if (input instanceof FormData || (input && typeof (input as any).get === 'function')) {
-    const file = (input as FormData).get('profilePhoto') as File | null;
-    if (!file) {
-      return { success: false, error: 'Please select a profile photo to upload.' };
-    }
-
-    const uploadResult = await uploadProfilePhoto(user.id, file);
-    if (!uploadResult.success || !uploadResult.path) {
-      return { success: false, error: uploadResult.error || 'Upload failed.' };
-    }
-    finalPath = uploadResult.path;
-  } else {
-    return { success: false, error: 'Invalid profile photo payload.' };
-  }
-
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({ profile_photo_path: finalPath })
-    .eq('id', user.id);
-
-  if (profileError) {
-    return {
-      success: false,
-      error: `Failed to link profile photo: ${profileError.message}`,
-    };
-  }
-
   return {
-    success: true,
-    message: 'Profile photo uploaded successfully.',
-    data: { path: finalPath },
+    success: false,
+    error: 'Student profile photo management has been removed from onboarding.',
   };
 }
 
