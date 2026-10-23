@@ -152,7 +152,7 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href={`/student/teams/${existingTeam.id}`}
-                className="px-5 py-2.5 rounded-sm text-sm font-semibold bg-brand-primary text-text-inverse hover:bg-brand-hover transition-colors inline-flex items-center gap-2 shadow-xs"
+                className="px-5 py-2.5 rounded-sm text-sm font-semibold bg-surface-inverse text-text-inverse hover:bg-neutral-800 transition-colors inline-flex items-center gap-2 shadow-xs"
               >
                 <span>Manage Team ({existingTeam.name})</span>
                 <span aria-hidden="true">&rarr;</span>
@@ -181,7 +181,7 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href={`/student/teams?action=create&hackathon=${h.id}`}
-                className="px-5 py-2.5 rounded-sm text-sm font-semibold bg-brand-primary text-text-inverse hover:bg-brand-hover transition-colors inline-flex items-center gap-1.5 shadow-xs"
+                className="px-5 py-2.5 rounded-sm text-sm font-semibold bg-surface-inverse text-text-inverse hover:bg-neutral-800 transition-colors inline-flex items-center gap-1.5 shadow-xs"
               >
                 <span>Create Team</span>
               </Link>

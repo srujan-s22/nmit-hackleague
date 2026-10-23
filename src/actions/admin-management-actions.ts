@@ -103,16 +103,20 @@ export async function fetchAdminsAction(): Promise<ActionResult<AdminWithPermiss
     const result: AdminWithPermissions[] = (admins || []).map((admin) => {
       const activeEvents = hackathonMap.get(admin.id) || [];
       const appMeta = userMetaMap.get(admin.id) || {};
-      const mustChange =
-        typeof admin.must_change_password === 'boolean'
-          ? admin.must_change_password
-          : Boolean(appMeta.must_change_password);
+      const mustChange = !admin.is_super_admin && Boolean(
+        admin.must_change_password || appMeta.must_change_password
+      );
       const expiresAt =
         admin.onboarding_expires_at ||
         (typeof appMeta.onboarding_expires_at === 'string' ? appMeta.onboarding_expires_at : null);
       const status =
-        admin.onboarding_status ||
-        (typeof appMeta.onboarding_status === 'string' ? appMeta.onboarding_status : 'completed');
+        admin.onboarding_status && admin.onboarding_status !== 'completed'
+          ? admin.onboarding_status
+          : typeof appMeta.onboarding_status === 'string' && appMeta.onboarding_status !== 'completed'
+          ? appMeta.onboarding_status
+          : mustChange
+          ? 'pending'
+          : 'completed';
       const isExpired = Boolean(
         mustChange && expiresAt && new Date(expiresAt).getTime() < nowMs
       );
@@ -363,9 +367,9 @@ export async function createAdminAction(
     };
   }
 
-  // 9. Update admin_profiles table onboarding columns if migration is applied
+  // 9. Update admin_profiles table onboarding columns
   try {
-    await adminClient
+    const { error: dbUpdateErr } = await adminClient
       .from('admin_profiles')
       .update({
         must_change_password: true,
@@ -373,8 +377,12 @@ export async function createAdminAction(
         onboarding_status: 'pending',
       })
       .eq('id', targetAuthUid);
-  } catch {
-    // Non-blocking if table columns are not yet present in DB
+
+    if (dbUpdateErr) {
+      console.warn('[ADMIN_PROVISION_WARNING] Failed to update admin_profiles onboarding state:', dbUpdateErr.message);
+    }
+  } catch (err) {
+    console.warn('[ADMIN_PROVISION_WARNING]', err);
   }
 
   // 10. Dispatch Transactional Onboarding Email via Resend

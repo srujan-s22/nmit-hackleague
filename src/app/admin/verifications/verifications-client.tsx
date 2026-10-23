@@ -236,7 +236,6 @@ export function VerificationsClient({
                           <Button
                             variant="primary"
                             size="sm"
-                            className="bg-brand-success hover:bg-brand-success/90 text-white"
                             onClick={() => handleOpenDecisionModal(student, 'approved')}
                           >
                             Approve

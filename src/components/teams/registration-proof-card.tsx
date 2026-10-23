@@ -199,7 +199,7 @@ export function RegistrationProofCard({
                 href={externalRegistrationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-sm bg-brand-primary text-text-inverse hover:bg-brand-hover text-xs font-medium inline-flex items-center gap-1 shrink-0"
+                className="px-3 py-1.5 rounded-sm bg-surface-inverse text-text-inverse hover:bg-neutral-800 text-xs font-medium inline-flex items-center gap-1 shrink-0 transition-colors"
               >
                 Open External Portal ↗
               </a>

@@ -209,8 +209,8 @@ export function SubmissionsClient({
                 onClick={() => setSelectedRoundId('all')}
                 className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
                   selectedRoundId === 'all'
-                    ? 'bg-brand-primary text-white shadow-xs'
-                    : 'bg-background-elevated text-text-secondary hover:text-text-primary'
+                    ? 'bg-surface-inverse text-text-inverse shadow-xs'
+                    : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
                 }`}
                 id="filter-round-all"
               >
@@ -225,8 +225,8 @@ export function SubmissionsClient({
                     onClick={() => setSelectedRoundId(r.id)}
                     className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
                       selectedRoundId === r.id
-                        ? 'bg-brand-primary text-white shadow-xs'
-                        : 'bg-background-elevated text-text-secondary hover:text-text-primary'
+                        ? 'bg-surface-inverse text-text-inverse shadow-xs'
+                        : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
                     }`}
                     id={`filter-round-${r.round_number}`}
                   >
@@ -258,8 +258,8 @@ export function SubmissionsClient({
                 onClick={() => setStatusFilter(st)}
                 className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
                   statusFilter === st
-                    ? 'bg-text-primary text-background font-bold'
-                    : 'bg-background-elevated text-text-secondary hover:text-text-primary'
+                    ? 'bg-surface-inverse text-text-inverse font-bold'
+                    : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
                 }`}
                 id={`filter-status-${st}`}
               >

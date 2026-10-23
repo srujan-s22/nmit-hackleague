@@ -360,7 +360,7 @@ export function AdminDashboardClient({
         <div className="flex flex-wrap gap-3">
           <Link
             href="/admin/reports"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-semibold hover:bg-brand-primary-hover transition-colors shadow-xs"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-surface-inverse text-text-inverse text-sm font-semibold hover:bg-neutral-800 transition-colors shadow-xs"
           >
             Open Data & Reports Hub
           </Link>

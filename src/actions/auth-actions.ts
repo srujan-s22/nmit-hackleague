@@ -98,10 +98,9 @@ export async function loginAction(
 
     // Determine server-controlled must_change_password and expiration
     const appMeta = authData.user.app_metadata || {};
-    const mustChangePassword =
-      typeof adminProfile.must_change_password === 'boolean'
-        ? adminProfile.must_change_password
-        : Boolean(appMeta.must_change_password);
+    const mustChangePassword = !adminProfile.is_super_admin && Boolean(
+      adminProfile.must_change_password || appMeta.must_change_password
+    );
 
     const onboardingExpiresAt =
       adminProfile.onboarding_expires_at ||
@@ -533,10 +532,9 @@ export async function completeAdminSetupAction(
 
   // 3. Verify user is actually in must_change_password state
   const appMeta = user.app_metadata || {};
-  const mustChangePassword =
-    typeof adminProfile.must_change_password === 'boolean'
-      ? adminProfile.must_change_password
-      : Boolean(appMeta.must_change_password);
+  const mustChangePassword = !adminProfile.is_super_admin && Boolean(
+    adminProfile.must_change_password || appMeta.must_change_password
+  );
 
   if (!mustChangePassword) {
     return {
@@ -579,7 +577,7 @@ export async function completeAdminSetupAction(
   const adminClient = createAdminClient();
   const nowIso = new Date().toISOString();
 
-  await adminClient.auth.admin.updateUserById(user.id, {
+  const { error: metaUpdateErr } = await adminClient.auth.admin.updateUserById(user.id, {
     app_metadata: {
       ...appMeta,
       must_change_password: false,
@@ -588,16 +586,34 @@ export async function completeAdminSetupAction(
     },
   });
 
-  try {
-    await adminClient
-      .from('admin_profiles')
-      .update({
-        must_change_password: false,
-        onboarding_status: 'completed',
-      })
-      .eq('id', user.id);
-  } catch {
-    // Non-blocking if table columns not yet migrated
+  if (metaUpdateErr) {
+    console.error('[ADMIN_SETUP_ERROR] [AUTH_META_UPDATE_FAILED]', {
+      userId: user.id,
+      error: metaUpdateErr.message,
+    });
+    return {
+      success: false,
+      error: 'Password was updated, but failed to synchronize onboarding metadata. Please contact support.',
+    };
+  }
+
+  const { error: dbUpdateErr } = await adminClient
+    .from('admin_profiles')
+    .update({
+      must_change_password: false,
+      onboarding_status: 'completed',
+    })
+    .eq('id', user.id);
+
+  if (dbUpdateErr) {
+    console.error('[ADMIN_SETUP_ERROR] [DB_UPDATE_FAILED]', {
+      userId: user.id,
+      error: dbUpdateErr.message,
+    });
+    return {
+      success: false,
+      error: 'Password was updated, but failed to record profile status. Please contact support.',
+    };
   }
 
   // 6. Record completion in structured audit log without storing passwords or tokens

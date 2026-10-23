@@ -40,6 +40,23 @@
   /* Institutional Accents */
   --color-brand-nmit-blue: #2E3690;
   --color-brand-hackleague-mint: #00FF95;
+  --color-interactive-accent: #2E3690;
+
+  /* Primary Action Tokens & Backward-compatible Brand Aliases */
+  --color-primary: #18181B;
+  --color-brand-primary: #18181B;
+  --color-brand-primary-hover: #27272A;
+  --color-brand-hover: #27272A;
+  --color-brand-success: #1B5E20;
+  --color-brand-error: #B71C1C;
+  --color-background-elevated: #F9FAFB;
+  --color-text-muted: #71717A;
+
+  /* Status Danger Aliases (Synchronized with Status Error) */
+  --color-status-danger: #B71C1C;
+  --color-status-danger-bg: #F8E8E6;
+  --color-status-danger-text: #B71C1C;
+  --color-status-danger-border: #FFCDD2;
 
   /* Backward-compatible Phase 1 aliases */
   --color-background: #FFFFFF;
@@ -62,6 +79,7 @@
   --text-primary: #18181B;
   --text-secondary: #52525B;
   --text-helper: #71717A;
+  --text-muted: #71717A;
 }
 
 body {

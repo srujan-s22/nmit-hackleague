@@ -100,7 +100,7 @@ export function NotificationCenter() {
         </svg>
 
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-status-error-border rounded-full border-2 border-surface-canvas animate-in zoom-in">
+          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-status-error-text rounded-full border-2 border-surface-canvas animate-in zoom-in">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

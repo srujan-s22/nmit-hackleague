@@ -147,7 +147,7 @@ export function HackathonsClient({ initialHackathons }: HackathonsClientProps) {
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-xs transition-colors whitespace-nowrap ${
                   activeTab === tab.key
-                    ? 'bg-brand-primary text-text-inverse font-semibold'
+                    ? 'bg-surface-inverse text-text-inverse font-semibold'
                     : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
                 }`}
               >

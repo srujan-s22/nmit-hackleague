@@ -118,10 +118,9 @@ export async function requireAdmin(
 
   // Enforce mandatory password change for newly provisioned administrators
   const appMeta = user.app_metadata || {};
-  const mustChange =
-    typeof admin.must_change_password === 'boolean'
-      ? admin.must_change_password
-      : Boolean(appMeta.must_change_password);
+  const mustChange = !admin.is_super_admin && Boolean(
+    admin.must_change_password || appMeta.must_change_password
+  );
 
   if (mustChange) {
     redirect('/auth/complete-setup');
@@ -167,10 +166,7 @@ export async function requireSuperAdmin(redirectTo?: string): Promise<{
   }
 
   const appMeta = user.app_metadata || {};
-  const mustChange =
-    typeof admin.must_change_password === 'boolean'
-      ? admin.must_change_password
-      : Boolean(appMeta.must_change_password);
+  const mustChange = Boolean(admin.must_change_password || appMeta.must_change_password);
 
   if (mustChange) {
     redirect('/auth/complete-setup');

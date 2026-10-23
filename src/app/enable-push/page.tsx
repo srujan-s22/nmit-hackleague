@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BrandLogo } from '@/components/ui/brand-logo';
+import { Button } from '@/components/ui/button';
 
 type PushGateState =
   | 'CHECKING'
@@ -184,33 +185,33 @@ function EnablePushContent() {
           {/* Status Indicator Icon */}
           <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-surface-subtle mb-6 border border-border-subtle">
             {gateState === 'CHECKING' && (
-              <span className="inline-block animate-spin h-7 w-7 border-2 border-primary border-t-transparent rounded-full" />
+              <span className="inline-block animate-spin h-7 w-7 border-2 border-surface-inverse border-t-transparent rounded-full" />
             )}
             {gateState === 'UNSUPPORTED' && (
-              <span className="text-2xl text-status-danger" role="img" aria-label="Unsupported">
+              <span className="text-2xl text-status-danger-text" role="img" aria-label="Unsupported">
                 ⚠️
               </span>
             )}
             {gateState === 'PERMISSION_DENIED' && (
-              <span className="text-2xl text-status-danger" role="img" aria-label="Denied">
+              <span className="text-2xl text-status-danger-text" role="img" aria-label="Denied">
                 🚫
               </span>
             )}
             {gateState === 'READY_TO_ENABLE' && (
-              <span className="text-2xl text-primary" role="img" aria-label="Notifications">
+              <span className="text-2xl text-text-primary" role="img" aria-label="Notifications">
                 🔔
               </span>
             )}
             {gateState === 'REGISTERING' && (
-              <span className="inline-block animate-spin h-7 w-7 border-2 border-primary border-t-transparent rounded-full" />
+              <span className="inline-block animate-spin h-7 w-7 border-2 border-surface-inverse border-t-transparent rounded-full" />
             )}
             {gateState === 'ENABLED' && (
-              <span className="text-2xl text-status-success" role="img" aria-label="Enabled">
+              <span className="text-2xl text-status-success-text" role="img" aria-label="Enabled">
                 ✓
               </span>
             )}
             {gateState === 'ERROR' && (
-              <span className="text-2xl text-status-danger" role="img" aria-label="Error">
+              <span className="text-2xl text-status-danger-text" role="img" aria-label="Error">
                 ✕
               </span>
             )}
@@ -290,43 +291,64 @@ function EnablePushContent() {
           {/* Action Buttons */}
           <div className="space-y-3">
             {gateState === 'READY_TO_ENABLE' && (
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="md"
+                fullWidth
                 onClick={handleEnablePush}
-                className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border-focus cursor-pointer transition-colors"
               >
                 Enable Push Notifications & Enter
-              </button>
+              </Button>
+            )}
+
+            {gateState === 'REGISTERING' && (
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                fullWidth
+                isLoading
+                disabled
+              >
+                Connecting Notification Gateway...
+              </Button>
             )}
 
             {gateState === 'PERMISSION_DENIED' && (
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="md"
+                fullWidth
                 onClick={checkInitialState}
-                className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border-focus cursor-pointer transition-colors"
               >
                 Re-check Permission
-              </button>
+              </Button>
             )}
 
             {gateState === 'ERROR' && (
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="md"
+                fullWidth
                 onClick={handleEnablePush}
-                className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border-focus cursor-pointer transition-colors"
               >
                 Retry Registration
-              </button>
+              </Button>
             )}
 
             {gateState === 'UNSUPPORTED' && (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="md"
+                fullWidth
                 onClick={() => window.location.reload()}
-                className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-border-subtle rounded-md text-sm font-medium text-text-primary bg-surface-subtle hover:bg-surface-canvas cursor-pointer"
               >
                 Reload Browser
-              </button>
+              </Button>
             )}
           </div>
         </div>

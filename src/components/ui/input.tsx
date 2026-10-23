@@ -80,7 +80,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           />
 
           {rightAddon && (
-            <div className="absolute right-3 flex items-center pointer-events-none text-text-secondary">
+            <div className="absolute right-2.5 flex items-center text-text-secondary z-10">
               {rightAddon}
             </div>
           )}

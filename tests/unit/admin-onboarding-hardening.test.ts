@@ -124,44 +124,54 @@ async function runUnitTests() {
   assert(isExpiredPast === true, 'Correctly flags past timestamp as expired');
   assert(isExpiredFuture === false, 'Correctly flags future 24h timestamp as active');
 
-  // 6. Missing-Column Database Fallback Handling
-  console.log('\n[Suite 6: Missing-Column Database Fallback Logic]');
+  // 6. Two-Store Resilient Onboarding State Resolution
+  console.log('\n[Suite 6: Two-Store Resilient Onboarding State Resolution]');
   function resolveAdminOnboardingState(
-    dbRow: { must_change_password?: boolean; onboarding_expires_at?: string | null; onboarding_status?: string },
-    appMetadata: { must_change_password?: boolean; onboarding_expires_at?: string; onboarding_status?: string; [key: string]: unknown } = {}
+    dbRow: { must_change_password?: boolean; onboarding_expires_at?: string | null; onboarding_status?: string; is_super_admin?: boolean },
+    appMetadata: { must_change_password?: boolean; onboarding_expires_at?: string; onboarding_status?: string; role?: string; [key: string]: unknown } = {}
   ) {
-    const mustChangePassword =
-      typeof dbRow.must_change_password === 'boolean'
-        ? dbRow.must_change_password
-        : Boolean(appMetadata.must_change_password);
+    const isSuperAdmin = Boolean(dbRow.is_super_admin || appMetadata.role === 'super_admin');
+    if (isSuperAdmin) {
+      return { mustChangePassword: false, onboardingExpiresAt: null, onboardingStatus: 'completed' };
+    }
+
+    const mustChangePassword = Boolean(dbRow.must_change_password || appMetadata.must_change_password);
 
     const onboardingExpiresAt =
       dbRow.onboarding_expires_at ||
       (typeof appMetadata.onboarding_expires_at === 'string' ? appMetadata.onboarding_expires_at : null);
 
     const onboardingStatus =
-      dbRow.onboarding_status ||
-      (typeof appMetadata.onboarding_status === 'string' ? appMetadata.onboarding_status : 'completed');
+      dbRow.onboarding_status && dbRow.onboarding_status !== 'completed'
+        ? dbRow.onboarding_status
+        : typeof appMetadata.onboarding_status === 'string' && appMetadata.onboarding_status !== 'completed'
+        ? appMetadata.onboarding_status
+        : mustChangePassword
+        ? 'pending'
+        : 'completed';
 
     return { mustChangePassword, onboardingExpiresAt, onboardingStatus };
   }
 
-  // Pre-migration DB row (columns undefined)
-  const unmigratedPendingDb = {};
-  const unmigratedPendingMeta = { must_change_password: true, onboarding_expires_at: futureExpiration, onboarding_status: 'pending' };
-  const res1 = resolveAdminOnboardingState(unmigratedPendingDb, unmigratedPendingMeta);
-  assert(res1.mustChangePassword === true, 'Unmigrated DB falls back to app_metadata must_change_password: true');
-  assert(res1.onboardingExpiresAt === futureExpiration, 'Unmigrated DB falls back to app_metadata onboarding_expires_at');
-  assert(res1.onboardingStatus === 'pending', 'Unmigrated DB falls back to app_metadata onboarding_status: pending');
+  // Drifted DB row: table defaulted to must_change_password = false, but GoTrue app_metadata has true
+  const driftedPendingDb = { must_change_password: false, onboarding_status: 'completed' };
+  const driftedPendingMeta = { must_change_password: true, onboarding_expires_at: futureExpiration, onboarding_status: 'email_failed' };
+  const resDrift = resolveAdminOnboardingState(driftedPendingDb, driftedPendingMeta);
+  assert(resDrift.mustChangePassword === true, 'Correctly flags pending when app_metadata is true despite DB column default false');
+  assert(resDrift.onboardingExpiresAt === futureExpiration, 'Resolves expiration from app_metadata when DB is null');
+  assert(resDrift.onboardingStatus === 'email_failed', 'Preserves email_failed status from app_metadata');
 
-  const unmigratedCompletedMeta = { must_change_password: false, onboarding_status: 'completed' };
-  const res2 = resolveAdminOnboardingState(unmigratedPendingDb, unmigratedCompletedMeta);
-  assert(res2.mustChangePassword === false, 'Unmigrated DB falls back to app_metadata must_change_password: false');
+  // Both stores completed
+  const completedDb = { must_change_password: false, onboarding_status: 'completed' };
+  const completedMeta = { must_change_password: false, onboarding_status: 'completed' };
+  const resCompleted = resolveAdminOnboardingState(completedDb, completedMeta);
+  assert(resCompleted.mustChangePassword === false, 'Correctly resolves completed when both stores mark setup finished');
 
-  const superAdminDb = {};
+  // Super Admin
+  const superAdminDb = { is_super_admin: true, must_change_password: false };
   const superAdminMeta = { role: 'super_admin' };
-  const res3 = resolveAdminOnboardingState(superAdminDb, superAdminMeta);
-  assert(res3.mustChangePassword === false, 'Existing Super Admin with undefined flags is not forced into password change');
+  const resSuper = resolveAdminOnboardingState(superAdminDb, superAdminMeta);
+  assert(resSuper.mustChangePassword === false, 'Existing Super Admin is never forced into password change');
 
   // 7. Re-onboarding Retry Eligibility (Fail-Closed Matrix)
   console.log('\n[Suite 7: Administrator Re-onboarding Retry Eligibility (Fail-Closed Matrix)]');
@@ -224,17 +234,16 @@ async function runUnitTests() {
   // 8. Forced Setup Action Access Guard
   console.log('\n[Suite 8: Forced Setup Action Access Guard Logic]');
   function canExecutePasswordSetup(
-    adminProfile: { is_active: boolean; must_change_password?: boolean; onboarding_expires_at?: string | null },
-    appMeta: { must_change_password?: boolean; onboarding_expires_at?: string } = {}
+    adminProfile: { is_active: boolean; is_super_admin?: boolean; must_change_password?: boolean; onboarding_expires_at?: string | null },
+    appMeta: { must_change_password?: boolean; onboarding_expires_at?: string; role?: string } = {}
   ): { allowed: boolean; error?: string } {
     if (!adminProfile.is_active) {
       return { allowed: false, error: 'Administrator record not found or deactivated.' };
     }
 
-    const mustChangePassword =
-      typeof adminProfile.must_change_password === 'boolean'
-        ? adminProfile.must_change_password
-        : Boolean(appMeta.must_change_password);
+    const mustChangePassword = !adminProfile.is_super_admin && Boolean(
+      adminProfile.must_change_password || appMeta.must_change_password
+    );
 
     if (!mustChangePassword) {
       return { allowed: false, error: 'Administrator setup has already been completed.' };
@@ -254,10 +263,13 @@ async function runUnitTests() {
     return { allowed: true };
   }
 
-  assert(!canExecutePasswordSetup({ is_active: true, must_change_password: false }).allowed, 'Rejects password setup execution for completed admin');
-  assert(!canExecutePasswordSetup({ is_active: true }, { must_change_password: false }).allowed, 'Rejects password setup execution when app_metadata is false and DB is unmigrated');
+  assert(canExecutePasswordSetup({ is_active: true, must_change_password: false }, { must_change_password: true }).allowed, 'Permits password setup execution for admin with app_metadata must_change_password true (even if DB is false)');
+  assert(canExecutePasswordSetup({ is_active: true, must_change_password: true }, { must_change_password: true }).allowed, 'Permits password setup execution when both stores are true');
+  assert(!canExecutePasswordSetup({ is_active: true, must_change_password: false }, { must_change_password: false }).allowed, 'Rejects password setup execution for completed admin');
+  assert(!canExecutePasswordSetup({ is_active: true, is_super_admin: true }).allowed, 'Rejects password setup execution for Super Admin');
   assert(!canExecutePasswordSetup({ is_active: false, must_change_password: true }).allowed, 'Rejects password setup execution for deactivated admin');
   assert(!canExecutePasswordSetup({ is_active: true, must_change_password: true, onboarding_expires_at: pastExpiration }).allowed, 'Rejects password setup execution when expired');
+  assert(canExecutePasswordSetup({ is_active: true, must_change_password: true, onboarding_expires_at: futureExpiration }).allowed, 'Permits password setup execution for valid pending unexpired admin');
   assert(canExecutePasswordSetup({ is_active: true, must_change_password: true, onboarding_expires_at: futureExpiration }).allowed, 'Permits password setup execution for valid pending unexpired admin');
 
   // 9. Email Outcome & Delivery Claim Accuracy
@@ -454,6 +466,191 @@ async function runUnitTests() {
     !checkRouteAccessForPendingAdmin('/auth/complete-setup', false).allowed,
     'Completed admin is redirected away from /auth/complete-setup'
   );
+
+  // 12. Atomic Password Update & Onboarding Completion Lifecycle
+  console.log('\n[Suite 12: Atomic Password Update & Onboarding Completion Lifecycle]');
+  interface MockLifecycleParams {
+    authUpdateError?: Error | null;
+    metaUpdateError?: Error | null;
+    dbUpdateError?: Error | null;
+  }
+
+  function simulateSetupCompletion(params: MockLifecycleParams) {
+    let authPasswordUpdated = false;
+    let metaUpdated = false;
+    let dbUpdated = false;
+
+    // Step 1: Update Auth password
+    if (params.authUpdateError) {
+      return {
+        success: false,
+        error: params.authUpdateError.message,
+        authPasswordUpdated,
+        metaUpdated,
+        dbUpdated,
+      };
+    }
+    authPasswordUpdated = true;
+
+    // Step 2: Update Auth metadata
+    if (params.metaUpdateError) {
+      return {
+        success: false,
+        error: 'Password was updated, but failed to synchronize onboarding metadata. Please contact support.',
+        authPasswordUpdated,
+        metaUpdated,
+        dbUpdated,
+      };
+    }
+    metaUpdated = true;
+
+    // Step 3: Update DB profile
+    if (params.dbUpdateError) {
+      return {
+        success: false,
+        error: 'Password was updated, but failed to record profile status. Please contact support.',
+        authPasswordUpdated,
+        metaUpdated,
+        dbUpdated,
+      };
+    }
+    dbUpdated = true;
+
+    return {
+      success: true,
+      redirectTo: '/admin',
+      authPasswordUpdated,
+      metaUpdated,
+      dbUpdated,
+    };
+  }
+
+  const step1Fail = simulateSetupCompletion({ authUpdateError: new Error('Weak password or Auth down') });
+  assert(!step1Fail.success, 'Fails when Supabase Auth password update fails');
+  assert(!step1Fail.authPasswordUpdated, 'Auth password was not updated on error');
+  assert(!step1Fail.metaUpdated, 'Onboarding metadata is NOT marked complete when password update fails');
+  assert(!step1Fail.dbUpdated, 'Database profile is NOT marked complete when password update fails');
+
+  const step2Fail = simulateSetupCompletion({ metaUpdateError: new Error('Internal GoTrue error') });
+  assert(!step2Fail.success, 'Fails when Auth metadata sync fails');
+  assert(step2Fail.authPasswordUpdated, 'Password update occurred before metadata failure');
+  assert(!step2Fail.metaUpdated, 'Metadata remains unconfirmed on error');
+  assert(!step2Fail.dbUpdated, 'Database profile not updated when metadata sync fails');
+  assert(Boolean(step2Fail.error?.includes('synchronize onboarding metadata')), 'Returns truthful error for metadata sync failure');
+
+  const step3Fail = simulateSetupCompletion({ dbUpdateError: new Error('Permission denied') });
+  assert(!step3Fail.success, 'Fails when database profile update fails');
+  assert(step3Fail.authPasswordUpdated && step3Fail.metaUpdated && !step3Fail.dbUpdated, 'Reports failure accurately without falsely claiming complete success');
+  assert(Boolean(step3Fail.error?.includes('record profile status')), 'Returns truthful error for database profile failure');
+
+  const allSuccess = simulateSetupCompletion({});
+  assert(allSuccess.success, 'Reports success when all steps complete');
+  assert(allSuccess.authPasswordUpdated && allSuccess.metaUpdated && allSuccess.dbUpdated, 'Marks both stores complete only after password update succeeds');
+  assert(allSuccess.redirectTo === '/admin', 'Directs admin to /admin workspace upon completion');
+
+  // 13. Password Visibility Toggles Functionality
+  console.log('\n[Suite 13: Password Visibility Toggles Functionality]');
+  class PasswordVisibilityModel {
+    showPassword = false;
+    showConfirmPassword = false;
+    password = 'InitialSecretPass123!';
+    confirmPassword = 'InitialSecretPass123!';
+
+    togglePassword() {
+      this.showPassword = !this.showPassword;
+    }
+
+    toggleConfirmPassword() {
+      this.showConfirmPassword = !this.showConfirmPassword;
+    }
+
+    getPasswordType() {
+      return this.showPassword ? 'text' : 'password';
+    }
+
+    getConfirmPasswordType() {
+      return this.showConfirmPassword ? 'text' : 'password';
+    }
+
+    getPasswordAriaLabel() {
+      return this.showPassword ? 'Hide password' : 'Show password';
+    }
+
+    getConfirmPasswordAriaLabel() {
+      return this.showConfirmPassword ? 'Hide password' : 'Show password';
+    }
+  }
+
+  const model = new PasswordVisibilityModel();
+  assert(model.getPasswordType() === 'password', 'New password initial state is type=password');
+  assert(model.getConfirmPasswordType() === 'password', 'Confirm password initial state is type=password');
+  assert(model.getPasswordAriaLabel() === 'Show password', 'Accessible label initially Show password');
+
+  model.togglePassword();
+  assert(model.getPasswordType() === 'text', 'Clicking new password toggle switches to type=text');
+  assert(model.getConfirmPasswordType() === 'password', 'Confirm password remains type=password (independent toggles)');
+  assert(model.password === 'InitialSecretPass123!', 'Field value preserved during toggle');
+  assert(model.getPasswordAriaLabel() === 'Hide password', 'Accessible label switches to Hide password');
+
+  model.toggleConfirmPassword();
+  assert(model.getConfirmPasswordType() === 'text', 'Clicking confirm password toggle switches to type=text');
+  assert(model.confirmPassword === 'InitialSecretPass123!', 'Confirm field value preserved during toggle');
+
+  model.togglePassword();
+  assert(model.getPasswordType() === 'password', 'Toggling new password again returns to type=password');
+  assert(model.getConfirmPasswordType() === 'text', 'Confirm password remains type=text');
+
+  // 14. Normal Admin Login and Authorization Continuity
+  console.log('\n[Suite 14: Normal Admin Login & Authorization Continuity]');
+  function routeAdminAfterLogin(
+    admin: { is_active: boolean; is_super_admin: boolean; must_change_password: boolean },
+    appMeta: { must_change_password?: boolean },
+    safeRedirect?: string | null
+  ): { destination: string; allowed: boolean } {
+    if (!admin.is_active) {
+      return { destination: '/login', allowed: false };
+    }
+
+    const mustChange = !admin.is_super_admin && Boolean(
+      admin.must_change_password || appMeta.must_change_password
+    );
+
+    if (mustChange) {
+      return { destination: '/auth/complete-setup', allowed: true };
+    }
+
+    if (safeRedirect && !safeRedirect.startsWith('/login') && !safeRedirect.startsWith('/auth/complete-setup')) {
+      return { destination: safeRedirect, allowed: true };
+    }
+
+    return { destination: '/admin', allowed: true };
+  }
+
+  const completedAdminLogin = routeAdminAfterLogin(
+    { is_active: true, is_super_admin: false, must_change_password: false },
+    { must_change_password: false }
+  );
+  assert(completedAdminLogin.destination === '/admin', 'Completed admin logs in and routes to /admin');
+
+  const completedAdminRedirect = routeAdminAfterLogin(
+    { is_active: true, is_super_admin: false, must_change_password: false },
+    { must_change_password: false },
+    '/admin/hackathons'
+  );
+  assert(completedAdminRedirect.destination === '/admin/hackathons', 'Completed admin preserves deep return path');
+
+  const pendingAdminLogin = routeAdminAfterLogin(
+    { is_active: true, is_super_admin: false, must_change_password: true },
+    { must_change_password: true },
+    '/admin/hackathons'
+  );
+  assert(pendingAdminLogin.destination === '/auth/complete-setup', 'Pending admin is forced to /auth/complete-setup even if deep redirect requested');
+
+  const deactivatedAdminLogin = routeAdminAfterLogin(
+    { is_active: false, is_super_admin: false, must_change_password: false },
+    { must_change_password: false }
+  );
+  assert(!deactivatedAdminLogin.allowed && deactivatedAdminLogin.destination === '/login', 'Deactivated admin is rejected from platform');
 
   console.log(`\n=== Results: ${passed} / ${total} unit tests passed ===`);
   if (passed !== total) {
