@@ -68,30 +68,22 @@ export function generateSecureTemporaryPassword(length = 24): string {
 }
 
 /**
- * TEMPORARY DEVELOPMENT-ONLY ONBOARDING WORKAROUND:
- * Used exclusively when Resend is unverified/restricted to sandbox recipients in local development.
- * MUST NEVER be used in production.
+ * DEPRECATED STATIC FALLBACK (Retained solely for permanent password blacklist checks):
+ * MUST NEVER be provisioned or assigned to any administrator.
+ * Used exclusively to prevent users from setting this former fallback as their permanent password.
  */
 export const DEV_ADMIN_TEMP_PASSWORD_FALLBACK = 'Hackleague@nmit';
 
 /**
- * Returns the initial password for newly provisioned administrators.
- * In development, returns the temporary static password 'Hackleague@nmit'.
- * In production (NODE_ENV === 'production'), strictly returns a high-entropy 24-character cryptographic password.
- *
- * @param env Optional environment override for test suites
+ * Returns the initial temporary password for newly provisioned administrators.
+ * Always generates a unique, cryptographically secure 24-character random password
+ * (>146 bits of entropy) on the server across all environments.
+ * Static password fallbacks are strictly prohibited.
  */
-export function getInitialAdminProvisioningPassword(env: string | undefined = process.env.NODE_ENV): {
+export function getInitialAdminProvisioningPassword(): {
   password: string;
   isDevFallback: boolean;
 } {
-  const isDevFallback = env !== 'production';
-  if (isDevFallback) {
-    return {
-      password: DEV_ADMIN_TEMP_PASSWORD_FALLBACK,
-      isDevFallback: true,
-    };
-  }
   return {
     password: generateSecureTemporaryPassword(24),
     isDevFallback: false,

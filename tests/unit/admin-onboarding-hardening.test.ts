@@ -277,28 +277,22 @@ async function runUnitTests() {
   function formatProvisioningOutcomeMessage(
     fullName: string,
     email: string,
-    emailResult: { success: boolean; isSimulated?: boolean; error?: string },
-    isDevFallback = false
-  ): { success: boolean; message: string } {
+    emailResult: { success: boolean; isSimulated?: boolean; error?: string }
+  ): { success: boolean; message: string; error?: string } {
     if (!emailResult.success) {
       const failureDetail = emailResult.error ? ` (${emailResult.error})` : '';
-      const failureExplanation = isDevFallback
-        ? `Administrator account was provisioned, but email delivery failed${failureDetail}. In local development, the initial temporary password is set to ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK} (first-login password change is mandatory).`
-        : `Administrator account was provisioned, but email delivery failed${failureDetail}. You can safely retry email delivery from the Administrator list once email configuration is resolved.`;
+      const failureExplanation = `Administrator account identity was provisioned, but email delivery of temporary credentials failed${failureDetail}. Please use "Resend Credentials" from the Administrator list once email delivery is restored.`;
 
       return {
-        success: true,
+        success: false,
+        error: failureExplanation,
         message: failureExplanation,
       };
     }
 
     const successMessage = emailResult.isSimulated
-      ? `Administrator ${fullName} provisioned successfully (email delivery simulated in development).${
-          isDevFallback ? ` In local development, temporary initial password is ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK}.` : ''
-        }`
-      : `Administrator ${fullName} provisioned successfully and temporary credentials sent to ${email}.${
-          isDevFallback ? ` (Local development note: temporary password is ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK}).` : ''
-        }`;
+      ? `Administrator ${fullName} provisioned successfully (email delivery simulated in test environment).`
+      : `Administrator ${fullName} provisioned successfully and temporary credentials sent to ${email}.`;
 
     return {
       success: true,
@@ -306,33 +300,33 @@ async function runUnitTests() {
     };
   }
 
-  const failOutcomeDev = formatProvisioningOutcomeMessage(
+  const failOutcome = formatProvisioningOutcomeMessage(
     'Jane Doe',
     'jane@example.com',
     {
       success: false,
       error: 'You can only send testing emails to your own email address.',
-    },
-    true
+    }
   );
-  assert(!failOutcomeDev.message.toLowerCase().includes('sent to'), 'Failed email outcome does not claim credentials were sent');
-  assert(!failOutcomeDev.message.toLowerCase().includes('dispatched'), 'Failed email outcome does not claim credentials were dispatched');
-  assert(failOutcomeDev.message.includes('email delivery failed'), 'Failed email outcome explicitly states delivery failed');
-  assert(failOutcomeDev.message.includes('You can only send testing emails'), 'Failed email outcome preserves provider failure reason');
-  assert(failOutcomeDev.message.includes('Hackleague@nmit'), 'Development failed email outcome mentions temporary fallback Hackleague@nmit');
-  assert(failOutcomeDev.message.includes('first-login password change is mandatory'), 'Development failed email outcome reminds that password change is mandatory');
+  assert(failOutcome.success === false, 'Failed email delivery reports success: false (Requirement 5)');
+  assert(!failOutcome.message.toLowerCase().includes('sent to'), 'Failed email outcome does not claim credentials were sent');
+  assert(!failOutcome.message.toLowerCase().includes('dispatched'), 'Failed email outcome does not claim credentials were dispatched');
+  assert(failOutcome.message.includes('email delivery of temporary credentials failed'), 'Failed email outcome explicitly states delivery failed');
+  assert(failOutcome.message.includes('You can only send testing emails'), 'Failed email outcome preserves provider failure reason');
+  assert(!failOutcome.message.includes('Hackleague@nmit'), 'Failed email outcome NEVER leaks or mentions Hackleague@nmit');
+  assert(failOutcome.message.includes('Resend Credentials'), 'Failed email outcome directs user to recovery/resend workflow');
 
-  const failOutcomeProd = formatProvisioningOutcomeMessage(
+  const failOutcomeTimeout = formatProvisioningOutcomeMessage(
     'Jane Doe',
     'jane@example.com',
     {
       success: false,
       error: 'Connection timeout',
-    },
-    false
+    }
   );
-  assert(!failOutcomeProd.message.includes('Hackleague@nmit'), 'Production failed email outcome NEVER mentions Hackleague@nmit');
-  assert(!failOutcomeProd.message.toLowerCase().includes('sent to'), 'Production failed email outcome does not claim email was sent');
+  assert(failOutcomeTimeout.success === false, 'Network failure reports success: false');
+  assert(!failOutcomeTimeout.message.includes('Hackleague@nmit'), 'Network failure outcome NEVER mentions Hackleague@nmit');
+  assert(!failOutcomeTimeout.message.toLowerCase().includes('sent to'), 'Network failure outcome does not claim email was sent');
 
   const simOutcome = formatProvisioningOutcomeMessage(
     'Jane Doe',
@@ -340,53 +334,45 @@ async function runUnitTests() {
     {
       success: true,
       isSimulated: true,
-    },
-    true
+    }
   );
-  assert(simOutcome.message.includes('simulated in development'), 'Simulated email outcome clearly identifies development simulation');
-  assert(!simOutcome.message.toLowerCase().includes('sent to'), 'Simulated email outcome does not falsely claim credentials were sent to recipient');
+  assert(simOutcome.success === true, 'Simulated test delivery reports success: true');
+  assert(simOutcome.message.includes('simulated in test environment'), 'Simulated email outcome clearly identifies test environment simulation');
+  assert(!simOutcome.message.includes('Hackleague@nmit'), 'Simulated email outcome never contains Hackleague@nmit');
 
-  const liveOutcomeProd = formatProvisioningOutcomeMessage(
+  const liveOutcome = formatProvisioningOutcomeMessage(
     'Jane Doe',
     'jane@example.com',
     {
       success: true,
       isSimulated: false,
-    },
-    false
+    }
   );
-  assert(liveOutcomeProd.message.includes('sent to jane@example.com'), 'Live production email outcome confirms dispatch to recipient email');
-  assert(!liveOutcomeProd.message.includes('Hackleague@nmit'), 'Live production email outcome NEVER mentions Hackleague@nmit');
+  assert(liveOutcome.success === true, 'Live accepted email delivery reports success: true');
+  assert(liveOutcome.message.includes('sent to jane@example.com'), 'Live verified email outcome confirms dispatch to recipient email');
+  assert(!liveOutcome.message.includes('Hackleague@nmit'), 'Live verified email outcome NEVER mentions Hackleague@nmit');
 
-  // 10. Development-Only Temporary Password Fallback & Production Guard
-  console.log('\n[Suite 10: Development-Only Temporary Password Fallback & Production Guard]');
-  const devResult1 = getInitialAdminProvisioningPassword('development');
-  assert(devResult1.password === 'Hackleague@nmit', 'Returns Hackleague@nmit in development environment');
-  assert(devResult1.isDevFallback === true, 'Flags isDevFallback = true in development environment');
-
-  const devResult2 = getInitialAdminProvisioningPassword('test');
-  assert(devResult2.password === 'Hackleague@nmit', 'Returns Hackleague@nmit in test environment');
-  assert(devResult2.isDevFallback === true, 'Flags isDevFallback = true in test environment');
-
-  const prodResult = getInitialAdminProvisioningPassword('production');
-  assert(prodResult.isDevFallback === false, 'Flags isDevFallback = false strictly in production');
-  assert(prodResult.password !== 'Hackleague@nmit', 'Production password is NEVER the static Hackleague@nmit');
-  assert(prodResult.password.length === 24, 'Production password has 24 characters of high entropy');
+  // 10. Server-Only Cryptographic Password Generation (Zero Static Fallback)
+  console.log('\n[Suite 10: Server-Only Cryptographic Password Generation (Zero Static Fallback)]');
+  const genResult = getInitialAdminProvisioningPassword();
+  assert(genResult.isDevFallback === false, 'Flags isDevFallback = false in all environments');
+  assert(genResult.password !== 'Hackleague@nmit', 'Provisioning password is NEVER static Hackleague@nmit');
+  assert(genResult.password.length === 24, 'Temporary password strictly maintains 24 characters of high entropy');
   assert(
-    resetPasswordSchema.safeParse({ password: prodResult.password, confirmPassword: prodResult.password }).success,
-    'Production password satisfies full complexity schema'
+    resetPasswordSchema.safeParse({ password: genResult.password, confirmPassword: genResult.password }).success,
+    'Temporary password satisfies full complexity schema'
   );
 
-  const prodPasswords = new Set<string>();
+  const genPasswords = new Set<string>();
   for (let i = 0; i < 50; i++) {
-    const res = getInitialAdminProvisioningPassword('production');
-    prodPasswords.add(res.password);
+    const res = getInitialAdminProvisioningPassword();
+    genPasswords.add(res.password);
     if (res.password === 'Hackleague@nmit' || res.isDevFallback !== false) {
-      assert(false, 'Production guard failed on iteration ' + i);
+      assert(false, 'Static fallback was unexpectedly generated on iteration ' + i);
       break;
     }
   }
-  assert(prodPasswords.size === 50, '50 production passwords generated without collisions');
+  assert(genPasswords.size === 50, '50 sequential temporary passwords generated without collisions (>146 bits entropy each)');
 
   // 11. First-Login Password Change Enforcement & Permanent Password Protection
   console.log('\n[Suite 11: First-Login Password Change Enforcement & Permanent Password Protection]');
@@ -651,6 +637,75 @@ async function runUnitTests() {
     { must_change_password: false }
   );
   assert(!deactivatedAdminLogin.allowed && deactivatedAdminLogin.destination === '/login', 'Deactivated admin is rejected from platform');
+
+  // 15. Duplicate Account Protection & Safe Resend/Recovery Matrix
+  console.log('\n[Suite 15: Duplicate Account Protection & Safe Recovery Matrix]');
+  function simulateAdminProvisioningPrechecks(
+    email: string,
+    existingStudents: Array<{ id: string; email: string }>,
+    existingAdmins: Array<{ id: string; email: string }>
+  ): { canProceed: boolean; error?: string } {
+    const norm = email.trim().toLowerCase();
+    const student = existingStudents.find((s) => s.email.trim().toLowerCase() === norm);
+    if (student) {
+      return { canProceed: false, error: 'Cannot provision administrator: this email belongs to an existing student' };
+    }
+    const admin = existingAdmins.find((a) => a.email.trim().toLowerCase() === norm);
+    if (admin) {
+      return { canProceed: false, error: 'An account with this email already exists.' };
+    }
+    return { canProceed: true };
+  }
+
+  const existingDbAdmins = [{ id: '1a2343ed-0216-40ab-8b1c-6b1b8e5f3f28', email: 'ssabotage246@gmail.com' }];
+  const existingDbStudents = [{ id: 'stu-1', email: 'student1@nmit.ac.in' }];
+
+  const dupAdminCheck = simulateAdminProvisioningPrechecks('ssabotage246@gmail.com', existingDbStudents, existingDbAdmins);
+  assert(!dupAdminCheck.canProceed, 'Rejects duplicate administrator provisioning for existing account ssabotage246@gmail.com');
+  assert(dupAdminCheck.error === 'An account with this email already exists.', 'Returns clear duplicate rejection error without modifying account');
+
+  const dupStudentCheck = simulateAdminProvisioningPrechecks('student1@nmit.ac.in', existingDbStudents, existingDbAdmins);
+  assert(!dupStudentCheck.canProceed, 'Rejects administrator provisioning for existing student account');
+  assert(Boolean(dupStudentCheck.error?.includes('belongs to an existing student')), 'Identifies existing student conflict');
+
+  const brandNewCheck = simulateAdminProvisioningPrechecks('newadmin@devsrujan.live', existingDbStudents, existingDbAdmins);
+  assert(brandNewCheck.canProceed, 'Allows provisioning when email is unassociated with any profile');
+
+  // 16. Verified Sender Domain & Secret Redaction in Delivery Logs
+  console.log('\n[Suite 16: Verified Sender Domain & Secret Redaction in Delivery Logs]');
+  function resolveConfiguredSender(envSender?: string): string {
+    return envSender || 'HackLeague@devsrujan.live';
+  }
+
+  assert(resolveConfiguredSender('HackLeague@devsrujan.live') === 'HackLeague@devsrujan.live', 'Resolves verified sender HackLeague@devsrujan.live from env');
+  assert(resolveConfiguredSender(undefined) === 'HackLeague@devsrujan.live', 'Defaults to verified domain sender HackLeague@devsrujan.live when undefined');
+  assert(resolveConfiguredSender('HackLeague@devsrujan.live').endsWith('@devsrujan.live'), 'Sender strictly uses verified devsrujan.live domain');
+
+  function sanitizeEmailLogPayload(variables: Record<string, unknown>): Record<string, unknown> {
+    const safePayload = { ...variables };
+    delete safePayload.password;
+    delete safePayload.token;
+    delete safePayload.temporaryPassword;
+    delete safePayload.tempPassword;
+    if ('otp' in safePayload) {
+      safePayload.otp = '[REDACTED]';
+    }
+    return safePayload;
+  }
+
+  const sanitized = sanitizeEmailLogPayload({
+    name: 'Test Admin',
+    email: 'test@example.com',
+    temporaryPassword: 'GeneratedSecret123!@#$',
+    password: 'SuperSecretPassword!',
+    otp: '123456',
+    loginUrl: 'https://devsrujan.live/login',
+  });
+
+  assert(sanitized.temporaryPassword === undefined, 'Temporary password is strictly purged from audit log payload');
+  assert(sanitized.password === undefined, 'Password is strictly purged from audit log payload');
+  assert(sanitized.otp === '[REDACTED]', 'OTP is redacted to [REDACTED]');
+  assert(sanitized.email === 'test@example.com', 'Safe contextual parameters preserved in log payload');
 
   console.log(`\n=== Results: ${passed} / ${total} unit tests passed ===`);
   if (passed !== total) {

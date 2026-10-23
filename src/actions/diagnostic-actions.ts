@@ -39,7 +39,7 @@ export async function sendResendDiagnosticEmailAction(): Promise<DiagnosticEmail
   // 3. Fixed Parameters (no client input accepted)
   const targetRecipient = 'ssrujan246@gmail.com';
   const apiKey = process.env.RESEND_API_KEY;
-  const fromSender = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const fromSender = process.env.RESEND_FROM_EMAIL || 'HackLeague@devsrujan.live';
 
   if (!apiKey || !apiKey.startsWith('re_')) {
     return {

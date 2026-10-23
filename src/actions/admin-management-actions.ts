@@ -7,7 +7,6 @@ import { checkRateLimit } from '@/lib/auth/rate-limiter';
 import {
   generateSecureTemporaryPassword,
   getInitialAdminProvisioningPassword,
-  DEV_ADMIN_TEMP_PASSWORD_FALLBACK,
 } from '@/lib/auth/password-generator';
 import { sendTransactionalEmail } from '@/lib/email/resend-service';
 import { headers } from 'next/headers';
@@ -234,8 +233,8 @@ export async function createAdminAction(
     };
   }
 
-  // 5. Temporary development fallback ('Hackleague@nmit') or secure cryptographic password
-  const { password: tempPassword, isDevFallback } = getInitialAdminProvisioningPassword();
+  // 5. Generate unique, cryptographically secure temporary password (24 characters, >146 bits entropy)
+  const { password: tempPassword } = getInitialAdminProvisioningPassword();
   const onboardingExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   // 6. Check if user already exists in GoTrue (e.g. from an interrupted prior attempt)
@@ -421,18 +420,35 @@ export async function createAdminAction(
     // Ignore if column not present
   }
 
+  // Record email delivery outcome in audit log (without secrets)
+  try {
+    await supabase.from('audit_logs').insert({
+      actor_id: callerSuperAdmin.user.id,
+      actor_role: 'super_admin',
+      action: emailResult.success ? 'admin.onboarding_dispatched' : 'admin.onboarding_email_failed',
+      target_type: 'admin_profile',
+      target_id: targetAuthUid,
+      details: {
+        email,
+        email_delivery_status: finalStatus,
+        dispatched_at: new Date().toISOString(),
+        ...(emailResult.error ? { error: emailResult.error } : {}),
+      },
+    });
+  } catch {
+    // Non-blocking
+  }
+
   if (!emailResult.success) {
     console.warn('[ADMIN_ONBOARDING_EMAIL_FAILED]', {
       email,
       error: emailResult.error,
     });
     const failureDetail = emailResult.error ? ` (${emailResult.error})` : '';
-    const failureExplanation = isDevFallback
-      ? `Administrator account was provisioned, but email delivery failed${failureDetail}. In local development, the initial temporary password is set to ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK} (first-login password change is mandatory).`
-      : `Administrator account was provisioned, but email delivery failed${failureDetail}. You can safely retry email delivery from the Administrator list once email configuration is resolved.`;
+    const failureExplanation = `Administrator account identity was provisioned, but email delivery of temporary credentials failed${failureDetail}. Please use "Resend Credentials" from the Administrator list once email delivery is restored.`;
 
     return {
-      success: true,
+      success: false,
       error: failureExplanation,
       message: failureExplanation,
       data: { adminId: targetAuthUid },
@@ -440,12 +456,8 @@ export async function createAdminAction(
   }
 
   const successMessage = emailResult.isSimulated
-    ? `Administrator ${fullName} provisioned successfully (email delivery simulated in development).${
-        isDevFallback ? ` In local development, temporary initial password is ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK}.` : ''
-      }`
-    : `Administrator ${fullName} provisioned successfully and temporary credentials sent to ${email}.${
-        isDevFallback ? ` (Local development note: temporary password is ${DEV_ADMIN_TEMP_PASSWORD_FALLBACK}).` : ''
-      }`;
+    ? `Administrator ${fullName} provisioned successfully (email delivery simulated in test environment).`
+    : `Administrator ${fullName} provisioned successfully and temporary credentials sent to ${email}.`;
 
   return {
     success: true,

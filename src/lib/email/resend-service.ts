@@ -191,7 +191,7 @@ export async function sendTransactionalEmail(options: SendEmailOptions): Promise
   const htmlContent = renderTemplateHtml(template, variables);
   const apiKey = process.env.RESEND_API_KEY;
   const isConfigured = Boolean(apiKey && apiKey.startsWith('re_') && !apiKey.includes('placeholder') && !apiKey.includes('dummy'));
-  const senderEmail = process.env.RESEND_FROM_EMAIL || 'NMIT HackLeague <notifications@nmit.ac.in>';
+  const senderEmail = process.env.RESEND_FROM_EMAIL || 'HackLeague@devsrujan.live';
 
   // Reject unconfigured email service in production to avoid accidental simulation
   if (!isConfigured && process.env.NODE_ENV === 'production') {
