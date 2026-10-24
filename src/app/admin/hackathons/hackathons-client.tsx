@@ -13,6 +13,7 @@ import { RegistrationStateBadge } from '@/components/hackathons/registration-sta
 import { LifecycleConfirmDialog } from '@/components/hackathons/lifecycle-confirm-dialog';
 import { DeadlineOverrideDialog } from '@/components/hackathons/deadline-override-dialog';
 import { computeRegistrationState } from '@/lib/hackathons/registration-state';
+import { formatDate, formatTime, formatDateRange } from '@/lib/utils/date-format';
 import type { Hackathon, PersistedHackathonStatus, HackathonStatusFilter } from '@/types/hackathon';
 
 interface HackathonsClientProps {
@@ -237,30 +238,16 @@ export function HackathonsClient({ initialHackathons }: HackathonsClientProps) {
 
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="font-medium text-text-primary">
-                          {new Date(h.registration_end_at).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                          {formatDate(h.registration_end_at)}
                         </div>
                         <div className="text-[11px] text-text-secondary">
-                          {new Date(h.registration_end_at).toLocaleTimeString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {formatTime(h.registration_end_at)}
                         </div>
                       </td>
 
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="text-text-primary">
-                          {new Date(h.event_start_at).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                          })}{' '}
-                          &ndash;{' '}
-                          {new Date(h.event_end_at).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                          {formatDateRange(h.event_start_at, h.event_end_at)}
                         </div>
                       </td>
 

@@ -1,16 +1,16 @@
-# Graph Report - HackLeague  (2026-10-23)
+# Graph Report - HackLeague  (2026-10-24)
 
 ## Corpus Check
-- 264 files · ~449,643 words
+- 299 files · ~489,134 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2115 nodes · 4048 edges · 186 communities (173 shown, 13 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.5)
+- 2274 nodes · 4528 edges · 207 communities (190 shown, 17 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 5 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f134c2e5`
+- Built from commit: `7fcd5631`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,7 +30,7 @@
 - eslint.config.mjs
 - next.config.ts
 - postcss.config.mjs
-- card.tsx
+- hackathons-client.tsx
 - tailwind.config.ts
 - Table Definitions & Primary Columns
 - D.1 Color Token Architecture & Mathematically Verified Contrast Ratios
@@ -38,7 +38,7 @@
 - preview/layout.tsx
 - NMIT HackLeague — Phase 3 Implementation Plan
 - 19.1 Structured Validation Suites (10 Suites)
-- permissions.ts
+- admin-management.test.ts
 - 2. Stage A Corrections Implemented
 - 15.2 Parameterless Security Definer RLS Helper Definitions
 - F. Shell and Route Architecture
@@ -51,7 +51,7 @@
 - L. Graphify Update, Diff Inspection and Generated-File Safety
 - 12.1 Additive Ledger Rules & Milestone Points
 - A. Executive Summary
-- teams/queries.ts
+- push-service.ts
 - H. Official Branding Integration Specification
 - 10. Admin, Super Admin, and Permission Model
 - 14. Row-Level Security (RLS) Policy Matrix
@@ -115,11 +115,11 @@
 - 5. Confirmed Gaps & Proposed Changes
 - 8. Lifecycle State Machine & Complete Transition Specification
 - 9. Authoritative Registration-State & Deadline Contract
-- student-shell.tsx
-- server.ts
+- admin-shell.tsx
+- onboarding-actions.ts
 - PostgresSession
 - NMIT HackLeague --- Development Phases
-- button.tsx
+- admins-client.tsx
 - Phase 4 --- Authentication and student onboarding
 - Phase 5 --- Role-based authorization and admin management
 - Phase 6 --- Hackathon management
@@ -134,17 +134,17 @@
 - Phase 2 --- UI design system and page shells
 - Phase 3 --- Supabase setup and database design
 - upload-service.ts
-- auth.ts
+- guards.ts
 - NMIT HackLeague — Phase 9 Implementation Plan
 - dependencies
-- guards.ts
+- submissions/page.tsx
 - student-profile-and-dashboard.test.ts
-- package.json
+- scripts
 - E.3 Content, Status & Feedback Primitives
-- showcase/page.tsx
+- submissions-client.tsx
 - E.1 Actions: Button vs. Link Separation
-- hackathons-client.tsx
-- team-actions.ts
+- button.tsx
+- team-schemas.ts
 - profile-client.tsx
 - phase12-notifications-and-reliability.test.ts
 - NMIT HackLeague — Phase 12 Implementation Report: Notifications & Reliability
@@ -176,59 +176,80 @@
 - 1. Executive Summary & Audit Baseline
 - NMIT HackLeague — Phase 11 Implementation & Final Security Review Report
 - auth-actions.ts
-- createAdminClient
-- student/queries.ts
+- validatePushEndpoint
+- app/admin/page.tsx
 - report-actions.ts
 - round-submission-lifecycle.test.ts
 - phase13-e2e-and-launch-readiness.test.ts
 - profile-actions.ts
-- registration-state-badge.tsx
+- team-actions.ts
 - requireAdmin
 - export-schemas.ts
 - notification-actions.ts
-- resend
+- runUnitTests
 - tailwindcss
 - @types/react
-- round-submission-actions.ts
+- createAdminClient
 - database.ts
 - resend-service.ts
 - promptPassword
 - retention-worker-purging.test.ts
-- student/hackathons/page.tsx
+- permissions.ts
 - phase11-admin-analytics-and-exports.test.ts
-- callback/route.ts
-- brand-logo.tsx
-- eslint
-- rounds/page.tsx
+- rejected-client.tsx
+- server.ts
+- enable-push/page.tsx
+- button-link.tsx
+- profile-recovery.ts
+- auth.ts
+- admin-verification-actions.ts
+- profile-schemas.ts
+- app/student/page.tsx
+- team-formation-stage-c.test.ts
+- runStudentRegistrationOtpTests
+- test-backup-restoration.ts
+- registration-proof-service.ts
+- supabase/middleware.ts
+- student-live-verification.test.ts
+- recoverStudentProfile
+- verify/page.tsx
+- registration-proof-actions.ts
+- package.json
+- diagnose-resend.ts
+- skeleton.tsx
+- runProfilePhotoTests
+- server-only
+- @tailwindcss/postcss
+- forgotPasswordAction
 
 ## God Nodes (most connected - your core abstractions)
-1. `createClient()` - 166 edges
-2. `Button` - 47 edges
-3. `requireAdmin()` - 42 edges
-4. `Alert()` - 35 edges
-5. `Badge()` - 34 edges
-6. `createAdminClient()` - 33 edges
-7. `Card()` - 30 edges
-8. `NMIT HackLeague — Phase 3 Implementation Plan` - 30 edges
-9. `NMIT HackLeague — Phase 6 Implementation Plan` - 29 edges
-10. `CardHeader()` - 28 edges
+1. `createClient()` - 168 edges
+2. `Button` - 52 edges
+3. `requireAdmin()` - 50 edges
+4. `createAdminClient()` - 41 edges
+5. `Alert()` - 38 edges
+6. `Badge()` - 37 edges
+7. `Card()` - 32 edges
+8. `CardHeader()` - 30 edges
+9. `CardTitle()` - 30 edges
+10. `NMIT HackLeague — Phase 3 Implementation Plan` - 30 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `runTests()` --calls--> `testBackupRestoration()`  [EXTRACTED]
   tests/integration/phase12-notifications-and-reliability.test.ts → scripts/test-backup-restoration.ts
+- `runPhase13Suite()` --calls--> `testBackupRestoration()`  [EXTRACTED]
+  tests/integration/phase13-e2e-and-launch-readiness.test.ts → scripts/test-backup-restoration.ts
 - `runTests()` --calls--> `sendTransactionalEmail()`  [EXTRACTED]
   tests/integration/phase12-notifications-and-reliability.test.ts → src/lib/email/resend-service.ts
 - `runPhase13Suite()` --calls--> `sendTransactionalEmail()`  [EXTRACTED]
   tests/integration/phase13-e2e-and-launch-readiness.test.ts → src/lib/email/resend-service.ts
 - `runHackathonManagementTests()` --calls--> `computeRegistrationState()`  [EXTRACTED]
   tests/integration/hackathon-management.test.ts → src/lib/hackathons/registration-state.ts
-- `runPhase13Suite()` --calls--> `validatePushEndpoint()`  [EXTRACTED]
-  tests/integration/phase13-e2e-and-launch-readiness.test.ts → src/lib/notifications/endpoint-validator.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (186 total, 13 thin omitted)
+## Communities (207 total, 17 thin omitted)
 
 ### Community 0 - "NMIT HackLeague --- Development Phases"
 Cohesion: 0.04
@@ -248,7 +269,7 @@ Nodes (27): dom, dom.iterable, esnext, .next/dev/types/**/*.ts, next-env.d.ts, .
 
 ### Community 4 - "devDependencies"
 Cohesion: 0.12
-Nodes (17): eslint-config-next, devDependencies, eslint-config-next, postcss, @tailwindcss/postcss, tsx, @types/jszip, @types/node (+9 more)
+Nodes (17): eslint, eslint-config-next, devDependencies, eslint, eslint-config-next, postcss, tsx, @types/jszip (+9 more)
 
 ### Community 5 - "NMIT HackLeague — Phase 3 Implementation Report"
 Cohesion: 0.11
@@ -267,16 +288,16 @@ Cohesion: 0.17
 Nodes (11): C. Requirements Traceability Matrix, Explicitly Out of Scope for Phase 2 (Deferred to Later Phases):, G. File-by-File Implementation Manifest, In Scope for Phase 2:, J. Acceptance Criteria, M. Risks, Dependencies, and Mitigations, N. Strict Scope Boundaries, NMIT HackLeague — Phase 2 Implementation Plan (+3 more)
 
 ### Community 9 - "hackathon.ts"
-Cohesion: 0.12
-Nodes (20): generateMetadata(), StudentEventDetailPageProps, StudentHackathonsClientProps, EventCardProps, RoundConfigFormProps, computeEventTimingState(), EventTimingState, HackathonInsert (+12 more)
+Cohesion: 0.05
+Nodes (65): HackathonsClientProps, metadata, StudentHackathonsPage(), generateMetadata(), StudentEventDetailPage(), StudentEventDetailPageProps, StudentHackathonsClient(), StudentHackathonsClientProps (+57 more)
 
 ### Community 10 - "E. Component Inventory, API Contracts & Server/Client Boundaries"
 Cohesion: 0.20
 Nodes (10): 1. `BrandLogo` (`src/components/ui/brand-logo.tsx`), 1. `Dialog` (`src/components/ui/dialog.tsx`), 1. `Input` (`src/components/ui/input.tsx`), 2. `Textarea` (`src/components/ui/textarea.tsx`), 3. `Select` (`src/components/ui/select.tsx`), 4. `Checkbox` (`src/components/ui/checkbox.tsx`), E.2 Form Controls & Field Primitives, E.4 Dialog Primitive: Native HTML `<dialog>` Implementation (+2 more)
 
-### Community 15 - "card.tsx"
-Cohesion: 0.15
-Nodes (27): AuditLogItem, AuditLogsClientProps, metadata, metadata, EventCard(), BreadcrumbItem, PageHeader(), PageHeaderProps (+19 more)
+### Community 15 - "hackathons-client.tsx"
+Cohesion: 0.14
+Nodes (24): uploadRegistrationProofAction(), HackathonsClient(), StudentPointsClient(), TeamManageClient(), EventCard(), EvidencePreviewModal(), EvidencePreviewModalProps, RoundInfo (+16 more)
 
 ### Community 17 - "Table Definitions & Primary Columns"
 Cohesion: 0.04
@@ -298,9 +319,9 @@ Nodes (22): 13. Audit-Record Model, 18.1 Deterministic Synthetic Auth Fixtures, 
 Cohesion: 0.17
 Nodes (12): 19.1 Structured Validation Suites (10 Suites), 19. Database, RLS, and Storage Test Plan, Suite 10: Migration Drift & Rerun Behavior (`TS-DFT`), Suite 1: Clean Migration Application & Reset (`TS-MIG`), Suite 2: Schema and Constraint Integrity (`TS-INT`), Suite 3: Row-Level Security & Privilege Boundaries (`TS-RLS`), Suite 4: `SECURITY DEFINER` Invocation Boundaries (`TS-SEC`), Suite 5: Super Admin Lifecycle and Disaster Recovery (`TS-ADM`) (+4 more)
 
-### Community 23 - "permissions.ts"
-Cohesion: 0.14
-Nodes (14): adminCreationSchema, adminPermissionKeySchema, adminPermissionsArraySchema, adminPermissionsUpdateSchema, adminReassignSchema, adminStatusSchema, CANONICAL_PERMISSIONS, PERMISSION_DEFINITIONS (+6 more)
+### Community 23 - "admin-management.test.ts"
+Cohesion: 0.22
+Nodes (7): adminCreationSchema, adminPermissionsUpdateSchema, adminStatusSchema, adminClient, client, envPath, runAdminManagementTests()
 
 ### Community 24 - "2. Stage A Corrections Implemented"
 Cohesion: 0.20
@@ -350,9 +371,9 @@ Nodes (4): 12.1 Additive Ledger Rules & Milestone Points, 12. Submission, Eviden
 Cohesion: 0.67
 Nodes (3): A.1 Purpose and Objective, A.2 Phase Scope Boundaries & Guarantees, A. Executive Summary
 
-### Community 36 - "teams/queries.ts"
-Cohesion: 0.18
-Nodes (15): HackathonsClient(), StudentEventDetailPage(), generateMetadata(), TeamManagePage(), TeamManagePageProps, TeamManageClient(), metadata, StudentTeamsPage() (+7 more)
+### Community 36 - "push-service.ts"
+Cohesion: 0.12
+Nodes (20): createVapidAuthHeader(), dispatchNotificationToUser(), encryptWebPushPayload(), hasActivePushSubscription(), PushDeliveryResult, PushPayload, SendPushOptions, sendWebPushNotification() (+12 more)
 
 ### Community 37 - "H. Official Branding Integration Specification"
 Cohesion: 0.67
@@ -379,8 +400,8 @@ Cohesion: 0.67
 Nodes (3): 8.1 Database Constraints vs. Application Logic, 8.2 Timestamp Standardization, 8. Constraint, Index, and Timestamp Strategy
 
 ### Community 43 - "submission-schemas.ts"
-Cohesion: 0.09
-Nodes (22): ReopenActionResult, ReviewRoundActionResult, WinnerPlacementActionResult, ALLOWED_EVIDENCE_EXTENSIONS, ALLOWED_EVIDENCE_MIME_TYPES, CANONICAL_ROUND_EVIDENCE_REGEX, canonicalEvidencePathSchema, GITHUB_REPO_REGEX (+14 more)
+Cohesion: 0.12
+Nodes (16): ALLOWED_EVIDENCE_EXTENSIONS, ALLOWED_EVIDENCE_MIME_TYPES, CANONICAL_ROUND_EVIDENCE_REGEX, canonicalEvidencePathSchema, GITHUB_REPO_REGEX, githubUrlSchema, liveDemoUrlSchema, MAX_EVIDENCE_IMAGE_SIZE (+8 more)
 
 ### Community 44 - "hackathon-management-actions.ts"
 Cohesion: 0.13
@@ -539,8 +560,8 @@ Cohesion: 0.13
 Nodes (14): 14. Permission Checks for Every Operation, 15. Audit Event Matrix, 17.1 Zod Validation Schemas (`src/lib/validation/hackathon-schemas.ts`), 17. Validation Rules & Error Handling, 18. PostgreSQL / pgTAP Test Matrix (Suite 13: `13_ts_hck_mgmt.sql`), 1. Document Metadata & Revision, 22. Dependencies & Cross-Phase Contracts, 23. Explicit Non-Goals (Strictly Out of Scope for Phase 6) (+6 more)
 
 ### Community 83 - "createClient"
-Cohesion: 0.08
-Nodes (36): configureRoundsAction(), createHackathonDraftAction(), overrideDeadlineAction(), overrideRoundScheduleAction(), pauseRoundAction(), resumeRoundAction(), setHackathonAcademicPeriodAction(), transitionLifecycleAction() (+28 more)
+Cohesion: 0.07
+Nodes (42): configureRoundsAction(), createHackathonDraftAction(), overrideDeadlineAction(), overrideRoundScheduleAction(), pauseRoundAction(), resumeRoundAction(), setHackathonAcademicPeriodAction(), transitionLifecycleAction() (+34 more)
 
 ### Community 84 - "13. Least-Privilege Public Discovery Architecture, Column Privacy & Access Reconciliation"
 Cohesion: 0.20
@@ -606,21 +627,21 @@ Nodes (3): 8.1 Distinct State Dimensions, 8.2 Complete Lifecycle Transition Matr
 Cohesion: 0.67
 Nodes (3): 9.1 Database-Evaluated Registration State Function, 9.2 TypeScript Shared Contract (`src/types/hackathon.ts`), 9. Authoritative Registration-State & Deadline Contract
 
-### Community 100 - "student-shell.tsx"
-Cohesion: 0.17
-Nodes (13): ResetPasswordPage(), AppHeader(), AppHeaderProps, isRouteActive(), NavItem, NavSection, SidebarNav(), SidebarNavProps (+5 more)
+### Community 100 - "admin-shell.tsx"
+Cohesion: 0.20
+Nodes (14): AppHeader(), isRouteActive(), NavItem, NavSection, SidebarNav(), SidebarNavProps, AdminShellProps, StudentShellProfile (+6 more)
 
-### Community 101 - "server.ts"
-Cohesion: 0.12
-Nodes (23): fetchPendingVerificationsAction(), getAdminCollegeIdPreviewUrlAction(), reviewProfileChangeRequestAction(), reviewStudentAction(), StudentProfile, ActionResult, getCollegeIdPreviewUrlAction(), replaceCollegeIdAction() (+15 more)
+### Community 101 - "onboarding-actions.ts"
+Cohesion: 0.32
+Nodes (10): replaceCollegeIdAction(), submitProfileForReviewAction(), uploadCollegeIdAction(), UploadFileInput, uploadProfilePhotoAction(), OnboardingClient(), OnboardingClientProps, Profile (+2 more)
 
 ### Community 103 - "NMIT HackLeague --- Development Phases"
 Cohesion: 0.25
 Nodes (7): GitHub branch policy summary, Mandatory rules before starting, New-requirements implementation map, NMIT HackLeague --- Development Phases, Open decisions and confirmations required, Revision strategy for completed phases, Standard workflow for every phase and revision
 
-### Community 104 - "button.tsx"
+### Community 104 - "admins-client.tsx"
 Cohesion: 0.13
-Nodes (25): AdminsClientProps, CreateAdminDialog(), CreateAdminDialogProps, DeactivateDialog(), DeactivateDialogProps, EditPermissionsDialog(), EditPermissionsDialogProps, EligibleAdmin (+17 more)
+Nodes (21): AdminsClientProps, CreateAdminDialog(), CreateAdminDialogProps, DeactivateDialog(), DeactivateDialogProps, EditPermissionsDialog(), EditPermissionsDialogProps, EligibleAdmin (+13 more)
 
 ### Community 105 - "Phase 4 --- Authentication and student onboarding"
 Cohesion: 0.50
@@ -675,12 +696,12 @@ Cohesion: 0.67
 Nodes (3): Completion criteria, Phase 3 --- Supabase setup and database design, Scope
 
 ### Community 119 - "upload-service.ts"
-Cohesion: 0.16
-Nodes (25): ALLOWED_DOCUMENT_TYPES, ALLOWED_EVIDENCE_TYPES, ALLOWED_IMAGE_TYPES, BinarySignatureInspection, BinaryValidationResult, generateCollegeIdStoragePath(), generateEvidenceStoragePath(), generateProfilePhotoStoragePath() (+17 more)
+Cohesion: 0.13
+Nodes (32): ALLOWED_DOCUMENT_TYPES, ALLOWED_EVIDENCE_TYPES, ALLOWED_IMAGE_TYPES, BinarySignatureInspection, BinaryValidationResult, generateCollegeIdStoragePath(), generateEvidenceStoragePath(), generateProfilePhotoStoragePath() (+24 more)
 
-### Community 120 - "auth.ts"
-Cohesion: 0.10
-Nodes (29): createAdminAction(), fetchAdminsAction(), fetchEligibleAdminsForReassignmentAction(), reassignHackathonInChargeAdminAction(), setAdminActiveStatusAction(), updateAdminPermissionsAction(), AdminsClient(), EditPermissionsForm() (+21 more)
+### Community 120 - "guards.ts"
+Cohesion: 0.18
+Nodes (20): createAdminAction(), fetchAdminsAction(), fetchEligibleAdminsForReassignmentAction(), getAppUrl(), reassignHackathonInChargeAdminAction(), retryAdminOnboardingAction(), setAdminActiveStatusAction(), updateAdminPermissionsAction() (+12 more)
 
 ### Community 121 - "NMIT HackLeague — Phase 9 Implementation Plan"
 Cohesion: 0.18
@@ -690,57 +711,57 @@ Nodes (10): 10. Inspection & Execution Statement, 8. Phased Implementation Roadm
 Cohesion: 0.11
 Nodes (19): exceljs, jszip, next, dependencies, exceljs, jszip, next, react (+11 more)
 
-### Community 123 - "guards.ts"
-Cohesion: 0.15
-Nodes (20): getAuditLogsAction(), GetAuditLogsParams, GetAuditLogsResult, AuditLogsClient(), AuditLogsPage(), metadata, metadata, SubmissionsPageProps (+12 more)
+### Community 123 - "submissions/page.tsx"
+Cohesion: 0.22
+Nodes (11): getAuditLogsAction(), GetAuditLogsParams, GetAuditLogsResult, AuditLogsClient(), AuditLogsPage(), metadata, HackathonSubmissionsPage(), metadata (+3 more)
 
 ### Community 124 - "student-profile-and-dashboard.test.ts"
-Cohesion: 0.16
-Nodes (17): EDITABLE_INSTITUTIONAL_FIELDS, EditableInstitutionalField, ProfileChangeRequestInput, profileChangeRequestSchema, ReviewProfileChangeRequestInput, reviewProfileChangeRequestSchema, UpdatePhoneInput, updatePhoneSchema (+9 more)
+Cohesion: 0.33
+Nodes (9): adminClient, assert(), createScopedAdmin(), createTestHackathonWithTeam(), createTestStudent(), envPath, getSuperAdminClient(), runPhase10IntegrationTests() (+1 more)
 
-### Community 125 - "package.json"
-Cohesion: 0.20
-Nodes (9): name, private, scripts, build, dev, lint, start, type-check (+1 more)
+### Community 125 - "scripts"
+Cohesion: 0.29
+Nodes (7): scripts, build, dev, dev:https, lint, start, type-check
 
 ### Community 126 - "E.3 Content, Status & Feedback Primitives"
 Cohesion: 0.29
 Nodes (7): 1. `Badge` (`src/components/ui/badge.tsx`), 2. `Card` (`src/components/ui/card.tsx`), 3. `Table` (`src/components/ui/table.tsx`), 4. `Alert` (`src/components/ui/alert.tsx`), 5. `EmptyState` (`src/components/ui/empty-state.tsx`), 6. `Skeleton` (`src/components/ui/skeleton.tsx`), E.3 Content, Status & Feedback Primitives
 
-### Community 127 - "showcase/page.tsx"
-Cohesion: 0.10
-Nodes (21): HackathonRoundInfo, ResultRow, ReviewInfo, SubmissionRow, SubmissionsClientProps, EvidencePreviewModal(), EvidencePreviewModalProps, ReopenActionDialog() (+13 more)
+### Community 127 - "submissions-client.tsx"
+Cohesion: 0.12
+Nodes (17): HackathonRoundInfo, ResultRow, ReviewInfo, SubmissionRow, SubmissionsClient(), SubmissionsClientProps, LifecycleConfirmDialog(), LifecycleConfirmDialogProps (+9 more)
 
 ### Community 128 - "E.1 Actions: Button vs. Link Separation"
 Cohesion: 0.40
 Nodes (5): 1. Shared Button Style Helper (`src/components/ui/button.tsx`), 2. `Button` Component (`src/components/ui/button.tsx`), 3. `ButtonLink` Component (`src/components/ui/button-link.tsx`), 4. `IconButton` (`src/components/ui/icon-button.tsx`), E.1 Actions: Button vs. Link Separation
 
-### Community 129 - "hackathons-client.tsx"
-Cohesion: 0.16
-Nodes (14): DeadlineOverrideDialog(), DeadlineOverrideDialogProps, DeadlineOverrideForm(), DeadlineOverrideFormProps, formatToLocalDatetime(), HackathonDeadlineInfo, LifecycleConfirmDialog(), LifecycleConfirmDialogProps (+6 more)
+### Community 129 - "button.tsx"
+Cohesion: 0.19
+Nodes (15): DeadlineOverrideDialog(), DeadlineOverrideDialogProps, DeadlineOverrideForm(), DeadlineOverrideFormProps, formatToLocalDatetime(), HackathonDeadlineInfo, EditableRound, CreateTeamDialogProps (+7 more)
 
-### Community 130 - "team-actions.ts"
-Cohesion: 0.06
-Nodes (57): ActionResult, createTeamAction(), getMyTeamsAction(), getRegistrationProofPreviewUrlAction(), getTeamDetailsAction(), joinTeamWithCodeAction(), leaveTeamAction(), lockTeamRosterAction() (+49 more)
+### Community 130 - "team-schemas.ts"
+Cohesion: 0.11
+Nodes (22): CreateTeamInput, invitationCodeSchema, JoinTeamInput, joinTeamSchema, LeaveTeamInput, LockTeamRosterInput, lockTeamRosterSchema, RegenerateInvitationCodeInput (+14 more)
 
 ### Community 131 - "profile-client.tsx"
-Cohesion: 0.17
-Nodes (20): ProfileChangesClient(), ProfileChangesClientProps, StudentProfile, VerificationsClientProps, metadata, metadata, StudentPointsClientProps, ParticipationHistoryCard() (+12 more)
+Cohesion: 0.15
+Nodes (32): StudentDetailView, StudentDirectoryItem, StudentDetailStandaloneClientProps, StudentDirectoryClientProps, ProfileChangesClient(), ProfileChangesClientProps, StudentProfile, VerificationsClientProps (+24 more)
 
 ### Community 132 - "phase12-notifications-and-reliability.test.ts"
-Cohesion: 0.21
-Nodes (12): getSystemHealthAction(), dynamic, GET(), checkSystemHealth(), adminClient, assert(), { checkSystemHealth }, envPath (+4 more)
+Cohesion: 0.23
+Nodes (11): dynamic, GET(), checkSystemHealth(), adminClient, assert(), { checkSystemHealth }, envPath, getSuperAdminClient() (+3 more)
 
 ### Community 133 - "NMIT HackLeague — Phase 12 Implementation Report: Notifications & Reliability"
 Cohesion: 0.13
 Nodes (14): 1. Executive Summary, 2.1 Table Schema Extensions, 2.2 Security Functions & Stored Procedures, 2. Database Schema & Migration Details, 3. Application Components & Integration, 4.1 Database pgTAP Test Suite, 4.2 TypeScript Integration Test Suite, 4.3 Database Backup & Restoration Automation (+6 more)
 
 ### Community 134 - "leaderboard-queries.ts"
-Cohesion: 0.20
-Nodes (11): AdminPointsClientProps, LeaderboardClientProps, AdjustPointsActionResult, LeaderboardEntry, LeaderboardFilters, LedgerEntry, MilestoneType, PointConfiguration (+3 more)
+Cohesion: 0.10
+Nodes (26): AdminPointsClientProps, AdminPointsPage(), metadata, LeaderboardClient(), LeaderboardClientProps, LeaderboardPage(), LeaderboardPageProps, metadata (+18 more)
 
 ### Community 135 - "teams-client.tsx"
 Cohesion: 0.24
-Nodes (8): StudentFilterTab, TeamsClientProps, CreateTeamDialog(), CreateTeamDialogProps, HackathonOption, JoinTeamDialog(), EmptyState(), EmptyStateProps
+Nodes (8): StudentFilterTab, TeamsClient(), TeamsClientProps, CreateTeamDialog(), HackathonOption, JoinTeamDialog(), EmptyState(), EmptyStateProps
 
 ### Community 136 - "6.4 Complete Lock-Order Audit & Qualified DAG Lock Hierarchy"
 Cohesion: 0.18
@@ -839,60 +860,64 @@ Cohesion: 0.15
 Nodes (12): 1. Executive Summary, 2. Environment & Initial State, 3. Files Created, Modified, and Preserved, 4. Key Security Fixes & Requirement Confirmations, 5. Verification Results, 6. Limitations & E2E Status, 7. Final Status, Created / Untracked Files (+4 more)
 
 ### Community 161 - "auth-actions.ts"
-Cohesion: 0.12
-Nodes (25): forgotPasswordAction(), getSafeRedirectUrl(), loginAction(), resendOtpAction(), resetPasswordAction(), signOutAction(), signupAction(), verifyOtpAction() (+17 more)
+Cohesion: 0.23
+Nodes (13): resetPasswordAction(), signOutAction(), ForgotPasswordInput, forgotPasswordSchema, LoginInput, loginSchema, ResetPasswordInput, resetPasswordSchema (+5 more)
 
-### Community 162 - "createAdminClient"
-Cohesion: 0.12
-Nodes (22): RFC-1918, POST(), StorageDeletionJob, POST(), ALLOWED_PUSH_DOMAINS, isAllowedPushDomain(), isPrivateOrReservedIp(), validatePushEndpoint() (+14 more)
+### Community 162 - "validatePushEndpoint"
+Cohesion: 0.18
+Nodes (14): RFC-1918, POST(), GET(), ALLOWED_PUSH_DOMAINS, isAllowedPushDomain(), isPrivateOrReservedIp(), validatePushEndpoint(), ValidationResult (+6 more)
 
-### Community 163 - "student/queries.ts"
-Cohesion: 0.24
-Nodes (16): StudentPortalPage(), StudentPointsPage(), metadata, StudentProfilePage(), ParticipationHistoryCardProps, ProfileClientProps, requireApprovedStudent(), getStudentPointsSummary() (+8 more)
+### Community 163 - "app/admin/page.tsx"
+Cohesion: 0.12
+Nodes (17): signupAction(), getAdminDashboardMetricsAction(), AdminDashboardClient(), emptySubscribe(), formatUpdatedTime(), AdminDashboardPage(), metadata, SignupPage() (+9 more)
 
 ### Community 164 - "report-actions.ts"
-Cohesion: 0.17
-Nodes (20): RFC-4180, AdminDashboardMetrics, exportReportAction(), ExportReportParams, ExportReportResult, AdminDashboardClientProps, ALL_DATASETS, ReportsClient() (+12 more)
+Cohesion: 0.16
+Nodes (19): RFC-4180, AdminDashboardMetrics, exportDataAction, exportReportAction(), ExportReportParams, ExportReportResult, AdminDashboardClientProps, ALL_DATASETS (+11 more)
 
 ### Community 165 - "round-submission-lifecycle.test.ts"
 Cohesion: 0.36
 Nodes (7): adminClient, assert(), createTestStudent(), envPath, getSuperAdminClient(), runLifecycleSuite(), serverOnlyPath
 
 ### Community 166 - "phase13-e2e-and-launch-readiness.test.ts"
-Cohesion: 0.17
-Nodes (14): BackupManifest, createDatabaseBackup(), RestorationTestReport, testBackupRestoration(), adminClient, assert(), { checkSystemHealth }, createAuthenticatedStudent() (+6 more)
+Cohesion: 0.24
+Nodes (10): adminClient, assert(), { checkSystemHealth }, createAuthenticatedStudent(), envPath, { GET: healthGet }, getSuperAdminClient(), runPhase13Suite() (+2 more)
 
 ### Community 167 - "profile-actions.ts"
-Cohesion: 0.20
-Nodes (13): cleanupAvatarStorage(), getProfilePhotoSignedUrlAction(), getStudentParticipationHistoryAction(), getStudentProfileChangeRequestsAction, getStudentProfileHistoryAction(), removeProfilePhotoAction(), reviewProfileChangeRequestAction, submitProfileChangeRequestAction (+5 more)
+Cohesion: 0.14
+Nodes (12): getProfilePhotoSignedUrlAction(), getStudentParticipationHistoryAction(), getStudentProfileChangeRequestsAction, getStudentProfileHistoryAction(), reviewProfileChangeRequestAction, reviewProfileCorrectionAction(), submitProfileChangeRequestAction, submitProfileCorrectionAction() (+4 more)
 
-### Community 168 - "registration-state-badge.tsx"
-Cohesion: 0.24
-Nodes (10): TeamManageClientProps, RegistrationStateBadge(), RegistrationStateBadgeProps, TeamStatusBanner(), TeamStatusBannerProps, getRegistrationStateDisplay(), HackathonRegistrationContext, StudentTeamSummary (+2 more)
+### Community 168 - "team-actions.ts"
+Cohesion: 0.16
+Nodes (20): ActionResult, createTeamAction(), getMyTeamsAction(), getRegistrationProofPreviewUrlAction(), getTeamDetailsAction(), joinTeamWithCodeAction(), leaveTeamAction(), lockTeamRosterAction() (+12 more)
 
 ### Community 169 - "requireAdmin"
-Cohesion: 0.11
-Nodes (25): reviewProfileCorrectionAction(), getAccessibleHackathonsForReportsAction(), getAdminDashboardMetricsAction(), AdminDashboardClient(), metadata, NewHackathonPage(), AdminHackathonsPage(), metadata (+17 more)
+Cohesion: 0.10
+Nodes (26): getAccessibleHackathonsForReportsAction(), ALLOWED_SORT_COLUMNS, getStudentDetailAction(), getStudentDirectoryAction(), StudentDetailCompetition, StudentDetailResult, StudentDirectoryParams, StudentDirectoryResult (+18 more)
 
 ### Community 170 - "export-schemas.ts"
-Cohesion: 0.18
-Nodes (10): EXPORT_DATASETS, EXPORT_FORMATS, ExportDataset, exportDatasetSchema, exportFiltersSchema, ExportFormat, exportFormatSchema, ExportRequestInput (+2 more)
+Cohesion: 0.20
+Nodes (9): EXPORT_DATASETS, EXPORT_FORMATS, ExportDataset, exportDatasetSchema, exportFiltersSchema, ExportFormat, exportFormatSchema, ExportRequestInput (+1 more)
 
 ### Community 171 - "notification-actions.ts"
-Cohesion: 0.13
-Nodes (16): DeliveryStats, getInAppNotificationsAction(), getNotificationDeliveryStatsAction(), InAppNotification, markNotificationReadAction(), publishAnnouncementAction(), PublishAnnouncementResult, publishDeadlineReminderAction() (+8 more)
+Cohesion: 0.14
+Nodes (18): DeliveryStats, getInAppNotificationsAction(), getNotificationDeliveryStatsAction(), getSystemHealthAction(), InAppNotification, markNotificationReadAction(), publishAnnouncementAction(), PublishAnnouncementResult (+10 more)
 
-### Community 175 - "round-submission-actions.ts"
-Cohesion: 0.23
-Nodes (14): getSignedEvidenceUrlAction(), GetSignedUrlActionResult, resubmitRoundMilestoneAction(), SubmitMilestoneActionResult, submitRoundMilestoneAction(), RoundMilestoneSubmissionCard(), inspectBinaryMagicBytes(), createSignedEvidencePreviewUrl() (+6 more)
+### Community 172 - "runUnitTests"
+Cohesion: 0.12
+Nodes (3): DEV_ADMIN_TEMP_PASSWORD_FALLBACK, runUnitTests(), serverOnlyPath
+
+### Community 175 - "createAdminClient"
+Cohesion: 0.17
+Nodes (18): getSignedEvidenceUrlAction(), GetSignedUrlActionResult, resubmitRoundMilestoneAction(), SubmitMilestoneActionResult, submitRoundMilestoneAction(), AdminNotificationsPage(), metadata, POST() (+10 more)
 
 ### Community 176 - "database.ts"
-Cohesion: 0.14
-Nodes (13): IMPORTANT: Do NOT use supabase.auth.getSession(). It is insecure on the server., updateSession(), config, middleware(), CompositeTypes, Constants, DatabaseWithoutInternals, DefaultSchema (+5 more)
+Cohesion: 0.22
+Nodes (8): CompositeTypes, Constants, DatabaseWithoutInternals, DefaultSchema, Enums, Tables, TablesInsert, TablesUpdate
 
 ### Community 177 - "resend-service.ts"
-Cohesion: 0.36
-Nodes (7): sendProfileDecisionEmailAction(), sendTeamInvitationEmailAction(), EmailDeliveryResult, EmailTemplateName, renderTemplateHtml(), SendEmailOptions, sendTransactionalEmail()
+Cohesion: 0.31
+Nodes (8): sendProfileDecisionEmailAction(), sendTeamInvitationEmailAction(), EmailDeliveryResult, EmailTemplateName, renderTemplateHtml(), SendEmailOptions, sendTransactionalEmail(), Json
 
 ### Community 178 - "promptPassword"
 Cohesion: 0.36
@@ -902,41 +927,105 @@ Nodes (8): envPath, main(), promptPassword(), cleanup(), onData(), onSigint(), o
 Cohesion: 0.28
 Nodes (8): adminClient, assert(), { createAdminClient }, createTestStudent(), envPath, { purgeOrphanedRoundEvidence }, runRetentionSuite(), serverOnlyPath
 
-### Community 180 - "student/hackathons/page.tsx"
-Cohesion: 0.22
-Nodes (7): metadata, StudentHackathonsPage(), StudentHackathonsClient(), metadata, formatDate(), StudentPointsClient(), StudentShell()
+### Community 180 - "permissions.ts"
+Cohesion: 0.17
+Nodes (14): adminPermissionKeySchema, adminPermissionsArraySchema, adminReassignSchema, CANONICAL_PERMISSIONS, PERMISSION_DEFINITIONS, PermissionDefinition, PERMISSIONS_LIST, updateSocialLinksSchema (+6 more)
 
 ### Community 181 - "phase11-admin-analytics-and-exports.test.ts"
-Cohesion: 0.32
-Nodes (7): exportDataAction, adminClient, assert(), envPath, getSuperAdminClient(), runTests(), serverOnlyPath
+Cohesion: 0.38
+Nodes (6): adminClient, assert(), envPath, getSuperAdminClient(), runTests(), serverOnlyPath
 
-### Community 183 - "brand-logo.tsx"
-Cohesion: 0.17
-Nodes (8): EnablePushContent(), PushGateState, HomePage(), metadata, PendingStatusPage(), SuspendedStatusPage(), BrandLogo(), BrandLogoProps
+### Community 182 - "rejected-client.tsx"
+Cohesion: 0.19
+Nodes (9): completeAdminSetupAction(), CompleteAdminSetupPage(), ResetPasswordPage(), RejectedStatusPage(), Profile, RejectedClient(), RejectedClientProps, createClient() (+1 more)
 
-### Community 185 - "rounds/page.tsx"
-Cohesion: 0.29
-Nodes (6): HackathonsClientProps, metadata, RoundsPageProps, RoundConfigForm(), toLocalDatetimeString(), Hackathon
+### Community 183 - "server.ts"
+Cohesion: 0.18
+Nodes (9): GET(), getSafeNextPath(), HomePage(), metadata, PendingStatusPage(), SuspendedStatusPage(), AppHeaderProps, BrandLogo() (+1 more)
+
+### Community 184 - "enable-push/page.tsx"
+Cohesion: 0.26
+Nodes (9): EnablePushContent(), handleEnablePush(), PushGateState, WebPushGateModalProps, detectPushCapabilities(), isSameApplicationServerKey(), PushCapabilityDetails, PushCapabilityStatus (+1 more)
+
+### Community 185 - "button-link.tsx"
+Cohesion: 0.25
+Nodes (10): ButtonProps, ButtonLink(), ButtonLinkProps, ButtonStyleOptions, getButtonClasses(), getContrastRatio(), getRelativeLuminance(), hexToRgb() (+2 more)
+
+### Community 186 - "profile-recovery.ts"
+Cohesion: 0.18
+Nodes (9): ProfileRecoveryResult, ProfileRow, UserLike, validateAndNormalizeStudentMetadata(), GENDERS, runStudentProfileRecoveryTests(), serverOnlyPath, UserLike (+1 more)
+
+### Community 187 - "auth.ts"
+Cohesion: 0.18
+Nodes (10): ActionResult, AdminCreationInput, AdminUpdateInput, ForgotPasswordInput, Gender, LoginInput, RegistrationStatus, ResetPasswordInput (+2 more)
+
+### Community 188 - "admin-verification-actions.ts"
+Cohesion: 0.24
+Nodes (9): fetchPendingVerificationsAction(), getAdminCollegeIdPreviewUrlAction(), reviewProfileChangeRequestAction(), reviewStudentAction(), StudentProfile, ActionResult, getCollegeIdPreviewUrlAction(), VerificationsClient() (+1 more)
+
+### Community 189 - "profile-schemas.ts"
+Cohesion: 0.20
+Nodes (9): EDITABLE_INSTITUTIONAL_FIELDS, EditableInstitutionalField, ProfileChangeRequestInput, profileChangeRequestSchema, ReviewProfileChangeRequestInput, reviewProfileChangeRequestSchema, UpdatePhoneInput, updatePhoneSchema (+1 more)
+
+### Community 190 - "app/student/page.tsx"
+Cohesion: 0.31
+Nodes (6): AuditLogItem, AuditLogsClientProps, metadata, BreadcrumbItem, PageHeader(), PageHeaderProps
+
+### Community 191 - "team-formation-stage-c.test.ts"
+Cohesion: 0.31
+Nodes (8): MANDATORY_CDC_DECLARATION_TEXT, adminClient, assert(), createTestHackathon(), createTestStudent(), envPath, runStageDIntegrationTests(), serverOnlyPath
+
+### Community 193 - "test-backup-restoration.ts"
+Cohesion: 0.47
+Nodes (4): BackupManifest, createDatabaseBackup(), RestorationTestReport, testBackupRestoration()
+
+### Community 194 - "registration-proof-service.ts"
+Cohesion: 0.47
+Nodes (5): generateRegistrationProofStoragePath(), executeThreeTierOrphanRecovery(), UnresolvedArtifact, UploadRegistrationProofResult, uploadRegistrationProofScreenshot()
+
+### Community 195 - "supabase/middleware.ts"
+Cohesion: 0.47
+Nodes (4): IMPORTANT: Do NOT use supabase.auth.getSession(). It is insecure on the server., updateSession(), config, middleware()
+
+### Community 196 - "student-live-verification.test.ts"
+Cohesion: 0.33
+Nodes (4): adminClient, client, env, envContent
+
+### Community 197 - "recoverStudentProfile"
+Cohesion: 0.40
+Nodes (5): getSafeRedirectUrl(), loginAction(), LoginCard(), OnboardingPage(), recoverStudentProfile()
+
+### Community 198 - "verify/page.tsx"
+Cohesion: 0.60
+Nodes (3): resendOtpAction(), verifyOtpAction(), VerifyContent()
+
+### Community 199 - "registration-proof-actions.ts"
+Cohesion: 0.40
+Nodes (4): MANDATORY_CDC_DECLARATION_TEXT, reviewRoundAdvancementAction(), submitRegistrationProofAction(), SubmitRegistrationProofResult
+
+### Community 200 - "package.json"
+Cohesion: 0.50
+Nodes (3): name, private, version
 
 ## Knowledge Gaps
-- **1090 isolated node(s):** `config`, `nextConfig`, `name`, `version`, `private` (+1085 more)
+- **1134 isolated node(s):** `config`, `nextConfig`, `name`, `version`, `private` (+1129 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **13 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createClient()` connect `createClient` to `team-actions.ts`, `phase12-notifications-and-reliability.test.ts`, `leaderboard-queries.ts`, `hackathon.ts`, `card.tsx`, `auth-actions.ts`, `createAdminClient`, `student/queries.ts`, `report-actions.ts`, `teams/queries.ts`, `profile-actions.ts`, `requireAdmin`, `notification-actions.ts`, `hackathon-management-actions.ts`, `submission-schemas.ts`, `round-submission-actions.ts`, `student/hackathons/page.tsx`, `callback/route.ts`, `brand-logo.tsx`, `rounds/page.tsx`, `server.ts`, `upload-service.ts`, `auth.ts`, `guards.ts`?**
-  _High betweenness centrality (0.066) - this node is a cross-community bridge._
-- **Why does `createAdminClient()` connect `createAdminClient` to `team-actions.ts`, `phase12-notifications-and-reliability.test.ts`, `profile-actions.ts`, `requireAdmin`, `notification-actions.ts`, `round-submission-actions.ts`, `resend-service.ts`, `retention-worker-purging.test.ts`, `auth.ts`?**
-  _High betweenness centrality (0.011) - this node is a cross-community bridge._
-- **Why does `Button` connect `button.tsx` to `hackathons-client.tsx`, `auth-actions.ts`, `profile-client.tsx`, `report-actions.ts`, `server.ts`, `teams-client.tsx`, `notification-actions.ts`, `card.tsx`, `showcase/page.tsx`?**
-  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **Why does `createClient()` connect `createClient` to `phase12-notifications-and-reliability.test.ts`, `leaderboard-queries.ts`, `hackathon.ts`, `auth-actions.ts`, `validatePushEndpoint`, `app/admin/page.tsx`, `report-actions.ts`, `profile-actions.ts`, `team-actions.ts`, `requireAdmin`, `notification-actions.ts`, `hackathon-management-actions.ts`, `createAdminClient`, `rejected-client.tsx`, `server.ts`, `admin-verification-actions.ts`, `app/student/page.tsx`, `registration-proof-service.ts`, `recoverStudentProfile`, `verify/page.tsx`, `registration-proof-actions.ts`, `forgotPasswordAction`, `onboarding-actions.ts`, `upload-service.ts`, `guards.ts`, `submissions/page.tsx`?**
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+- **Why does `createAdminClient()` connect `createAdminClient` to `auth-actions.ts`, `registration-proof-service.ts`, `app/admin/page.tsx`, `push-service.ts`, `recoverStudentProfile`, `phase12-notifications-and-reliability.test.ts`, `profile-actions.ts`, `requireAdmin`, `notification-actions.ts`, `resend-service.ts`, `retention-worker-purging.test.ts`, `rejected-client.tsx`, `guards.ts`, `profile-recovery.ts`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `config`, `nextConfig`, `name` to the rest of the system?**
-  _1090 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1134 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `NMIT HackLeague --- Development Phases` be split into smaller, more focused modules?**
   _Cohesion score 0.041666666666666664 - nodes in this community are weakly interconnected._
 - **Should `NMIT HackLeague --- Project Rules & Source of Truth` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `compilerOptions` be split into smaller, more focused modules?**
   _Cohesion score 0.07142857142857142 - nodes in this community are weakly interconnected._
+- **Should `devDependencies` be split into smaller, more focused modules?**
+  _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._

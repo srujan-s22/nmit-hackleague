@@ -11,6 +11,7 @@ import { InvitationCodeCard } from '@/components/teams/invitation-code-card';
 import { RegistrationProofCard } from '@/components/teams/registration-proof-card';
 import { RoundMilestoneSubmissionCard } from '@/components/submissions/round-milestone-submission-card';
 import { SubmissionVersionHistoryCard } from '@/components/submissions/submission-version-history-card';
+import { formatDateRange } from '@/lib/utils/date-format';
 import type { TeamDetails } from '@/lib/teams/queries';
 
 export interface TeamManageClientProps {
@@ -140,8 +141,7 @@ export function TeamManageClient({ initialTeam, currentUserId }: TeamManageClien
                 <div className="flex justify-between py-1 border-b border-border-subtle/50">
                   <span>Registration Window:</span>
                   <span className="text-text-primary">
-                    {new Date(hackathon.registration_start_at).toLocaleDateString()} —{' '}
-                    {new Date(hackathon.registration_end_at).toLocaleDateString()}
+                    {formatDateRange(hackathon.registration_start_at, hackathon.registration_end_at)}
                   </span>
                 </div>
                 {hackathon.is_round_1_paused && (

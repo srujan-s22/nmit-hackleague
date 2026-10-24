@@ -182,12 +182,12 @@ describe('Notification System Master Repair Unit & Integration Suite', () => {
   it('TS-HYD-01: formatNotificationTimestamp produces deterministic Asia/Kolkata timestamps with year', () => {
     // 2026-10-23T14:05:00Z + 05:30 = 2026-10-23 19:35 (7:35 PM)
     const formatted = formatNotificationTimestamp('2026-10-23T14:05:00Z');
-    assert.strictEqual(formatted, '23 Oct 2026, 07:35 PM');
+    assert.strictEqual(formatted, '23/10/2026, 07:35 PM');
   });
 
   it('TS-HYD-02: formatNotificationTimestamp formats without year when requested', () => {
     const formatted = formatNotificationTimestamp('2026-10-23T14:05:00Z', { includeYear: false });
-    assert.strictEqual(formatted, '23 Oct, 07:35 PM');
+    assert.strictEqual(formatted, '23/10, 07:35 PM');
   });
 
   it('TS-HYD-03: formatNotificationTimestamp safely handles invalid, null, or undefined dates without throwing', () => {
@@ -199,11 +199,11 @@ describe('Notification System Master Repair Unit & Integration Suite', () => {
 
   it('TS-HYD-04: formatNotificationTimestamp correctly handles midnight and AM/PM transitions in IST', () => {
     // 2026-10-23T00:00:00Z + 05:30 = 2026-10-23 05:30 AM
-    assert.strictEqual(formatNotificationTimestamp('2026-10-23T00:00:00Z'), '23 Oct 2026, 05:30 AM');
+    assert.strictEqual(formatNotificationTimestamp('2026-10-23T00:00:00Z'), '23/10/2026, 05:30 AM');
     // 2026-10-23T06:30:00Z + 05:30 = 2026-10-23 12:00 PM (Noon)
-    assert.strictEqual(formatNotificationTimestamp('2026-10-23T06:30:00Z'), '23 Oct 2026, 12:00 PM');
+    assert.strictEqual(formatNotificationTimestamp('2026-10-23T06:30:00Z'), '23/10/2026, 12:00 PM');
     // 2026-10-22T18:30:00Z + 05:30 = 2026-10-23 12:00 AM (Midnight)
-    assert.strictEqual(formatNotificationTimestamp('2026-10-22T18:30:00Z'), '23 Oct 2026, 12:00 AM');
+    assert.strictEqual(formatNotificationTimestamp('2026-10-22T18:30:00Z'), '23/10/2026, 12:00 AM');
   });
 });
 

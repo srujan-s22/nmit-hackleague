@@ -1,5 +1,6 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -7,8 +8,10 @@ import { Alert } from '@/components/ui/alert';
 import { createClient } from '@/lib/supabase/client';
 import {
   uploadCollegeIdAction,
+  uploadProfilePhotoAction,
   submitProfileForReviewAction,
 } from '@/actions/onboarding-actions';
+import { formatDate } from '@/lib/utils/date-format';
 import type { Database } from '@/types/database';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -19,16 +22,110 @@ interface OnboardingClientProps {
 
 export function OnboardingClient({ profile }: OnboardingClientProps) {
   const router = useRouter();
+
+  // College ID State
   const [collegeIdPath, setCollegeIdPath] = useState<string | null>(profile.college_id_path);
-
   const [idFile, setIdFile] = useState<File | null>(null);
-
   const [isUploadingId, setIsUploadingId] = useState(false);
+
+  // Profile Picture State (Optional)
+  const [photoPath, setPhotoPath] = useState<string | null>(profile.profile_photo_path);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // Submission State
   const [isSubmitting, startSubmission] = useTransition();
 
+  // Feedback Messages
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Profile Photo Selection Handler
+  const handlePhotoSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setErrorMessage(null);
+    setFeedbackMessage(null);
+
+    if (!file) {
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      return;
+    }
+
+    // Client pre-flight format validation
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
+    if (!ext || !allowedExts.includes(ext)) {
+      setErrorMessage('Invalid image format. Profile pictures must be PNG, JPEG, or WebP.');
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      return;
+    }
+
+    // 1MB limit for profile photos
+    if (file.size > 1024 * 1024) {
+      setErrorMessage(
+        `Profile photo size exceeds maximum limit of 1MB (${(file.size / 1024 / 1024).toFixed(2)} MB).`
+      );
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      return;
+    }
+
+    setPhotoFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreview(previewUrl);
+  };
+
+  // Profile Photo Upload Handler
+  const handleUploadPhoto = async () => {
+    if (!photoFile) return;
+
+    setIsUploadingPhoto(true);
+    setErrorMessage(null);
+    setFeedbackMessage(null);
+
+    try {
+      const ext = photoFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const uniqueId =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const storagePath = `${profile.id}/${uniqueId}.${ext}`;
+
+      // 1. Direct authenticated browser upload to Supabase Storage
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(storagePath, photoFile, {
+          contentType: photoFile.type || 'image/jpeg',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setErrorMessage(uploadError.message || 'Direct profile photo upload failed.');
+        return;
+      }
+
+      // 2. Register metadata and verify server-side binary validation
+      const result = await uploadProfilePhotoAction({ storagePath });
+      if (result.success && result.data?.path) {
+        setPhotoPath(result.data.path);
+        setFeedbackMessage('Profile picture uploaded successfully.');
+      } else {
+        setErrorMessage(result.error || 'Failed to register uploaded profile picture.');
+      }
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Unexpected error during profile photo upload.'
+      );
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  // College ID Upload Handler
   const handleUploadId = async () => {
     if (!idFile) return;
 
@@ -57,9 +154,10 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
 
     try {
       // 2. Direct authenticated browser upload to Supabase Storage
-      const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const uniqueId =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2) + Date.now().toString(36);
       const storagePath = `${profile.id}/${uniqueId}.${ext}`;
 
       const supabase = createClient();
@@ -75,7 +173,7 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
         return;
       }
 
-      // 3. Register metadata and verify binary integrity via lightweight Server Action
+      // 3. Register metadata and verify binary integrity via Server Action
       const result = await uploadCollegeIdAction({ storagePath });
       if (result.success && result.data?.path) {
         setCollegeIdPath(result.data.path);
@@ -83,13 +181,16 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
       } else {
         setErrorMessage(result.error || 'Failed to register uploaded College ID.');
       }
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Unexpected upload error occurred.');
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Unexpected upload error occurred.'
+      );
     } finally {
       setIsUploadingId(false);
     }
   };
 
+  // Final Submission Handler
   const handleSubmitForReview = () => {
     if (!collegeIdPath) {
       setErrorMessage('You must upload your College ID card before submitting for review.');
@@ -125,7 +226,7 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
         </Alert>
       )}
 
-      {/* Profile Details Review Box */}
+      {/* 1. Profile Details Review Box */}
       <div className="bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-sm">
         <h2 className="text-base font-semibold text-text-primary mb-4 pb-2 border-b border-border-subtle">
           1. Verified Registration Metadata
@@ -161,16 +262,97 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
           </div>
           <div>
             <span className="text-text-secondary block">Date of Birth</span>
-            <span className="font-medium text-text-primary">{profile.date_of_birth}</span>
+            <span className="font-medium text-text-primary">{formatDate(profile.date_of_birth)}</span>
           </div>
         </div>
       </div>
 
-      {/* College ID Document Verification */}
+      {/* 2. Profile Picture (Optional) */}
+      <div className="bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-text-primary">
+              2. Profile Picture
+            </h2>
+            <span className="text-[11px] font-medium text-text-secondary bg-surface-subtle px-2 py-0.5 rounded-xs">
+              Optional
+            </span>
+          </div>
+          {photoPath ? (
+            <span className="text-[11px] font-medium text-brand-success bg-brand-success/10 px-2 py-0.5 rounded-xs">
+              ✓ Uploaded
+            </span>
+          ) : (
+            <span className="text-[11px] font-medium text-text-secondary bg-surface-subtle px-2 py-0.5 rounded-xs">
+              Not Uploaded
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-text-secondary mb-4">
+          Upload a clear headshot for your participant badge and certificate (Max 1MB, PNG/JPEG/WebP).
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          {/* Avatar Preview Capsule */}
+          <div className="shrink-0">
+            {photoPreview ? (
+              <img
+                src={photoPreview}
+                alt="Profile preview"
+                className="w-16 h-16 rounded-full object-cover border-2 border-brand-primary shadow-xs"
+              />
+            ) : photoPath ? (
+              <div className="w-16 h-16 rounded-full bg-brand-success/10 border-2 border-brand-success flex items-center justify-center text-brand-success font-semibold text-xs">
+                ✓ Photo
+              </div>
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-surface-subtle border-2 border-border-subtle flex items-center justify-center text-text-secondary text-xs font-semibold">
+                {profile.full_name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-2 w-full">
+            <input
+              type="file"
+              accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+              id="profile-photo-input"
+              onChange={handlePhotoSelected}
+              disabled={isUploadingPhoto || isSubmitting}
+              className="text-xs text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-sm file:border file:border-border-subtle file:text-xs file:font-medium file:bg-surface-subtle hover:file:bg-surface-canvas file:cursor-pointer"
+            />
+            {photoFile && (
+              <p className="text-[11px] text-text-secondary font-mono">
+                Selected: {photoFile.name} ({(photoFile.size / 1024).toFixed(1)} KB)
+              </p>
+            )}
+
+            <div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleUploadPhoto}
+                disabled={!photoFile || isUploadingPhoto || isSubmitting}
+                isLoading={isUploadingPhoto}
+              >
+                {photoPath ? 'Re-upload Profile Picture' : 'Upload Profile Picture'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. College ID Document Verification (Required) */}
       <div className="bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-base font-semibold text-text-primary">
-            2. College ID Document <span className="text-brand-error">*</span>
+            3. College ID Document <span className="text-brand-error">*</span>
           </h2>
           {collegeIdPath ? (
             <span className="text-[11px] font-medium text-brand-success bg-brand-success/10 px-2 py-0.5 rounded-xs">
@@ -214,7 +396,7 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
         </div>
       </div>
 
-      {/* Review & Final Submission */}
+      {/* 4. Review & Final Submission */}
       <div className="bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h3 className="text-sm font-semibold text-text-primary">

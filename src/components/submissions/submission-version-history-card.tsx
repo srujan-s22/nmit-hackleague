@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EvidencePreviewModal } from './evidence-preview-modal';
+import { formatDate, formatDateTime } from '@/lib/utils/date-format';
 
 export interface SubmissionVersionItem {
   id: string;
@@ -113,7 +114,7 @@ export function SubmissionVersionHistoryCard({
                       {getStatusBadge(ver.status, ver.is_current)}
                     </div>
                     <span className="text-[11px] text-text-muted">
-                      {new Date(ver.submitted_at).toLocaleString()}
+                      {formatDateTime(ver.submitted_at)}
                     </span>
                   </div>
 
@@ -189,7 +190,7 @@ export function SubmissionVersionHistoryCard({
                       <div className="flex items-center justify-between mb-1 font-semibold text-[11px]">
                         <span>Reviewer Evaluation: {latestReview.decision.replace('_', ' ').toUpperCase()}</span>
                         <span className="text-[10px] opacity-75">
-                          {new Date(latestReview.reviewed_at).toLocaleDateString()}
+                          {formatDate(latestReview.reviewed_at)}
                         </span>
                       </div>
                       {latestReview.feedback ? (

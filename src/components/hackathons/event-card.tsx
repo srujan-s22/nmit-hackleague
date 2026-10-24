@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/ca
 import { Badge } from '@/components/ui/badge';
 import { RegistrationStateBadge } from './registration-state-badge';
 import { computeRegistrationState } from '@/lib/hackathons/registration-state';
+import { formatDate, formatDateTime } from '@/lib/utils/date-format';
 import type { HackathonPublicView } from '@/types/hackathon';
 
 interface EventCardProps {
@@ -62,21 +63,13 @@ export function EventCard({ hackathon, href }: EventCardProps) {
           <div>
             <span className="text-text-secondary block">Deadline:</span>
             <span className="font-medium text-text-primary">
-              {new Date(hackathon.registration_end_at || '').toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formatDateTime(hackathon.registration_end_at)}
             </span>
           </div>
           <div>
             <span className="text-text-secondary block">Event Date:</span>
             <span className="font-medium text-text-primary">
-              {new Date(hackathon.event_start_at || '').toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-              })}
+              {formatDate(hackathon.event_start_at)}
             </span>
           </div>
         </div>

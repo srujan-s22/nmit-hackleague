@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { RegistrationStateBadge } from '@/components/hackathons/registration-state-badge';
 import { CreateTeamDialog, type HackathonOption } from '@/components/teams/create-team-dialog';
 import { JoinTeamDialog } from '@/components/teams/join-team-dialog';
+import { formatDate } from '@/lib/utils/date-format';
 import type { StudentTeamSummary } from '@/lib/teams/queries';
 
 export interface TeamsClientProps {
@@ -174,7 +175,7 @@ export function TeamsClient({
                     )}
                   </CardTitle>
                   <CardDescription>
-                    Joined on {new Date(team.joined_at).toLocaleDateString()}
+                    Joined on {formatDate(team.joined_at)}
                   </CardDescription>
                 </CardHeader>
 

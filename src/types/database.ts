@@ -411,14 +411,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "academic_year": number,"branch": string,"college_id_deleted_at": string | null,"college_id_path": string | null,"created_at": string,"date_of_birth": string | null,"email": string,"full_name": string,"id": string,"phone": string,"profile_photo_path": string | null,"registration_status": string,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"sex": Database["public"]['Enums']["gender"] | null,"updated_at": string,"usn": string
+                    "academic_year": number,"branch": string,"college_id_deleted_at": string | null,"college_id_path": string | null,"created_at": string,"date_of_birth": string | null,"email": string,"full_name": string,"github_url": string | null,"id": string,"linkedin_url": string | null,"phone": string,"profile_photo_path": string | null,"registration_status": string,"rejection_reason": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"sex": Database["public"]['Enums']["gender"] | null,"updated_at": string,"usn": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "academic_year": number,"branch": string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"email": string,"full_name": string,"id": string,"phone": string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sex"?: Database["public"]['Enums']["gender"] | null,"updated_at"?: string,"usn": string
+                    "academic_year": number,"branch": string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"email": string,"full_name": string,"github_url"?: string | null,"id": string,"linkedin_url"?: string | null,"phone": string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sex"?: Database["public"]['Enums']["gender"] | null,"updated_at"?: string,"usn": string
                   }
                   Update: {
-                    "academic_year"?: number,"branch"?: string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"email"?: string,"full_name"?: string,"id"?: string,"phone"?: string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sex"?: Database["public"]['Enums']["gender"] | null,"updated_at"?: string,"usn"?: string
+                    "academic_year"?: number,"branch"?: string,"college_id_deleted_at"?: string | null,"college_id_path"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"email"?: string,"full_name"?: string,"github_url"?: string | null,"id"?: string,"linkedin_url"?: string | null,"phone"?: string,"profile_photo_path"?: string | null,"registration_status"?: string,"rejection_reason"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sex"?: Database["public"]['Enums']["gender"] | null,"updated_at"?: string,"usn"?: string
                   }
                   Relationships: [
                     {

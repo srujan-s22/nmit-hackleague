@@ -7,6 +7,8 @@ import { revalidatePath } from 'next/cache';
 import type { ActionResult } from '@/actions/auth-actions';
 import {
   updatePhoneSchema,
+  updateSocialLinksSchema,
+  type UpdateSocialLinksInput,
   profileChangeRequestSchema,
   reviewProfileChangeRequestSchema,
   type ProfileChangeRequestInput,
@@ -101,6 +103,75 @@ export async function updatePhoneNumberAction(
     success: true,
     data: { phone: normalizedPhone },
     message: 'Phone number updated successfully.',
+  };
+}
+
+/**
+ * Updates authenticated student's optional LinkedIn and GitHub profile links.
+ * Strictly derives the user ID from the authenticated session (auth.uid()).
+ * Supports independent updates and clearing either link without clobbering the other.
+ */
+export async function updateStudentSocialLinksAction(
+  rawInput: UpdateSocialLinksInput
+): Promise<ActionResult<{ linkedin_url: string | null; github_url: string | null }>> {
+  const parsed = updateSocialLinksSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message || 'Invalid social profile URL.',
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+
+  if (userErr || !user) {
+    return { success: false, error: 'Authentication required.' };
+  }
+
+  // Build the payload dynamically so undefined fields do not clobber existing database values
+  const updatePayload: {
+    updated_at: string;
+    linkedin_url?: string | null;
+    github_url?: string | null;
+  } = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (parsed.data.linkedin_url !== undefined) {
+    updatePayload.linkedin_url = parsed.data.linkedin_url;
+  }
+  if (parsed.data.github_url !== undefined) {
+    updatePayload.github_url = parsed.data.github_url;
+  }
+
+  const { data: updatedProfile, error: updateErr } = await supabase
+    .from('profiles')
+    .update(updatePayload)
+    .eq('id', user.id)
+    .select('linkedin_url, github_url')
+    .single();
+
+  if (updateErr) {
+    return {
+      success: false,
+      error: `Failed to update social profiles: ${updateErr.message}`,
+    };
+  }
+
+  revalidatePath('/student/profile');
+  revalidatePath('/admin/students');
+
+  return {
+    success: true,
+    data: {
+      linkedin_url: updatedProfile?.linkedin_url ?? null,
+      github_url: updatedProfile?.github_url ?? null,
+    },
+    message: 'Professional profiles updated successfully.',
   };
 }
 

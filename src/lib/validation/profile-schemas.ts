@@ -126,3 +126,172 @@ export const reviewProfileChangeRequestSchema = z
 export type ReviewProfileChangeRequestInput = z.infer<
   typeof reviewProfileChangeRequestSchema
 >;
+
+/**
+ * Strict validator for optional LinkedIn profile / company URLs.
+ */
+export function validateLinkedInUrl(
+  rawUrl: string | null | undefined
+): { isValid: boolean; error?: string; normalized: string | null } {
+  if (rawUrl === null || rawUrl === undefined) {
+    return { isValid: true, normalized: null };
+  }
+  const trimmed = rawUrl.trim();
+  if (trimmed === '') {
+    return { isValid: true, normalized: null };
+  }
+  if (trimmed.length > 255) {
+    return { isValid: false, error: 'LinkedIn URL must not exceed 255 characters.', normalized: null };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { isValid: false, error: 'Invalid URL format.', normalized: null };
+  }
+
+  if (parsed.protocol !== 'https:') {
+    return { isValid: false, error: 'LinkedIn URL must use HTTPS.', normalized: null };
+  }
+  if (parsed.username || parsed.password) {
+    return { isValid: false, error: 'Credentials in URL are not permitted.', normalized: null };
+  }
+  if (parsed.port) {
+    return { isValid: false, error: 'Explicit port numbers are not permitted.', normalized: null };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  const isLinkedInHost =
+    hostname === 'linkedin.com' ||
+    hostname === 'www.linkedin.com' ||
+    /^[a-z]{2}\.linkedin\.com$/.test(hostname);
+
+  if (!isLinkedInHost) {
+    return { isValid: false, error: 'URL must belong to linkedin.com.', normalized: null };
+  }
+
+  const pathParts = parsed.pathname.split('/').filter(Boolean);
+  if (pathParts.length < 2) {
+    return { isValid: false, error: 'LinkedIn URL must point to a profile (/in/username) or organization (/company/name).', normalized: null };
+  }
+
+  const section = pathParts[0].toLowerCase();
+  if (section !== 'in' && section !== 'company' && section !== 'school') {
+    return { isValid: false, error: 'LinkedIn URL must point to a profile (/in/username) or organization.', normalized: null };
+  }
+
+  const identifier = pathParts[1];
+  if (!/^[a-zA-Z0-9_\-%]+$/.test(identifier)) {
+    return { isValid: false, error: 'LinkedIn profile contains invalid characters.', normalized: null };
+  }
+
+  const normalized = `https://${hostname}/${section}/${identifier}`;
+  return { isValid: true, normalized };
+}
+
+/**
+ * Strict validator for optional GitHub profile URLs.
+ */
+export function validateGitHubUrl(
+  rawUrl: string | null | undefined
+): { isValid: boolean; error?: string; normalized: string | null } {
+  if (rawUrl === null || rawUrl === undefined) {
+    return { isValid: true, normalized: null };
+  }
+  const trimmed = rawUrl.trim();
+  if (trimmed === '') {
+    return { isValid: true, normalized: null };
+  }
+  if (trimmed.length > 255) {
+    return { isValid: false, error: 'GitHub URL must not exceed 255 characters.', normalized: null };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { isValid: false, error: 'Invalid URL format.', normalized: null };
+  }
+
+  if (parsed.protocol !== 'https:') {
+    return { isValid: false, error: 'GitHub URL must use HTTPS.', normalized: null };
+  }
+  if (parsed.username || parsed.password) {
+    return { isValid: false, error: 'Credentials in URL are not permitted.', normalized: null };
+  }
+  if (parsed.port) {
+    return { isValid: false, error: 'Explicit port numbers are not permitted.', normalized: null };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (hostname !== 'github.com' && hostname !== 'www.github.com') {
+    return { isValid: false, error: 'URL must belong to github.com.', normalized: null };
+  }
+
+  const pathParts = parsed.pathname.split('/').filter(Boolean);
+  if (pathParts.length !== 1) {
+    return { isValid: false, error: 'GitHub URL must point directly to a user profile (e.g. https://github.com/username).', normalized: null };
+  }
+
+  const username = pathParts[0];
+  if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/.test(username)) {
+    return { isValid: false, error: 'Invalid GitHub username format.', normalized: null };
+  }
+
+  const reservedPaths = new Set([
+    'about', 'pricing', 'features', 'enterprise', 'security', 'login', 'join',
+    'explore', 'marketplace', 'trending', 'settings', 'notifications', 'orgs',
+    'contact', 'site', 'blog', 'help', 'search', 'pulls', 'issues'
+  ]);
+  if (reservedPaths.has(username.toLowerCase())) {
+    return { isValid: false, error: 'URL points to a reserved GitHub path, not a user profile.', normalized: null };
+  }
+
+  const normalized = `https://github.com/${username}`;
+  return { isValid: true, normalized };
+}
+
+/**
+ * Validates student social link updates (LinkedIn, GitHub).
+ * Supports independent updates or clearing of either field.
+ */
+export const updateSocialLinksSchema = z
+  .object({
+    linkedin_url: z
+      .string()
+      .nullable()
+      .optional()
+      .transform((val) => (val === undefined ? undefined : val === '' ? null : val)),
+    github_url: z
+      .string()
+      .nullable()
+      .optional()
+      .transform((val) => (val === undefined ? undefined : val === '' ? null : val)),
+  })
+  .superRefine((data, ctx) => {
+    if (data.linkedin_url !== undefined && data.linkedin_url !== null) {
+      const res = validateLinkedInUrl(data.linkedin_url);
+      if (!res.isValid) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['linkedin_url'],
+          message: res.error || 'Invalid LinkedIn URL.',
+        });
+      }
+    }
+
+    if (data.github_url !== undefined && data.github_url !== null) {
+      const res = validateGitHubUrl(data.github_url);
+      if (!res.isValid) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['github_url'],
+          message: res.error || 'Invalid GitHub URL.',
+        });
+      }
+    }
+  });
+
+export type UpdateSocialLinksInput = z.infer<typeof updateSocialLinksSchema>;
+

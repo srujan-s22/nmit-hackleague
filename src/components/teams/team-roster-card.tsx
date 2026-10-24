@@ -15,6 +15,7 @@ import {
   transferTeamLeadershipAction,
   lockTeamRosterAction,
 } from '@/actions/team-actions';
+import { formatDate } from '@/lib/utils/date-format';
 import type { TeamMemberDetail } from '@/lib/teams/queries';
 
 export interface TeamRosterCardProps {
@@ -310,11 +311,7 @@ export function TeamRosterCard({
                         )}
                       </td>
                       <td className="py-3 px-3 text-text-secondary">
-                        {new Date(member.joined_at).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
+                        {formatDate(member.joined_at)}
                       </td>
                       {isLeader && canModifyRoster && (
                         <td className="py-3 px-3 text-right">

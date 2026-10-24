@@ -15,26 +15,12 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import { formatDateTime } from '@/lib/utils/date-format';
 
 interface StudentPointsClientProps {
   summary: StudentPointsSummary | null;
   error?: string;
   profile: StudentProfile;
-}
-
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
 }
 
 export function StudentPointsClient({
@@ -198,7 +184,7 @@ export function StudentPointsClient({
                   <TableRow key={entry.id}>
                     {/* Timestamp */}
                     <TableCell className="text-xs text-text-secondary whitespace-nowrap">
-                      {formatDate(entry.created_at)}
+                      {formatDateTime(entry.created_at)}
                     </TableCell>
 
                     {/* Hackathon Title */}

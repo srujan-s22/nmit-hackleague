@@ -14,10 +14,12 @@ import { Alert } from '@/components/ui/alert';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import {
   updatePhoneNumberAction,
+  updateStudentSocialLinksAction,
   submitProfileCorrectionAction,
 } from '@/actions/profile-actions';
 import { BRANCHES, ACADEMIC_YEARS } from '@/lib/validation/auth-schemas';
 import { ParticipationHistoryCard } from './participation-history-card';
+import { formatDate } from '@/lib/utils/date-format';
 import type {
   StudentProfileData,
   ProfileChangeRequestRow,
@@ -48,6 +50,13 @@ export function ProfileClient({
   const [phoneInput, setPhoneInput] = useState(profile.phone || '');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isPhonePending, startPhoneTransition] = useTransition();
+
+  // Professional Profiles State
+  const [isEditingSocial, setIsEditingSocial] = useState(false);
+  const [linkedinInput, setLinkedinInput] = useState(profile.linkedin_url || '');
+  const [githubInput, setGithubInput] = useState(profile.github_url || '');
+  const [socialError, setSocialError] = useState<string | null>(null);
+  const [isSocialPending, startSocialTransition] = useTransition();
 
   // Change Requests State
   const [requests, setRequests] = useState<ProfileChangeRequestRow[]>(initialRequests);
@@ -82,6 +91,37 @@ export function ProfileClient({
         router.refresh();
       } else {
         setPhoneError(res.error || 'Failed to update phone number.');
+      }
+    });
+  };
+
+  // 1b. Social Links Update Handler
+  const handleSaveSocial = () => {
+    setSocialError(null);
+    setFeedback(null);
+
+    startSocialTransition(async () => {
+      const res = await updateStudentSocialLinksAction({
+        linkedin_url: linkedinInput.trim() === '' ? null : linkedinInput.trim(),
+        github_url: githubInput.trim() === '' ? null : githubInput.trim(),
+      });
+
+      if (res.success && res.data) {
+        setProfile((prev) => ({
+          ...prev,
+          linkedin_url: res.data!.linkedin_url,
+          github_url: res.data!.github_url,
+        }));
+        setLinkedinInput(res.data!.linkedin_url || '');
+        setGithubInput(res.data!.github_url || '');
+        setIsEditingSocial(false);
+        setFeedback({
+          type: 'success',
+          message: 'Professional profile links updated successfully.',
+        });
+        router.refresh();
+      } else {
+        setSocialError(res.error || 'Failed to update professional profile links.');
       }
     });
   };
@@ -208,6 +248,43 @@ export function ProfileClient({
               <p className="text-xs text-text-secondary">
                 {profile.branch} Department • Year {profile.academic_year} • {profile.email}
               </p>
+
+              {(profile.linkedin_url || profile.github_url) && (
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  {profile.linkedin_url && (
+                    <a
+                      href={profile.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#0A66C2]/10 text-[#0A66C2] hover:bg-[#0A66C2]/20 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 0 0-1.62 1.62 1.62 1.62 0 0 0 1.62 1.62 1.62 1.62 0 0 0 1.62-1.62c0-.9-.73-1.62-1.62-1.62Z" />
+                      </svg>
+                      LinkedIn
+                      <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
+                  {profile.github_url && (
+                    <a
+                      href={profile.github_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-muted text-text-primary hover:bg-surface-subtle transition-colors border border-border-subtle"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                      </svg>
+                      GitHub
+                      <svg className="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Quick Metrics Capsule */}
@@ -310,6 +387,142 @@ export function ProfileClient({
           </CardContent>
         </Card>
 
+        {/* Professional Profiles (Direct Edit) */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Professional Profiles</CardTitle>
+                <CardDescription>
+                  Optional links to your public developer and professional presence.
+                </CardDescription>
+              </div>
+              {!isEditingSocial && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setLinkedinInput(profile.linkedin_url || '');
+                    setGithubInput(profile.github_url || '');
+                    setSocialError(null);
+                    setIsEditingSocial(true);
+                  }}
+                >
+                  Edit Profiles
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isEditingSocial ? (
+              <div className="space-y-3">
+                {socialError && (
+                  <p className="text-xs text-error-primary font-medium">{socialError}</p>
+                )}
+                <div>
+                  <label className="text-xs font-semibold text-text-secondary block mb-1">
+                    LinkedIn Profile URL
+                  </label>
+                  <Input
+                    type="url"
+                    value={linkedinInput}
+                    onChange={(e) => setLinkedinInput(e.target.value)}
+                    placeholder="https://linkedin.com/in/username"
+                    disabled={isSocialPending}
+                  />
+                  <p className="text-[11px] text-text-helper mt-1">Leave blank to clear.</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-text-secondary block mb-1">
+                    GitHub Profile URL
+                  </label>
+                  <Input
+                    type="url"
+                    value={githubInput}
+                    onChange={(e) => setGithubInput(e.target.value)}
+                    placeholder="https://github.com/username"
+                    disabled={isSocialPending}
+                  />
+                  <p className="text-[11px] text-text-helper mt-1">Leave blank to clear.</p>
+                </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSaveSocial}
+                    disabled={isSocialPending}
+                  >
+                    {isSocialPending ? 'Saving...' : 'Save Profiles'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setLinkedinInput(profile.linkedin_url || '');
+                      setGithubInput(profile.github_url || '');
+                      setIsEditingSocial(false);
+                      setSocialError(null);
+                    }}
+                    disabled={isSocialPending}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-lg bg-surface-subtle border border-border-subtle flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <svg className="w-4 h-4 text-[#0A66C2] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 0 0-1.62 1.62 1.62 1.62 0 0 0 1.62 1.62 1.62 1.62 0 0 0 1.62-1.62c0-.9-.73-1.62-1.62-1.62Z" />
+                    </svg>
+                    <span className="text-xs font-semibold text-text-secondary">LinkedIn</span>
+                  </div>
+                  {profile.linkedin_url ? (
+                    <a
+                      href={profile.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-brand-primary hover:underline flex items-center gap-1 truncate max-w-[200px]"
+                    >
+                      {profile.linkedin_url.replace(/^https?:\/\/(www\.)?/, '')}
+                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-text-helper italic">Not linked</span>
+                  )}
+                </div>
+
+                <div className="p-3.5 rounded-lg bg-surface-subtle border border-border-subtle flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <svg className="w-4 h-4 text-text-primary shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                    </svg>
+                    <span className="text-xs font-semibold text-text-secondary">GitHub</span>
+                  </div>
+                  {profile.github_url ? (
+                    <a
+                      href={profile.github_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-brand-primary hover:underline flex items-center gap-1 truncate max-w-[200px]"
+                    >
+                      {profile.github_url.replace(/^https?:\/\/(www\.)?/, '')}
+                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-text-helper italic">Not linked</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Institutional Identity (Approval Gated) */}
         <Card>
           <CardHeader>
@@ -389,11 +602,7 @@ export function ProfileClient({
                   {requests.map((req) => (
                     <TableRow key={req.id}>
                       <TableCell className="text-xs text-text-secondary whitespace-nowrap">
-                        {new Date(req.created_at).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
+                        {formatDate(req.created_at)}
                       </TableCell>
                       <TableCell className="text-xs font-medium text-text-primary capitalize whitespace-nowrap">
                         {req.field_name.replace('_', ' ')}

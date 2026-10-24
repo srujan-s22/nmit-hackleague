@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Alert } from '@/components/ui/alert';
 import { regenerateInvitationCodeAction } from '@/actions/team-actions';
+import { formatDateTime } from '@/lib/utils/date-format';
 
 export interface InvitationCodeCardProps {
   teamId: string;
@@ -81,10 +82,7 @@ export function InvitationCodeCard({
   };
 
   const formattedExpiry = currentExpiresAt
-    ? new Date(currentExpiresAt).toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      })
+    ? formatDateTime(currentExpiresAt)
     : '72 hours from generation';
 
   return (

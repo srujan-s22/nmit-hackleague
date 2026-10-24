@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { overrideDeadlineAction } from '@/actions/hackathon-management-actions';
+import { formatDateTime } from '@/lib/utils/date-format';
 
 interface HackathonDeadlineInfo {
   id: string;
@@ -92,14 +93,14 @@ function DeadlineOverrideForm({
 
     if (newDate > eventEnd) {
       setErrorMessage(
-        `New deadline cannot exceed event conclusion (${eventEnd.toLocaleString()}).`
+        `New deadline cannot exceed event conclusion (${formatDateTime(eventEnd)}).`
       );
       return;
     }
 
     if (newDate <= regStart) {
       setErrorMessage(
-        `New deadline must be after registration opening (${regStart.toLocaleString()}).`
+        `New deadline must be after registration opening (${formatDateTime(regStart)}).`
       );
       return;
     }
@@ -143,13 +144,13 @@ function DeadlineOverrideForm({
         <div className="flex justify-between">
           <span className="text-text-secondary">Current Deadline:</span>
           <span className="font-semibold text-text-primary">
-            {new Date(hackathon.registration_end_at).toLocaleString()}
+            {formatDateTime(hackathon.registration_end_at)}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-text-secondary">Event Conclusion:</span>
           <span className="text-text-primary">
-            {new Date(hackathon.event_end_at).toLocaleString()}
+            {formatDateTime(hackathon.event_end_at)}
           </span>
         </div>
         {hackathon.status === 'registration_closed' && (

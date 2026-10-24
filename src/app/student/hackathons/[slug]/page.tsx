@@ -12,6 +12,7 @@ import {
   computeRegistrationState,
   computeEventTimingState,
 } from '@/lib/hackathons/registration-state';
+import { formatDateTime } from '@/lib/utils/date-format';
 import type {
   HackathonPublicView,
   HackathonRoundPublicView,
@@ -272,11 +273,11 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
 
                         <div className="flex flex-wrap items-center gap-4 text-[11px] text-text-muted">
                           <span>
-                            Starts: {new Date(round.start_at || '').toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            Starts: {formatDateTime(round.start_at)}
                           </span>
                           <span>&bull;</span>
                           <span>
-                            Ends: {new Date(round.end_at || '').toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            Ends: {formatDateTime(round.end_at)}
                           </span>
                         </div>
                       </div>
@@ -311,25 +312,25 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
               <div>
                 <span className="text-text-secondary block">Registration Opens</span>
                 <span className="font-semibold text-text-primary">
-                  {new Date(h.registration_start_at || '').toLocaleString()}
+                  {formatDateTime(h.registration_start_at)}
                 </span>
               </div>
               <div className="pt-2 border-t border-border-subtle/50">
                 <span className="text-text-secondary block">Registration Deadline</span>
                 <span className="font-semibold text-status-error-text">
-                  {new Date(h.registration_end_at || '').toLocaleString()}
+                  {formatDateTime(h.registration_end_at)}
                 </span>
               </div>
               <div className="pt-2 border-t border-border-subtle/50">
                 <span className="text-text-secondary block">Event Starts</span>
                 <span className="font-semibold text-text-primary">
-                  {new Date(h.event_start_at || '').toLocaleString()}
+                  {formatDateTime(h.event_start_at)}
                 </span>
               </div>
               <div className="pt-2 border-t border-border-subtle/50">
                 <span className="text-text-secondary block">Event Conclusion</span>
                 <span className="font-semibold text-text-primary">
-                  {new Date(h.event_end_at || '').toLocaleString()}
+                  {formatDateTime(h.event_end_at)}
                 </span>
               </div>
             </div>

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import {
   uploadCollegeIdDocument,
+  uploadProfilePhoto,
   getSignedPreviewUrl,
   validateStorageObjectBinary,
 } from '@/lib/storage/upload-service';
@@ -92,14 +93,147 @@ export async function uploadCollegeIdAction(
 }
 
 /**
- * Disabled: Profile photo management has been removed from student onboarding workflows.
+ * Upload Student Profile Photo (Onboarding Only)
+ * Enforces:
+ * 1. User must be authenticated
+ * 2. User must be a student (not an administrator)
+ * 3. Student must be in the initial 'draft' onboarding registration status
+ * 4. Path containment & ownership (user.id/...)
+ * 5. Binary magic signature verification (PNG/JPEG/WebP) and 1MB size limit
  */
 export async function uploadProfilePhotoAction(
-  _input?: UploadFileInput
+  input: UploadFileInput
 ): Promise<ActionResult<{ path: string }>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized. Please sign in.' };
+  }
+
+  // 1. Verify caller is a student, not an administrator
+  const { data: adminProfile } = await supabase
+    .from('admin_profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (adminProfile) {
+    return {
+      success: false,
+      error: 'Administrators cannot upload student onboarding profile photos.',
+    };
+  }
+
+  // 2. Fetch student profile and enforce strict onboarding eligibility status
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('id, registration_status, profile_photo_path')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profileErr || !profile) {
+    return { success: false, error: 'Student registration profile not found.' };
+  }
+
+  // Strict onboarding-only permission gating:
+  if (profile.registration_status === 'under_review' || profile.registration_status === 'pending_verification') {
+    return {
+      success: false,
+      error: 'Upload rejected: Profile has already been submitted for review. Profile photo cannot be modified.',
+    };
+  }
+
+  if (profile.registration_status === 'approved') {
+    return {
+      success: false,
+      error: 'Upload rejected: Onboarding is already complete. Profile photo cannot be modified.',
+    };
+  }
+
+  if (profile.registration_status !== 'draft') {
+    return {
+      success: false,
+      error: `Upload rejected: Profile photo can only be uploaded during initial onboarding (draft status). Current status: ${profile.registration_status}.`,
+    };
+  }
+
+  let finalPath: string;
+
+  // 3. Handle Direct Storage Upload ({ storagePath }) or Server Upload (FormData)
+  if (input && typeof input === 'object' && 'storagePath' in input && typeof input.storagePath === 'string') {
+    const storagePath = input.storagePath.trim();
+
+    // Strict path containment & ownership check: must be in user's folder and no traversal
+    if (!storagePath || storagePath.includes('..') || !storagePath.startsWith(`${user.id}/`)) {
+      return {
+        success: false,
+        error: 'Unauthorized storage path: must reside in your own student folder.',
+      };
+    }
+
+    // Authoritative server binary content & size verification
+    const binaryValidation = await validateStorageObjectBinary(
+      'profile-photos',
+      storagePath,
+      'profile-photo',
+      supabase
+    );
+
+    if (!binaryValidation.valid) {
+      await supabase.storage.from('profile-photos').remove([storagePath]);
+      return {
+        success: false,
+        error: binaryValidation.error || 'Profile photo failed binary content validation.',
+      };
+    }
+
+    finalPath = storagePath;
+  } else if (input instanceof FormData || (input && typeof (input as any).get === 'function')) {
+    const file = (input as FormData).get('profilePhoto') as File | null;
+    if (!file) {
+      return { success: false, error: 'Please select an image file to upload.' };
+    }
+
+    const uploadResult = await uploadProfilePhoto(user.id, file);
+    if (!uploadResult.success || !uploadResult.path) {
+      return { success: false, error: uploadResult.error || 'Photo upload failed.' };
+    }
+    finalPath = uploadResult.path;
+  } else {
+    return { success: false, error: 'Invalid upload request payload.' };
+  }
+
+  // 4. Update profile record with new photo path
+  const oldPhotoPath = profile.profile_photo_path;
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ profile_photo_path: finalPath })
+    .eq('id', user.id);
+
+  if (profileError) {
+    return {
+      success: false,
+      error: `Failed to link profile photo: ${profileError.message}`,
+    };
+  }
+
+  // Cleanup old photo if replacing
+  if (oldPhotoPath && oldPhotoPath !== finalPath) {
+    try {
+      await supabase.storage.from('profile-photos').remove([oldPhotoPath]);
+    } catch {
+      // Non-blocking cleanup
+    }
+  }
+
   return {
-    success: false,
-    error: 'Student profile photo management has been removed from onboarding.',
+    success: true,
+    message: 'Profile picture uploaded successfully.',
+    data: { path: finalPath },
   };
 }
 

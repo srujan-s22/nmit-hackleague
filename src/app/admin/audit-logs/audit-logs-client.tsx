@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { getAuditLogsAction, type AuditLogItem } from '@/actions/audit-log-actions';
+import { formatDateTime } from '@/lib/utils/date-format';
 
 export interface AuditLogsClientProps {
   initialLogs: AuditLogItem[];
@@ -201,7 +202,7 @@ export function AuditLogsClient({
                       <React.Fragment key={log.id}>
                         <tr className="hover:bg-background-elevated/30 transition-colors">
                           <td className="py-2.5 px-4 whitespace-nowrap text-text-secondary font-mono text-[11px]">
-                            {new Date(log.created_at).toLocaleString()}
+                            {formatDateTime(log.created_at)}
                           </td>
                           <td className="py-2.5 px-4 whitespace-nowrap">
                             {formatActionBadge(log.action)}

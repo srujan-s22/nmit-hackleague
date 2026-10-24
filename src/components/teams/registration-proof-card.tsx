@@ -13,6 +13,7 @@ import {
   getRegistrationProofPreviewUrlAction,
 } from '@/actions/team-actions';
 import { MANDATORY_CDC_DECLARATION_TEXT } from '@/lib/validation/team-schemas';
+import { formatDateTime } from '@/lib/utils/date-format';
 
 export interface RegistrationProofCardProps {
   teamId: string;
@@ -215,7 +216,7 @@ export function RegistrationProofCard({
                   <span className="text-text-muted">
                     Submitted on:{' '}
                     {externalProofSubmittedAt
-                      ? new Date(externalProofSubmittedAt).toLocaleString()
+                      ? formatDateTime(externalProofSubmittedAt)
                       : 'Recently'}
                   </span>
                 </div>

@@ -15,6 +15,7 @@ import { ReassignHackathonDialog } from './reassign-hackathon-dialog';
 import { PERMISSION_DEFINITIONS } from '@/lib/auth/permissions';
 import { fetchAdminsAction, retryAdminOnboardingAction } from '@/actions/admin-management-actions';
 import { sendResendDiagnosticEmailAction } from '@/actions/diagnostic-actions';
+import { formatDate } from '@/lib/utils/date-format';
 import type { AdminWithPermissions } from '@/types/auth';
 
 interface AdminsClientProps {
@@ -354,11 +355,7 @@ export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClien
 
                     {/* Created Date */}
                     <td className="py-3.5 px-4 text-text-secondary whitespace-nowrap text-[11px] font-mono">
-                      {new Date(admin.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {formatDate(admin.created_at)}
                     </td>
 
                     {/* Actions */}

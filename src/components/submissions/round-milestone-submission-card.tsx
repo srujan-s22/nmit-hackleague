@@ -11,6 +11,7 @@ import {
   resubmitRoundMilestoneAction,
 } from '@/actions/round-submission-actions';
 import { EvidencePreviewModal } from './evidence-preview-modal';
+import { formatDateTime } from '@/lib/utils/date-format';
 import type { SubmissionVersionItem } from './submission-version-history-card';
 
 export interface RoundInfo {
@@ -143,7 +144,7 @@ export function RoundMilestoneSubmissionCard({
               {isScheduled && <Badge variant="neutral">Scheduled</Badge>}
             </div>
             <p className="text-[11px] text-text-muted mt-0.5">
-              Deadline: {new Date(round.end_at).toLocaleString()}
+              Deadline: {formatDateTime(round.end_at)}
             </p>
           </div>
 
@@ -210,7 +211,7 @@ export function RoundMilestoneSubmissionCard({
                   {currentSubmission.title}
                 </span>
                 <span className="text-[11px] text-text-muted">
-                  Submitted {new Date(currentSubmission.submitted_at).toLocaleString()}
+                  Submitted {formatDateTime(currentSubmission.submitted_at)}
                 </span>
               </div>
 

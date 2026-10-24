@@ -12,6 +12,7 @@ export const CANONICAL_PERMISSIONS = [
   'view_audit_logs',
   'manage_points',
   'manage_notifications',
+  'view_student_data',
 ] as const;
 
 export type AdminPermissionKey = (typeof CANONICAL_PERMISSIONS)[number];
@@ -44,6 +45,13 @@ export const PERMISSION_DEFINITIONS: Record<AdminPermissionKey, PermissionDefini
     category: 'Verification & Onboarding',
     description: 'View full student rosters, process profile change requests, and review demographic details.',
     phaseAvailability: 'Defined in Phase 5',
+  },
+  view_student_data: {
+    key: 'view_student_data',
+    label: 'Student Directory',
+    category: 'Verification & Onboarding',
+    description: 'Access verified student directory, search approved participant rosters, and view individual student profiles.',
+    phaseAvailability: 'Active in Phase 13',
   },
   manage_password_resets: {
     key: 'manage_password_resets',

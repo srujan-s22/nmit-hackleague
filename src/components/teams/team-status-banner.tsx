@@ -3,6 +3,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { RegistrationStateBadge } from '@/components/hackathons/registration-state-badge';
+import { formatDateTime } from '@/lib/utils/date-format';
 import type { RegistrationState } from '@/types/hackathon';
 
 export interface TeamStatusBannerProps {
@@ -77,10 +78,7 @@ export function TeamStatusBanner({
   };
 
   const formattedDeadline = registrationEndAt
-    ? new Date(registrationEndAt).toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      })
+    ? formatDateTime(registrationEndAt)
     : null;
 
   return (

@@ -12,6 +12,7 @@ import {
 } from '@/actions/admin-verification-actions';
 import type { Database } from '@/types/database';
 import { ProfileChangesClient } from './profile-changes-client';
+import { formatDate } from '@/lib/utils/date-format';
 import type { PendingProfileChangeReviewItem } from '@/lib/student/queries';
 
 type StudentProfile = Database['public']['Tables']['profiles']['Row'];
@@ -215,7 +216,7 @@ export function VerificationsClient({
                       <TableCell>
                         <div className="text-xs">Year {student.academic_year}</div>
                         <div className="text-[11px] text-text-muted">
-                          {student.sex} • DOB: {student.date_of_birth}
+                          {student.sex} • DOB: {formatDate(student.date_of_birth)}
                         </div>
                       </TableCell>
                       <TableCell>

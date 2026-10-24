@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/alert';
 import { Dialog } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { reviewProfileChangeRequestAction } from '@/actions/admin-verification-actions';
+import { formatDate } from '@/lib/utils/date-format';
 import type { PendingProfileChangeReviewItem } from '@/lib/student/queries';
 
 export interface ProfileChangesClientProps {
@@ -148,11 +149,7 @@ export function ProfileChangesClient({ initialRequests }: ProfileChangesClientPr
                         </span>
                       </TableCell>
                       <TableCell className="text-xs text-text-secondary whitespace-nowrap">
-                        {new Date(req.created_at).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
+                        {formatDate(req.created_at)}
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">

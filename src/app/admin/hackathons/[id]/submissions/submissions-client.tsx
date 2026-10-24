@@ -12,6 +12,7 @@ import { EvidencePreviewModal } from '@/components/submissions/evidence-preview-
 import { ReviewActionDialog } from '@/components/submissions/review-action-dialog';
 import { ReopenActionDialog } from '@/components/submissions/reopen-action-dialog';
 import { WinnerPlacementDialog } from '@/components/submissions/winner-placement-dialog';
+import { formatDateTime } from '@/lib/utils/date-format';
 
 export interface HackathonRoundInfo {
   id: string;
@@ -318,7 +319,7 @@ export function SubmissionsClient({
                     )}
                   </div>
                   <span className="text-[11px] text-text-muted">
-                    Submitted {new Date(sub.submitted_at).toLocaleString()}
+                    Submitted {formatDateTime(sub.submitted_at)}
                   </span>
                 </CardHeader>
 
@@ -395,7 +396,7 @@ export function SubmissionsClient({
                       <div className="flex items-center justify-between font-semibold mb-1 text-[11px]">
                         <span>Evaluation: {latestReview.decision.replace('_', ' ').toUpperCase()}</span>
                         <span className="text-[10px] opacity-75">
-                          {new Date(latestReview.reviewed_at).toLocaleString()}
+                          {formatDateTime(latestReview.reviewed_at)}
                         </span>
                       </div>
                       <p className="whitespace-pre-wrap">{latestReview.feedback || 'No written feedback.'}</p>
@@ -550,7 +551,7 @@ export function SubmissionsClient({
                                   {renderStatusBadge(hist.status)}
                                 </div>
                                 <span className="text-[11px] text-text-muted">
-                                  {new Date(hist.submitted_at).toLocaleString()}
+                                  {formatDateTime(hist.submitted_at)}
                                 </span>
                               </div>
                               <p className="font-medium text-text-secondary">{hist.title}</p>
