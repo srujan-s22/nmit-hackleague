@@ -149,14 +149,24 @@ function PortalActionsMenu({
             className="w-48 rounded-xs bg-surface-canvas border border-border-subtle shadow-lg py-1 focus:outline-none animate-in fade-in duration-100"
           >
             {canReviewThis && (
-              <Link
-                href={`/admin/hackathons/${h.id}/submissions`}
-                role="menuitem"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center w-full px-3 py-1.5 text-xs text-text-primary hover:bg-surface-subtle transition-colors"
-              >
-                Submissions Queue
-              </Link>
+              <>
+                <Link
+                  href={`/admin/hackathons/${h.id}/teams`}
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center w-full px-3 py-1.5 text-xs text-text-primary hover:bg-surface-subtle transition-colors"
+                >
+                  Registered Teams
+                </Link>
+                <Link
+                  href={`/admin/hackathons/${h.id}/submissions`}
+                  role="menuitem"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center w-full px-3 py-1.5 text-xs text-text-primary hover:bg-surface-subtle transition-colors"
+                >
+                  Submissions Queue
+                </Link>
+              </>
             )}
 
             {canConfigureThis && (
@@ -277,9 +287,22 @@ function PortalActionsMenu({
 interface AdminHackathonCatalogCardProps {
   hackathon: Hackathon;
   isAssigned: boolean;
+  isSuperAdmin: boolean;
+  canManageHackathons: boolean;
+  canAssignHackathons: boolean;
+  openLifecycle: (h: Hackathon, targetStatus: PersistedHackathonStatus) => void;
+  openDeadlineOverride: (h: Hackathon) => void;
 }
 
-function AdminHackathonCatalogCard({ hackathon: h, isAssigned }: AdminHackathonCatalogCardProps) {
+function AdminHackathonCatalogCard({
+  hackathon: h,
+  isAssigned,
+  isSuperAdmin,
+  canManageHackathons,
+  canAssignHackathons,
+  openLifecycle,
+  openDeadlineOverride,
+}: AdminHackathonCatalogCardProps) {
   const regState = computeRegistrationState(
     h.status,
     h.registration_start_at || new Date().toISOString(),
@@ -288,6 +311,11 @@ function AdminHackathonCatalogCard({ hackathon: h, isAssigned }: AdminHackathonC
 
   const modeBadgeVariant: 'neutral' | 'info' | 'success' =
     h.mode === 'online' ? 'info' : h.mode === 'hybrid' ? 'neutral' : 'success';
+
+  const canReviewThis = isAssigned || isSuperAdmin;
+  const canConfigureThis = isSuperAdmin && canManageHackathons;
+  const canAssignThis = isSuperAdmin || canAssignHackathons;
+  const hasSecondaryActions = isSuperAdmin;
 
   return (
     <Card className="flex flex-col justify-between hover:border-brand-primary/40 transition-all hover:shadow-xs bg-surface-canvas">
@@ -302,13 +330,30 @@ function AdminHackathonCatalogCard({ hackathon: h, isAssigned }: AdminHackathonC
                 📍 {h.venue}
               </span>
             )}
-            {isAssigned && (
+            {isAssigned && !isSuperAdmin && (
               <Badge variant="neutral" size="sm" className="text-[10px] py-0 px-1.5 font-mono uppercase bg-brand-primary/10 text-brand-primary border-none">
                 Assigned
               </Badge>
             )}
+            {h.status === 'draft' && (
+              <Badge variant="neutral" size="sm" className="text-[10px] bg-status-warning-bg text-status-warning-text border border-status-warning-border">
+                Draft
+              </Badge>
+            )}
           </div>
-          <RegistrationStateBadge state={regState} />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <RegistrationStateBadge state={regState} />
+            {hasSecondaryActions && (
+              <PortalActionsMenu
+                hackathon={h}
+                canConfigureThis={canConfigureThis}
+                canAssignThis={canAssignThis}
+                canReviewThis={canReviewThis}
+                openLifecycle={openLifecycle}
+                openDeadlineOverride={openDeadlineOverride}
+              />
+            )}
+          </div>
         </div>
 
         <Link href={`/hackathons/${h.slug}`} className="group block">
@@ -349,7 +394,7 @@ function AdminHackathonCatalogCard({ hackathon: h, isAssigned }: AdminHackathonC
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {h.external_registration_url && (
               <a
                 href={h.external_registration_url}
@@ -358,18 +403,41 @@ function AdminHackathonCatalogCard({ hackathon: h, isAssigned }: AdminHackathonC
                 className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-0.5"
                 title="External Registration Portal"
               >
-                <span>External Portal</span>
+                <span>Portal</span>
                 <span className="text-[10px]">&nearr;</span>
               </a>
             )}
             <Link
               href={`/hackathons/${h.slug}`}
-              className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1"
+              className="text-xs font-semibold text-text-secondary hover:text-text-primary hover:underline flex items-center gap-0.5"
             >
-              Details &rarr;
+              <span>Details</span>
+              <span className="text-[10px]">&rarr;</span>
             </Link>
           </div>
         </div>
+
+        {/* Authorized Reviewer Action Buttons Row */}
+        {canReviewThis && (
+          <div className="flex items-center gap-2 pt-2 border-t border-border-subtle/40">
+            <ButtonLink
+              href={`/admin/hackathons/${h.id}/teams`}
+              variant="secondary"
+              size="sm"
+              className="flex-1 text-center justify-center text-xs"
+            >
+              Teams
+            </ButtonLink>
+            <ButtonLink
+              href={`/admin/hackathons/${h.id}/submissions`}
+              variant="primary"
+              size="sm"
+              className="flex-1 text-center justify-center text-xs"
+            >
+              Submissions
+            </ButtonLink>
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -384,9 +452,7 @@ export function HackathonsClient({
 }: HackathonsClientProps) {
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'management' | 'catalog'>(isSuperAdmin ? 'management' : 'catalog');
-  const [managementTab, setManagementTab] = useState<HackathonStatusFilter>('all');
-  const [catalogTab, setCatalogTab] = useState<'all' | 'open' | 'upcoming' | 'past'>('all');
+  const [catalogTab, setCatalogTab] = useState<'all' | 'open' | 'upcoming' | 'past' | 'draft'>('all');
 
   // Dialog states
   const [lifecycleDialogState, setLifecycleDialogState] = useState<{
@@ -412,7 +478,11 @@ export function HackathonsClient({
     let open = 0;
     let upcoming = 0;
     let past = 0;
+    let drafts = 0;
     for (const h of initialHackathons) {
+      if (h.status === 'draft') {
+        drafts++;
+      }
       const regState = computeRegistrationState(
         h.status,
         h.registration_start_at || new Date().toISOString(),
@@ -433,39 +503,28 @@ export function HackathonsClient({
       open,
       upcoming,
       past,
+      drafts,
     };
-  }, [initialHackathons]);
-
-  // Management Metrics
-  const metrics = useMemo(() => {
-    const total = initialHackathons.length;
-    const published = initialHackathons.filter((h) => h.status === 'published').length;
-    const drafts = initialHackathons.filter((h) => h.status === 'draft').length;
-    const closed = initialHackathons.filter((h) => h.status === 'registration_closed').length;
-    const archived = initialHackathons.filter((h) => h.status === 'archived').length;
-    return { total, published, drafts, closed, archived };
   }, [initialHackathons]);
 
   const filteredHackathons = useMemo(() => {
     return initialHackathons.filter((h) => {
       // Tab filter
-      if (isSuperAdmin && viewMode === 'management') {
-        if (managementTab !== 'all' && h.status !== managementTab) {
-          return false;
-        }
+      if (catalogTab === 'draft') {
+        if (h.status !== 'draft') return false;
       } else {
         const regState = computeRegistrationState(
           h.status,
           h.registration_start_at || new Date().toISOString(),
           h.registration_end_at || new Date().toISOString()
         );
-        if (catalogTab === 'open' && regState !== 'OPEN') return false;
-        if (catalogTab === 'upcoming' && regState !== 'UPCOMING') return false;
+        if (catalogTab === 'open' && (regState !== 'OPEN' || h.status === 'draft')) return false;
+        if (catalogTab === 'upcoming' && (regState !== 'UPCOMING' || h.status === 'draft')) return false;
         if (
           catalogTab === 'past' &&
-          regState !== 'DEADLINE_PASSED' &&
-          regState !== 'CLOSED' &&
-          regState !== 'ARCHIVED'
+          (regState !== 'DEADLINE_PASSED' &&
+            regState !== 'CLOSED' &&
+            regState !== 'ARCHIVED' || h.status === 'draft')
         ) {
           return false;
         }
@@ -482,7 +541,7 @@ export function HackathonsClient({
       }
       return true;
     });
-  }, [initialHackathons, isSuperAdmin, viewMode, managementTab, catalogTab, search]);
+  }, [initialHackathons, catalogTab, search]);
 
   const openLifecycle = (hackathon: Hackathon, targetStatus: PersistedHackathonStatus) => {
     setLifecycleDialogState({
@@ -503,8 +562,6 @@ export function HackathonsClient({
     router.refresh();
   };
 
-  const isManagementView = isSuperAdmin && viewMode === 'management';
-
   return (
     <div className="space-y-6">
       {/* Header and Call to Action */}
@@ -521,30 +578,6 @@ export function HackathonsClient({
         </div>
         {isSuperAdmin && (
           <div className="flex items-center gap-3">
-            <div className="flex items-center bg-surface-subtle p-0.5 rounded border border-border-subtle text-xs">
-              <button
-                type="button"
-                onClick={() => setViewMode('management')}
-                className={`px-2.5 py-1 rounded font-medium transition-colors ${
-                  viewMode === 'management'
-                    ? 'bg-surface-canvas text-text-primary shadow-xs font-semibold'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                Table View
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('catalog')}
-                className={`px-2.5 py-1 rounded font-medium transition-colors ${
-                  viewMode === 'catalog'
-                    ? 'bg-surface-canvas text-text-primary shadow-xs font-semibold'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                Catalog View
-              </button>
-            </div>
             <ButtonLink href="/admin/hackathons/new" variant="primary">
               + New Hackathon
             </ButtonLink>
@@ -554,95 +587,54 @@ export function HackathonsClient({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {isManagementView ? (
-          <>
-            <Card className="p-4 flex flex-col justify-between">
-              <span className="text-xs font-medium text-text-secondary">Total Competitions</span>
-              <span className="text-2xl font-bold text-text-primary mt-2">{metrics.total}</span>
-            </Card>
-            <Card className="p-4 flex flex-col justify-between">
-              <span className="text-xs font-medium text-text-secondary">Published & Open</span>
-              <span className="text-2xl font-bold text-status-success-text mt-2">{metrics.published}</span>
-            </Card>
-            <Card className="p-4 flex flex-col justify-between">
-              <span className="text-xs font-medium text-text-secondary">Drafts in Prep</span>
-              <span className="text-2xl font-bold text-brand-primary mt-2">{metrics.drafts}</span>
-            </Card>
-            <Card className="p-4 flex flex-col justify-between">
-              <span className="text-xs font-medium text-text-secondary">Registration Closed</span>
-              <span className="text-2xl font-bold text-text-secondary mt-2">{metrics.closed}</span>
-            </Card>
-          </>
-        ) : (
-          <>
-            <Card className="p-4 flex flex-col justify-between">
-              <span className="text-xs font-medium text-text-secondary">Total Competitions</span>
-              <span className="text-2xl font-bold text-text-primary mt-2">{catalogMetrics.all}</span>
-            </Card>
-            <Card className="p-4 flex flex-col justify-between">
-              <span className="text-xs font-medium text-text-secondary">Registration Open</span>
-              <span className="text-2xl font-bold text-status-success-text mt-2">{catalogMetrics.open}</span>
-            </Card>
-            <Card className="p-4 flex flex-col justify-between">
-              <span className="text-xs font-medium text-text-secondary">Upcoming Events</span>
-              <span className="text-2xl font-bold text-brand-primary mt-2">{catalogMetrics.upcoming}</span>
-            </Card>
-            <Card className="p-4 flex flex-col justify-between">
-              <span className="text-xs font-medium text-text-secondary">Past Competitions</span>
-              <span className="text-2xl font-bold text-text-secondary mt-2">{catalogMetrics.past}</span>
-            </Card>
-          </>
-        )}
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-text-secondary">Total Competitions</span>
+          <span className="text-2xl font-bold text-text-primary mt-2">{catalogMetrics.all}</span>
+        </Card>
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-text-secondary">Registration Open</span>
+          <span className="text-2xl font-bold text-status-success-text mt-2">{catalogMetrics.open}</span>
+        </Card>
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-text-secondary">Upcoming Events</span>
+          <span className="text-2xl font-bold text-brand-primary mt-2">{catalogMetrics.upcoming}</span>
+        </Card>
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-text-secondary">
+            {isSuperAdmin || catalogMetrics.drafts > 0 ? 'Drafts in Prep' : 'Past Competitions'}
+          </span>
+          <span className="text-2xl font-bold text-text-primary mt-2">
+            {isSuperAdmin || catalogMetrics.drafts > 0 ? catalogMetrics.drafts : catalogMetrics.past}
+          </span>
+        </Card>
       </div>
 
       {/* Filter Tabs & Search */}
       <Card className="p-4">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
-            {isManagementView
-              ? (
-                  [
-                    { key: 'all', label: `All (${metrics.total})` },
-                    { key: 'published', label: `Published (${metrics.published})` },
-                    { key: 'draft', label: `Drafts (${metrics.drafts})` },
-                    { key: 'registration_closed', label: `Closed (${metrics.closed})` },
-                    { key: 'archived', label: `Archived (${metrics.archived})` },
-                  ] as const
-                ).map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setManagementTab(tab.key)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-xs transition-colors whitespace-nowrap ${
-                      managementTab === tab.key
-                        ? 'bg-surface-inverse text-text-inverse font-semibold'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))
-              : (
-                  [
-                    { key: 'all', label: `All Events (${catalogMetrics.all})` },
-                    { key: 'open', label: `Registration Open (${catalogMetrics.open})` },
-                    { key: 'upcoming', label: `Upcoming (${catalogMetrics.upcoming})` },
-                    { key: 'past', label: `Past Competitions (${catalogMetrics.past})` },
-                  ] as const
-                ).map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setCatalogTab(tab.key)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-xs transition-colors whitespace-nowrap ${
-                      catalogTab === tab.key
-                        ? 'bg-surface-inverse text-text-inverse font-semibold'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+            {[
+              { key: 'all', label: `All Events (${catalogMetrics.all})` },
+              { key: 'open', label: `Registration Open (${catalogMetrics.open})` },
+              { key: 'upcoming', label: `Upcoming (${catalogMetrics.upcoming})` },
+              { key: 'past', label: `Past Competitions (${catalogMetrics.past})` },
+              ...((isSuperAdmin || catalogMetrics.drafts > 0)
+                ? [{ key: 'draft' as const, label: `Drafts (${catalogMetrics.drafts})` }]
+                : []),
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setCatalogTab(tab.key as any)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-xs transition-colors whitespace-nowrap ${
+                  catalogTab === tab.key
+                    ? 'bg-surface-inverse text-text-inverse font-semibold'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <div className="w-full md:w-64">
@@ -651,12 +643,13 @@ export function HackathonsClient({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="text-xs"
+              id="input-catalog-search"
             />
           </div>
         </div>
       </Card>
 
-      {/* Hackathons Rendering */}
+      {/* Hackathons Unified Grid Rendering */}
       {filteredHackathons.length === 0 ? (
         <Card className="p-8">
           <EmptyState
@@ -664,219 +657,25 @@ export function HackathonsClient({
             description={
               search.trim()
                 ? 'No hackathons match your search filter.'
-                : isManagementView
-                ? 'No hackathons in this category yet. Click "+ New Hackathon" to create a draft.'
                 : 'No hackathons found in this category.'
             }
           />
         </Card>
-      ) : !isManagementView ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredHackathons.map((h) => (
-            <AdminHackathonCatalogCard
-              key={h.id}
-              hackathon={h}
-              isAssigned={isSuperAdmin || assignedHackathonIds.includes(h.id)}
-            />
-          ))}
-        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredHackathons.map((h) => {
-            const regState = computeRegistrationState(
-              h.status,
-              h.registration_start_at,
-              h.registration_end_at
-            );
             const isAssigned = isSuperAdmin || assignedHackathonIds.includes(h.id);
-            const canReviewThis = isAssigned;
-            const canConfigureThis = isSuperAdmin && canManageHackathons;
-            const canAssignThis = isSuperAdmin;
-            const hasSecondaryActions = isSuperAdmin;
-
             return (
-              <Card
+              <AdminHackathonCatalogCard
                 key={h.id}
-                className="p-5 hover:border-border-strong transition-all bg-surface-canvas shadow-xs"
-              >
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                  {/* Left: Hackathon Identity & Status */}
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={
-                          canReviewThis
-                            ? `/admin/hackathons/${h.id}/submissions`
-                            : canConfigureThis
-                            ? `/admin/hackathons/${h.id}/edit`
-                            : `/hackathons/${h.slug}`
-                        }
-                        className="font-bold text-text-primary text-base sm:text-lg hover:text-brand-primary transition-colors line-clamp-1"
-                      >
-                        {h.title}
-                      </Link>
-
-                      {isAssigned && !isSuperAdmin && (
-                        <Badge
-                          variant="neutral"
-                          size="sm"
-                          className="text-[10px] py-0 px-1.5 font-mono uppercase bg-brand-primary/10 text-brand-primary border-none"
-                        >
-                          Assigned
-                        </Badge>
-                      )}
-
-                      <RegistrationStateBadge state={regState} />
-
-                      <Badge
-                        variant={
-                          h.status === 'draft'
-                            ? 'neutral'
-                            : h.status === 'published'
-                            ? 'success'
-                            : 'neutral'
-                        }
-                        size="sm"
-                        className="capitalize text-[11px]"
-                      >
-                        {h.status.replace('_', ' ')}
-                      </Badge>
-                    </div>
-
-                    {/* Organizer, Slug & Venue Details */}
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-text-secondary">
-                      <span className="font-medium text-text-primary">{h.organizer}</span>
-                      <span className="text-text-muted">&bull;</span>
-                      <span className="font-mono text-text-muted">/{h.slug}</span>
-                      <span className="text-text-muted">&bull;</span>
-                      <span className="capitalize font-medium text-text-primary">{h.mode}</span>
-                      {h.venue && (
-                        <>
-                          <span className="text-text-muted">&bull;</span>
-                          <span className="text-text-secondary flex items-center gap-1" title={h.venue}>
-                            <svg className="w-3.5 h-3.5 text-text-muted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                              <circle cx="12" cy="10" r="3" />
-                            </svg>
-                            <span>{h.venue}</span>
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: Actions Cluster */}
-                  <div className="flex items-center gap-2 shrink-0 self-start">
-                    {canReviewThis ? (
-                      <ButtonLink
-                        href={`/admin/hackathons/${h.id}/submissions`}
-                        variant="primary"
-                        size="sm"
-                      >
-                        Submissions
-                      </ButtonLink>
-                    ) : canConfigureThis ? (
-                      <ButtonLink
-                        href={`/admin/hackathons/${h.id}/edit`}
-                        variant="secondary"
-                        size="sm"
-                      >
-                        Edit Details
-                      </ButtonLink>
-                    ) : canAssignThis ? (
-                      <ButtonLink
-                        href="/admin/admins"
-                        variant="secondary"
-                        size="sm"
-                      >
-                        Assignments
-                      </ButtonLink>
-                    ) : (
-                      <ButtonLink
-                        href={`/hackathons/${h.slug}`}
-                        variant="outline"
-                        size="sm"
-                        target="_blank"
-                      >
-                        View Event
-                      </ButtonLink>
-                    )}
-
-                    {canConfigureThis && (
-                      <ButtonLink
-                        href={`/admin/hackathons/${h.id}/rounds`}
-                        variant="outline"
-                        size="sm"
-                        className="hidden sm:inline-flex"
-                      >
-                        Configure Rounds
-                      </ButtonLink>
-                    )}
-
-                    {hasSecondaryActions && (
-                      <PortalActionsMenu
-                        hackathon={h}
-                        canConfigureThis={canConfigureThis}
-                        canAssignThis={canAssignThis}
-                        canReviewThis={canReviewThis}
-                        openLifecycle={openLifecycle}
-                        openDeadlineOverride={openDeadlineOverride}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Bottom: Aligned Metadata Columns */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-3.5 mt-3 border-t border-border-subtle/70 text-xs">
-                  <div>
-                    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">
-                      Registration Deadline
-                    </span>
-                    <span className="font-medium text-text-primary mt-0.5 block whitespace-nowrap">
-                      {formatDate(h.registration_end_at)}
-                    </span>
-                    <span className="text-[11px] text-text-secondary block">
-                      {formatTime(h.registration_end_at)}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">
-                      Event Schedule
-                    </span>
-                    <span className="font-medium text-text-primary mt-0.5 block whitespace-nowrap">
-                      {formatDateRange(h.event_start_at, h.event_end_at)}
-                    </span>
-                    <span className="text-[11px] text-text-secondary block capitalize">
-                      {h.mode} schedule
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">
-                      Team Structure
-                    </span>
-                    <span className="font-mono font-medium text-text-primary mt-0.5 block">
-                      {h.min_team_size}&ndash;{h.max_team_size} members
-                    </span>
-                    <span className="text-[11px] text-text-secondary block">
-                      {h.is_solo_allowed ? 'Solo registration allowed' : 'Team participation only'}
-                    </span>
-                  </div>
-
-                  <div className="hidden lg:block">
-                    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">
-                      Location & Mode
-                    </span>
-                    <span className="font-medium text-text-primary mt-0.5 block capitalize truncate">
-                      {h.mode} &bull; {h.venue || 'No venue specified'}
-                    </span>
-                    <span className="text-[11px] text-text-secondary block truncate">
-                      Managed by {h.organizer}
-                    </span>
-                  </div>
-                </div>
-              </Card>
+                hackathon={h}
+                isAssigned={isAssigned}
+                isSuperAdmin={isSuperAdmin}
+                canManageHackathons={canManageHackathons}
+                canAssignHackathons={canAssignHackathons}
+                openLifecycle={openLifecycle}
+                openDeadlineOverride={openDeadlineOverride}
+              />
             );
           })}
         </div>

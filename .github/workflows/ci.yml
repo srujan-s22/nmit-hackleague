@@ -32,5 +32,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Unit Tests
+        # tests/integration and tests/concurrency are intentionally excluded:
+        # they require a local Supabase stack (and, for tests/concurrency,
+        # a running `supabase_db_hackleague` Docker container) and must never
+        # run against a hosted project. See docs/how-to notes in those suites
+        # for the local run command.
+        run: npm test
+
       - name: Build Application
         run: npm run build

@@ -94,10 +94,17 @@ SELECT ok(
 );
 
 -- TS-REP-04: Verify table grants on push_delivery_logs
+-- Narrowed by 20261030000001_harden_push_registration_and_round_pause_grants:
+-- authenticated keeps read/write-new-row access only; UPDATE/DELETE are
+-- service_role-only now (no RLS policy ever permitted them for authenticated,
+-- so this closes an unused over-grant). See suite 25 (TS-HRD-08) for the
+-- paired negative assertions.
 SELECT ok(
-  has_table_privilege('authenticated', 'public.push_delivery_logs', 'SELECT, INSERT, UPDATE, DELETE') AND
+  has_table_privilege('authenticated', 'public.push_delivery_logs', 'SELECT, INSERT') AND
+  NOT has_table_privilege('authenticated', 'public.push_delivery_logs', 'UPDATE') AND
+  NOT has_table_privilege('authenticated', 'public.push_delivery_logs', 'DELETE') AND
   has_table_privilege('service_role', 'public.push_delivery_logs', 'SELECT, INSERT, UPDATE, DELETE'),
-  'TS-REP-04: Roles authenticated and service_role have privileges on public.push_delivery_logs'
+  'TS-REP-04: authenticated retains SELECT/INSERT on push_delivery_logs; UPDATE/DELETE now service_role-only'
 );
 
 -- TS-REP-05: Verify table grants on user_push_subscriptions

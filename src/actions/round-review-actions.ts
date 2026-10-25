@@ -92,9 +92,13 @@ export async function reviewRoundSubmissionAction(
       feedback: feedback?.trim(),
     };
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to record review.';
+    if (message.includes('NEXT_REDIRECT')) {
+      throw err;
+    }
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to record review.',
+      error: message,
     };
   }
 }
@@ -156,9 +160,13 @@ export async function reopenRejectedSubmissionAction(
       message: 'Submission reopened successfully. Team can now submit a revision.',
     };
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to reopen submission.';
+    if (message.includes('NEXT_REDIRECT')) {
+      throw err;
+    }
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to reopen submission.',
+      error: message,
     };
   }
 }
@@ -218,9 +226,13 @@ export async function recordRoundWinnerPlacementAction(
       placement,
     };
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to record winner placement.';
+    if (message.includes('NEXT_REDIRECT')) {
+      throw err;
+    }
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to record winner placement.',
+      error: message,
     };
   }
 }

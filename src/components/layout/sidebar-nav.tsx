@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { clearClientSessionCache } from '@/lib/session/client-session-cache';
 
 export interface NavItem {
   label: string;
@@ -45,6 +46,7 @@ export function SidebarNav({
   const handleSignOut = async () => {
     if (isSigningOut) return;
     setIsSigningOut(true);
+    clearClientSessionCache();
     try {
       const supabase = createClient();
       await supabase.auth.signOut();

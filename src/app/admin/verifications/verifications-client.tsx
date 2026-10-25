@@ -6,6 +6,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import { Dialog } from '@/components/ui/dialog';
 import {
   reviewStudentAction,
   getAdminCollegeIdPreviewUrlAction,
@@ -266,47 +267,17 @@ export function VerificationsClient({
         </CardContent>
       </Card>
 
-      {/* ID Document Preview Modal */}
+      {/* ID Document Preview Modal — shared Dialog gives focus trap, Escape-to-close,
+          and focus restoration, which the previous hand-rolled overlay lacked. */}
       {selectedStudent && previewUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-xl flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between pb-4 border-b border-border-subtle mb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-text-primary">
-                  College ID Document Preview — {selectedStudent.full_name} ({selectedStudent.usn})
-                </h3>
-                <p className="text-[11px] text-text-muted">
-                  Ephemeral signed URL expires in 60 seconds. Download controls omitted for identity privacy.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPreviewUrl(null)}
-                className="text-text-secondary hover:text-text-primary font-bold px-2 py-1 text-sm cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-auto flex items-center justify-center bg-surface-subtle rounded-sm p-4 min-h-[300px]">
-              {previewUrl.toLowerCase().includes('.pdf') ? (
-                <iframe
-                  src={previewUrl}
-                  title="College ID PDF"
-                  className="w-full h-[400px] border-0"
-                />
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={previewUrl}
-                  alt={`College ID for ${selectedStudent.full_name}`}
-                  className="max-h-[450px] max-w-full object-contain rounded-xs shadow-sm"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-border-subtle mt-4">
+        <Dialog
+          isOpen
+          onClose={() => setPreviewUrl(null)}
+          title={`College ID Document Preview — ${selectedStudent.full_name} (${selectedStudent.usn})`}
+          description="Ephemeral signed URL expires in 60 seconds. Download controls omitted for identity privacy."
+          maxWidth="xl"
+          footer={
+            <div className="flex items-center justify-between w-full">
               <span className="text-xs text-text-secondary">
                 Ensure name, photo, and USN match institutional registration records.
               </span>
@@ -314,49 +285,44 @@ export function VerificationsClient({
                 Close Preview
               </Button>
             </div>
+          }
+        >
+          <div className="flex items-center justify-center bg-surface-subtle rounded-sm p-4 min-h-[300px]">
+            {previewUrl.toLowerCase().includes('.pdf') ? (
+              <iframe
+                src={previewUrl}
+                title="College ID PDF"
+                className="w-full h-[400px] border-0"
+              />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={previewUrl}
+                alt={`College ID for ${selectedStudent.full_name}`}
+                className="max-h-[450px] max-w-full object-contain rounded-xs shadow-sm"
+                referrerPolicy="no-referrer"
+              />
+            )}
           </div>
-        </div>
+        </Dialog>
       )}
 
       {/* Decision Confirmation Modal */}
       {decisionType && selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md bg-surface-canvas rounded-md border border-border-subtle p-6 shadow-xl">
-            <h3 className="text-base font-bold text-text-primary mb-1">
-              {decisionType === 'approved' && 'Confirm Student Approval'}
-              {decisionType === 'correction_required' && 'Request ID Document Correction'}
-              {decisionType === 'rejected' && 'Confirm Student Rejection'}
-            </h3>
-            <p className="text-xs text-text-secondary mb-4">
-              Student: <strong className="text-text-primary">{selectedStudent.full_name}</strong> ({selectedStudent.usn})
-            </p>
-
-            {decisionType === 'approved' ? (
-              <p className="text-xs text-text-secondary leading-relaxed mb-4">
-                Approving this registration will grant full student participant privileges. The physical College ID image will be enqueued for secure background deletion per data retention policy.
-              </p>
-            ) : (
-              <div className="mb-4">
-                <label htmlFor="reason-input" className="block text-xs font-semibold text-text-primary mb-1">
-                  Reason / Feedback Note <span className="text-brand-error">*</span>
-                </label>
-                <textarea
-                  id="reason-input"
-                  rows={3}
-                  value={reasonInput}
-                  onChange={(e) => setReasonInput(e.target.value)}
-                  placeholder={
-                    decisionType === 'correction_required'
-                      ? 'e.g., Image is blurred, please upload a clear scan showing your USN.'
-                      : 'e.g., USN does not belong to an enrolled student.'
-                  }
-                  className="w-full p-2.5 text-xs bg-surface-canvas border border-border-subtle rounded-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-border-focus"
-                  required
-                />
-              </div>
-            )}
-
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border-subtle">
+        <Dialog
+          isOpen
+          onClose={() => setDecisionType(null)}
+          title={
+            decisionType === 'approved'
+              ? 'Confirm Student Approval'
+              : decisionType === 'correction_required'
+              ? 'Request ID Document Correction'
+              : 'Confirm Student Rejection'
+          }
+          description={`Student: ${selectedStudent.full_name} (${selectedStudent.usn})`}
+          maxWidth="md"
+          footer={
+            <>
               <Button
                 variant="outline"
                 size="sm"
@@ -374,9 +340,34 @@ export function VerificationsClient({
               >
                 Confirm {decisionType === 'approved' ? 'Approval' : decisionType === 'correction_required' ? 'Request' : 'Rejection'}
               </Button>
+            </>
+          }
+        >
+          {decisionType === 'approved' ? (
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Approving this registration will grant full student participant privileges. The physical College ID image will be enqueued for secure background deletion per data retention policy.
+            </p>
+          ) : (
+            <div>
+              <label htmlFor="reason-input" className="block text-xs font-semibold text-text-primary mb-1">
+                Reason / Feedback Note <span className="text-brand-error">*</span>
+              </label>
+              <textarea
+                id="reason-input"
+                rows={3}
+                value={reasonInput}
+                onChange={(e) => setReasonInput(e.target.value)}
+                placeholder={
+                  decisionType === 'correction_required'
+                    ? 'e.g., Image is blurred, please upload a clear scan showing your USN.'
+                    : 'e.g., USN does not belong to an enrolled student.'
+                }
+                className="w-full p-2.5 text-xs bg-surface-canvas border border-border-subtle rounded-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-border-focus"
+                required
+              />
             </div>
-          </div>
-        </div>
+          )}
+        </Dialog>
       )}
         </>
       )}

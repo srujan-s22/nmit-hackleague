@@ -14,7 +14,6 @@ import { DeactivateDialog } from './deactivate-dialog';
 import { ReassignHackathonDialog } from './reassign-hackathon-dialog';
 import { PERMISSION_DEFINITIONS } from '@/lib/auth/permissions';
 import { fetchAdminsAction, retryAdminOnboardingAction } from '@/actions/admin-management-actions';
-import { sendResendDiagnosticEmailAction } from '@/actions/diagnostic-actions';
 import { formatDate } from '@/lib/utils/date-format';
 import { HackathonAssignmentsSection } from './hackathon-assignments-section';
 import type { AdminWithPermissions } from '@/types/auth';
@@ -41,34 +40,6 @@ export function AdminsClient({
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'deactivated'>('all');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
   const [retryingAdminId, setRetryingAdminId] = useState<string | null>(null);
-  const [isTestingResend, setIsTestingResend] = useState(false);
-
-  const handleTestResendEmail = async () => {
-    if (isTestingResend) return;
-    setIsTestingResend(true);
-    setFeedback(null);
-    try {
-      const res = await sendResendDiagnosticEmailAction();
-      if (res.success) {
-        setFeedback({
-          type: 'success',
-          message: res.message,
-        });
-      } else {
-        setFeedback({
-          type: 'error',
-          message: res.error ? `Resend diagnostic failed: ${res.error}` : res.message,
-        });
-      }
-    } catch (err: unknown) {
-      setFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Diagnostic request failed.',
-      });
-    } finally {
-      setIsTestingResend(false);
-    }
-  };
 
   const handleRetryOnboarding = async (targetAdmin: AdminWithPermissions) => {
     if (retryingAdminId) return;
@@ -225,18 +196,6 @@ export function AdminsClient({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {process.env.NODE_ENV !== 'production' && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleTestResendEmail}
-              disabled={isTestingResend}
-              className="text-xs border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 text-blue-700 font-medium"
-            >
-              {isTestingResend ? 'Sending Test...' : 'Test Resend Email (Dev)'}
-            </Button>
-          )}
-
           <Button
             type="button"
             variant="primary"

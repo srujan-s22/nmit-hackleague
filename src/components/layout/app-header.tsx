@@ -8,6 +8,7 @@ import { BrandLogo } from '../ui/brand-logo';
 import { IconButton } from '../ui/icon-button';
 import { NotificationCenter } from './notification-center';
 import { createClient } from '@/lib/supabase/client';
+import { clearClientSessionCache } from '@/lib/session/client-session-cache';
 
 export interface AppHeaderProps {
   roleTitle: string;
@@ -30,10 +31,15 @@ export function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  // If the signed photo URL has expired or the file is missing, fall back to the
+  // initials circle instead of showing a broken image.
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+  const showAvatarImage = Boolean(avatarUrl) && failedAvatarUrl !== avatarUrl;
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
     setIsSigningOut(true);
+    clearClientSessionCache();
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
@@ -108,10 +114,11 @@ export function AppHeader({
 
         {/* User profile capsule */}
         <div className="flex items-center gap-2.5">
-          {avatarUrl ? (
+          {showAvatarImage ? (
             <img
-              src={avatarUrl}
+              src={avatarUrl as string}
               alt={userName}
+              onError={() => setFailedAvatarUrl(avatarUrl as string)}
               className="w-8 h-8 rounded-full object-cover border border-border-subtle"
             />
           ) : (

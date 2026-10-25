@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireHackathonReviewScope } from '@/lib/auth/guards';
 import { revalidatePath } from 'next/cache';
 import { MANDATORY_CDC_DECLARATION_TEXT } from '@/lib/validation/team-schemas';
+import { getRegistrationProofPreviewUrlAction as getRegistrationProofPreviewUrlActionImpl } from './team-actions';
 
 export interface SubmitRegistrationProofResult {
   success: boolean;
@@ -132,31 +133,27 @@ export async function reviewRoundAdvancementAction(
       message: `Round advancement claim successfully marked as ${decision}.`,
     };
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to review round advancement claim.';
+    if (message.includes('NEXT_REDIRECT')) {
+      throw err;
+    }
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to review round advancement claim.',
+      error: message,
     };
   }
 }
 
-/**
- * Generates a short-lived secure preview URL for a registration proof screenshot.
- * Authorized for team members, assigned hackathon reviewers, and Super Admins.
- */
+// getRegistrationProofPreviewUrlAction used to be duplicated here and in
+// team-actions.ts with identical logic. team-actions.ts is now the single
+// implementation. A bare `export { ... } from './team-actions'` is not
+// usable here: Next.js's server-action build step requires each exported
+// action to be a function physically defined in a 'use server' module, so
+// this thin wrapper delegates instead of re-exporting, keeping
+// registration-proof-modal.tsx's existing import path unchanged with no
+// duplicated logic.
 export async function getRegistrationProofPreviewUrlAction(
   teamId: string
-): Promise<{ success: boolean; data?: { url: string }; error?: string }> {
-  try {
-    const { getRegistrationProofPreviewUrl } = await import('@/lib/teams/queries');
-    const res = await getRegistrationProofPreviewUrl(teamId);
-    if (!res.success || !res.url) {
-      return { success: false, error: res.error || 'Failed to generate preview URL.' };
-    }
-    return { success: true, data: { url: res.url } };
-  } catch (err: unknown) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to generate preview URL.',
-    };
-  }
+): Promise<Awaited<ReturnType<typeof getRegistrationProofPreviewUrlActionImpl>>> {
+  return getRegistrationProofPreviewUrlActionImpl(teamId);
 }

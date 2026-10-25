@@ -12,7 +12,6 @@ require.cache[serverOnlyPath] = {
 } as unknown as NodeModule;
 
 import { createClient } from '@supabase/supabase-js';
-import { exportDataAction } from '../../src/actions/report-actions';
 import { getAdminDashboardMetricsAction } from '../../src/actions/report-actions';
 
 // Parse .env.local if present

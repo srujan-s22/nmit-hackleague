@@ -141,8 +141,12 @@ async function runButtonVisibilityTests() {
   console.log('\n[Suite 5: Project-Wide Scan Against Invisible Button Anti-Patterns]');
   const adminDashboardPath = path.resolve(__dirname, '../../src/app/admin/admin-dashboard-client.tsx');
   const adminDashboardContent = fs.readFileSync(adminDashboardPath, 'utf-8');
-  assert(!adminDashboardContent.includes('bg-brand-primary text-white'), 'Admin dashboard CTA does not use undefined bg-brand-primary text-white');
-  assert(adminDashboardContent.includes('bg-surface-inverse text-text-inverse'), 'Admin dashboard CTA uses canonical bg-surface-inverse text-text-inverse');
+  assert(!adminDashboardContent.includes('bg-brand-primary text-white'), 'Admin dashboard does not use undefined bg-brand-primary text-white');
+  // The former bottom "Open Data & Reports Hub" CTA banner (the only element on
+  // this page that used bg-surface-inverse text-text-inverse) was intentionally
+  // removed in the Super Admin overview redesign — its links already live in the
+  // sidebar nav — so the previous presence-assertion for that button no longer
+  // applies. The anti-pattern absence check above remains the live guard.
 
   const studentSlugPath = path.resolve(__dirname, '../../src/app/student/hackathons/[slug]/page.tsx');
   const studentSlugContent = fs.readFileSync(studentSlugPath, 'utf-8');

@@ -36,7 +36,6 @@ export function AssignAdminDialog({
   onSuccess,
 }: AssignAdminDialogProps) {
   const [selectedAdminIds, setSelectedAdminIds] = useState<string[]>([]);
-  const [role, setRole] = useState<'reviewer' | 'coordinator'>('reviewer');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,31 +87,59 @@ export function AssignAdminDialog({
     setIsSubmitting(true);
     setError(null);
 
-    try {
-      // Assign each selected administrator
-      for (const adminId of selectedAdminIds) {
-        const res = await assignAdminToHackathonAction({
+    // Assign each selected administrator with safe default 'reviewer' role.
+    // Dispatched concurrently and independently (Promise.allSettled) rather
+    // than a sequential loop that threw on first failure: a loop would leave
+    // earlier successful assignments silently in place while reporting the
+    // whole operation as failed. Partial outcomes are now surfaced by name,
+    // and only administrators that actually succeeded are deselected.
+    const results = await Promise.allSettled(
+      selectedAdminIds.map((adminId) =>
+        assignAdminToHackathonAction({
           hackathonId: hackathon.id,
           targetAdminId: adminId,
-          role,
+          role: 'reviewer',
           notes: notes.trim() || undefined,
-        });
+        }).then((res) => ({ adminId, res }))
+      )
+    );
 
-        if (!res.success) {
-          throw new Error(res.error || 'Failed to assign administrator.');
-        }
+    const succeededIds: string[] = [];
+    const failures: string[] = [];
+    for (const outcome of results) {
+      if (outcome.status === 'fulfilled' && outcome.value.res.success) {
+        succeededIds.push(outcome.value.adminId);
+      } else {
+        const adminId = outcome.status === 'fulfilled' ? outcome.value.adminId : undefined;
+        const admin = adminId ? activeAdmins.find((a) => a.id === adminId) : undefined;
+        const reason =
+          outcome.status === 'fulfilled'
+            ? outcome.value.res.error || 'Failed to assign administrator.'
+            : outcome.reason instanceof Error
+            ? outcome.reason.message
+            : 'Failed to assign administrator.';
+        failures.push(`${admin?.full_name || adminId || 'Unknown administrator'}: ${reason}`);
       }
+    }
 
-      setSelectedAdminIds([]);
+    setSelectedAdminIds((prev) => prev.filter((id) => !succeededIds.includes(id)));
+
+    if (failures.length === 0) {
       setNotes('');
       setSearch('');
       onSuccess();
       onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred during assignment.');
-    } finally {
-      setIsSubmitting(false);
+    } else if (succeededIds.length === 0) {
+      setError(`Assignment failed for all selected administrators:\n${failures.join('\n')}`);
+      onSuccess();
+    } else {
+      setError(
+        `${succeededIds.length} administrator(s) assigned successfully. ${failures.length} failed:\n${failures.join('\n')}`
+      );
+      onSuccess();
     }
+
+    setIsSubmitting(false);
   };
 
   const handleClose = () => {
@@ -130,8 +157,8 @@ export function AssignAdminDialog({
     <Dialog
       isOpen={isOpen}
       onClose={handleClose}
-      title={`Assign Reviewers — ${hackathon.title}`}
-      description="Select active administrators and assign them as reviewers or coordinators for this hackathon."
+      title={`Assign Administrators — ${hackathon.title}`}
+      description="Select active administrators to assign to this hackathon."
       maxWidth="md"
       footer={
         <div className="flex items-center justify-end gap-2 w-full">
@@ -166,50 +193,6 @@ export function AssignAdminDialog({
             {error}
           </Alert>
         )}
-
-        {/* Assignment Role Selection */}
-        <div>
-          <label className="block text-xs font-semibold text-text-primary uppercase tracking-wider mb-1.5">
-            Assignment Role
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setRole('reviewer')}
-              className={`p-3 rounded-xs border text-left transition-all ${
-                role === 'reviewer'
-                  ? 'border-brand-primary bg-brand-primary/5 text-text-primary ring-1 ring-brand-primary'
-                  : 'border-border-subtle bg-surface-canvas text-text-secondary hover:border-border-strong'
-              }`}
-            >
-              <div className="font-semibold text-xs text-text-primary flex items-center justify-between">
-                <span>Reviewer</span>
-                {role === 'reviewer' && <Badge variant="success" size="sm">Selected</Badge>}
-              </div>
-              <p className="text-[11px] text-text-secondary mt-1">
-                Evaluates sequential round milestone submissions, inspects proofs, and records placements.
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setRole('coordinator')}
-              className={`p-3 rounded-xs border text-left transition-all ${
-                role === 'coordinator'
-                  ? 'border-brand-primary bg-brand-primary/5 text-text-primary ring-1 ring-brand-primary'
-                  : 'border-border-subtle bg-surface-canvas text-text-secondary hover:border-border-strong'
-              }`}
-            >
-              <div className="font-semibold text-xs text-text-primary flex items-center justify-between">
-                <span>Coordinator</span>
-                {role === 'coordinator' && <Badge variant="success" size="sm">Selected</Badge>}
-              </div>
-              <p className="text-[11px] text-text-secondary mt-1">
-                Operational assistance, event coordination, and reviewer collaboration.
-              </p>
-            </button>
-          </div>
-        </div>
 
         {/* Administrator Selection */}
         <div>

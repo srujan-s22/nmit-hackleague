@@ -1,28 +1,14 @@
 import { z } from "zod";
+import { ALL_DATASET_IDS, type DatasetId } from "@/lib/reports/dataset-catalog";
 
 export const EXPORT_FORMATS = ["csv", "xlsx", "zip"] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
-export const EXPORT_DATASETS = [
-  "all",
-  "students",
-  "hackathons",
-  "teams",
-  "team_members",
-  "registrations",
-  "round_results",
-  "results",
-  "points",
-  "points_ledger",
-  "winners",
-  "hackathon_summary",
-  "submissions",
-  "reviews",
-  "audit_logs",
-  "storage_objects",
-  "profile_change_requests",
-] as const;
-export type ExportDataset = (typeof EXPORT_DATASETS)[number];
+// Canonical identifiers come from the dataset catalog (11 core + 3 advanced).
+// The former "all" / "results" / "points_ledger" aliases are no longer accepted:
+// "all core datasets" is an explicit list of the 11 core ids.
+export const EXPORT_DATASETS = ALL_DATASET_IDS as readonly [DatasetId, ...DatasetId[]];
+export type ExportDataset = DatasetId;
 
 export const exportFormatSchema = z.enum(EXPORT_FORMATS, {
   message: "Format must be one of: csv, xlsx, zip",
@@ -32,21 +18,14 @@ export const exportDatasetSchema = z.enum(EXPORT_DATASETS, {
   message: "Invalid export dataset requested",
 });
 
-export const exportFiltersSchema = z
-  .object({
-    academicYear: z.coerce.number().int().min(1).max(4).optional(),
-    branch: z.string().trim().max(10).optional(),
-    status: z.string().trim().max(50).optional(),
-    startDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
-    endDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
-  })
-  .optional();
-
 export const exportRequestSchema = z.object({
-  dataset: exportDatasetSchema,
+  datasets: z
+    .array(exportDatasetSchema)
+    .min(1, "Select at least one dataset")
+    .max(EXPORT_DATASETS.length)
+    .refine((ids) => new Set(ids).size === ids.length, "Datasets must not repeat"),
   format: exportFormatSchema,
   hackathonId: z.string().uuid("Invalid hackathon ID").optional().nullable(),
-  filters: exportFiltersSchema,
 });
 
 export type ExportRequestInput = z.infer<typeof exportRequestSchema>;

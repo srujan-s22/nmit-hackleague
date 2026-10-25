@@ -1,11 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { AppHeader } from '../layout/app-header';
 import { SidebarNav, NavSection } from '../layout/sidebar-nav';
 import { Badge } from '../ui/badge';
 import { WebPushGateModal } from './web-push-gate-modal';
 import type { AdminProfile } from '@/types/auth';
+import { useInAdminLayout } from './admin-layout-context';
+import {
+  ADMIN_NAV_REFRESH_AFTER_MS,
+  clearAdminNavCache,
+  readAdminNavCache,
+  subscribeAdminNavCache,
+  writeAdminNavCache,
+} from '@/lib/admin/admin-nav-cache';
+import { getMyAdminNavStateAction } from '@/actions/admin-nav-actions';
+import { useAdminAccessSync } from '@/lib/admin/use-admin-access-sync';
 
 export interface AdminShellProps {
   children: React.ReactNode;
@@ -15,40 +25,100 @@ export interface AdminShellProps {
   assignedHackathonsCount?: number;
 }
 
-export function AdminShell({
+/**
+ * Admin shell. Inside src/app/admin/layout.tsx the layout already provides the
+ * shell, so pages that still wrap themselves in AdminShell render only their
+ * content. Outside /admin (leaderboard, public hackathon pages viewed by admins,
+ * previews) this renders the full shell.
+ */
+export function AdminShell(props: AdminShellProps) {
+  const inLayout = useInAdminLayout();
+  if (inLayout) return <>{props.children}</>;
+  return <AdminShellFrame {...props} />;
+}
+
+export function AdminShellFrame({
   children,
   currentPath = '/admin/verifications',
   adminProfile,
-  permissions = [],
+  permissions: serverPermissions = [],
   assignedHackathonsCount,
 }: AdminShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [fetchedHasAssignments, setFetchedHasAssignments] = useState(false);
-  const hasAssignedHackathons =
-    typeof assignedHackathonsCount === 'number'
-      ? assignedHackathonsCount > 0
-      : fetchedHasAssignments;
 
-  React.useEffect(() => {
-    if (typeof assignedHackathonsCount === 'number') {
-      return;
-    }
-    let isMounted = true;
-    if (adminProfile?.is_active) {
-      import('@/actions/admin-assignment-actions')
-        .then(({ fetchMyAssignedHackathonsAction }) => {
-          fetchMyAssignedHackathonsAction().then((res) => {
-            if (isMounted && res.success && res.data && res.data.length > 0) {
-              setFetchedHasAssignments(true);
-            }
-          }).catch(() => {});
-        })
-        .catch(() => {});
-    }
-    return () => {
-      isMounted = false;
+  // Navigation state comes from the server props when the page supplied them (always
+  // the freshest), otherwise from the per-tab store, so the sidebar paints complete
+  // on the first frame and never re-fetches per page. Display only: the server and
+  // database re-check every request (see admin-nav-cache.ts). The server snapshot
+  // is null, so SSR never reads the store.
+  const cached = useSyncExternalStore(subscribeAdminNavCache, readAdminNavCache, () => null);
+  const adminId = adminProfile?.id;
+  const isActiveAdmin = Boolean(adminProfile?.is_active);
+  const serverIsSuper = Boolean(adminProfile?.is_super_admin);
+  const serverPermsKey = serverPermissions.join('|');
+  const propCountKnown = typeof assignedHackathonsCount === 'number';
+  const propHasAssignments = propCountKnown ? (assignedHackathonsCount as number) > 0 : null;
+
+  const cacheMatches = Boolean(cached && adminId && cached.adminId === adminId);
+  const hasServerIdentity = Boolean(adminProfile);
+
+  const hasAssignedHackathons =
+    propHasAssignments ?? (cacheMatches ? cached?.hasAssignments ?? false : false);
+  const permissions = hasServerIdentity
+    ? serverPermissions
+    : cacheMatches && cached
+      ? cached.permissions
+      : serverPermissions;
+
+  // Re-render open pages when this admin's access changes (push + fallback check).
+  useAdminAccessSync(isActiveAdmin ? adminId : undefined, {
+    isSuperAdmin: serverIsSuper,
+    permissionsKey: serverPermsKey,
+    hasAssignments: propHasAssignments,
+  });
+
+  useEffect(() => {
+    if (!adminId || !isActiveAdmin) return;
+
+    // A different admin signed in on this tab: drop the previous admin's entry.
+    const existing = readAdminNavCache();
+    if (existing && existing.adminId !== adminId) clearAdminNavCache();
+
+    const current = readAdminNavCache();
+    // The server props are authoritative for role/permissions at render time.
+    const base = {
+      adminId,
+      isSuperAdmin: serverIsSuper,
+      permissions: serverPermsKey ? serverPermsKey.split('|') : [],
+      hasAssignments: propHasAssignments ?? current?.hasAssignments ?? null,
     };
-  }, [assignedHackathonsCount, adminProfile?.is_active]);
+    const changed =
+      !current ||
+      current.isSuperAdmin !== base.isSuperAdmin ||
+      current.permissions.join('|') !== serverPermsKey ||
+      current.hasAssignments !== base.hasAssignments;
+    if (changed) writeAdminNavCache({ ...base, refreshedAt: current?.refreshedAt ?? Date.now() });
+
+    // Refresh from the server at most every few minutes (or when assignments are unknown).
+    const fresh = readAdminNavCache();
+    const stale = !fresh || Date.now() - fresh.refreshedAt > ADMIN_NAV_REFRESH_AFTER_MS || fresh.hasAssignments === null;
+    if (!stale) return;
+
+    let cancelled = false;
+    getMyAdminNavStateAction()
+      .then((res) => {
+        if (cancelled) return;
+        if (res.success && res.state && res.state.adminId === adminId) {
+          writeAdminNavCache({ ...res.state, refreshedAt: Date.now() });
+        } else if (!res.success) {
+          clearAdminNavCache();
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [adminId, isActiveAdmin, serverIsSuper, serverPermsKey, propHasAssignments]);
 
   const hasVerifyStudents =
     adminProfile?.is_super_admin || permissions.includes('verify_students');

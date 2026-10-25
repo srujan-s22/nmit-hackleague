@@ -1,13 +1,14 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { requireAdmin } from '@/lib/auth/guards';
-import { createClient } from '@/lib/supabase/server';
 import { AdminShell } from '@/components/shells/admin-shell';
 import { PageHeader } from '@/components/layout/page-header';
 import { AdminDashboardClient } from './admin-dashboard-client';
 import {
   getAdminDashboardMetricsAction,
+  getAdminParticipationAnalyticsAction,
   type AdminDashboardMetrics,
+  type AdminParticipationAnalytics,
 } from '@/actions/report-actions';
 
 export const metadata: Metadata = {
@@ -17,34 +18,22 @@ export const metadata: Metadata = {
 
 export default async function AdminDashboardPage() {
   const { admin, permissions } = await requireAdmin();
-  const supabase = await createClient();
-
-  // Fetch hackathons accessible to this admin
-  let query = supabase
-    .from('hackathons')
-    .select('id, title')
-    .order('created_at', { ascending: false });
-
-  if (!admin.is_super_admin) {
-    query = query.eq('in_charge_admin_id', admin.id);
-  }
-
-  const { data: hackathons } = await query;
-  const accessibleHackathons = hackathons || [];
-
-  // Default hackathon ID for non-super admins
-  const defaultHackathonId = !admin.is_super_admin && accessibleHackathons.length > 0
-    ? accessibleHackathons[0].id
-    : null;
+  // Homepage analytics are identical for every admin: default scope is the
+  // whole platform, and the scope dropdown lists every hackathon (supplied by
+  // the analytics RPC itself, so it never depends on the caller's RLS access).
+  const defaultHackathonId = null;
 
   // Retrieve initial metrics
-  const metricsResult = await getAdminDashboardMetricsAction(defaultHackathonId);
+  const [metricsResult, analyticsResult] = await Promise.all([
+    getAdminDashboardMetricsAction(defaultHackathonId),
+    getAdminParticipationAnalyticsAction(defaultHackathonId),
+  ]);
 
   const fallbackMetrics: AdminDashboardMetrics = {
     scope: {
-      is_global: admin.is_super_admin,
+      is_global: true,
       hackathon_id: defaultHackathonId,
-      events_count: accessibleHackathons.length,
+      events_count: 0,
     },
     students: {
       total: 0,
@@ -53,7 +42,7 @@ export default async function AdminDashboardPage() {
       rejected: 0,
     },
     hackathons: {
-      total: accessibleHackathons.length,
+      total: 0,
       published: 0,
       draft: 0,
       archived: 0,
@@ -91,6 +80,15 @@ export default async function AdminDashboardPage() {
     ? metricsResult.metrics
     : fallbackMetrics;
 
+  const fallbackAnalytics: AdminParticipationAnalytics = {
+    participation: { participating: 0, not_participating: 0, total_students: 0 },
+    activity: [],
+    hackathons: [],
+  };
+  const initialAnalytics = analyticsResult.success && analyticsResult.analytics
+    ? analyticsResult.analytics
+    : fallbackAnalytics;
+
   return (
     <AdminShell
       currentPath="/admin"
@@ -100,7 +98,7 @@ export default async function AdminDashboardPage() {
       <div className="space-y-6">
         <PageHeader
           title="Executive Overview & Analytics"
-          description="Institutional KPI dashboard covering student onboardings, hackathon participation, round milestones, CDC claims, and points distribution."
+          description="Institutional performance at a glance across student participation, hackathon activity, and points distribution."
           breadcrumbs={[
             { label: 'Admin Workspace', href: '/admin' },
             { label: 'Overview & Analytics' },
@@ -109,8 +107,9 @@ export default async function AdminDashboardPage() {
 
         <AdminDashboardClient
           initialMetrics={initialMetrics}
-          hackathons={accessibleHackathons}
-          isSuperAdmin={admin.is_super_admin}
+          initialAnalytics={initialAnalytics}
+          hackathons={initialAnalytics.hackathons}
+          initialError={metricsResult.error || analyticsResult.error || null}
           adminName={admin.email.split('@')[0]}
         />
       </div>

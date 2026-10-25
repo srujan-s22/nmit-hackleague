@@ -6,6 +6,7 @@ import { SidebarNav, NavSection } from '../layout/sidebar-nav';
 import { Badge } from '../ui/badge';
 import { WebPushGateModal } from './web-push-gate-modal';
 import type { AdminProfile } from '@/types/auth';
+import { useInAdminLayout } from './admin-layout-context';
 
 export interface SuperAdminShellProps {
   children: React.ReactNode;
@@ -14,7 +15,14 @@ export interface SuperAdminShellProps {
   permissions?: string[];
 }
 
-export function SuperAdminShell({
+export function SuperAdminShell(props: SuperAdminShellProps) {
+  // Inside app/admin/layout.tsx the shared admin shell is already mounted.
+  const inLayout = useInAdminLayout();
+  if (inLayout) return <>{props.children}</>;
+  return <SuperAdminShellFrame {...props} />;
+}
+
+function SuperAdminShellFrame({
   children,
   currentPath = '/admin/admins',
   adminProfile,

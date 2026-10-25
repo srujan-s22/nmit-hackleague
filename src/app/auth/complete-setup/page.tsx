@@ -7,6 +7,7 @@ import { BrandLogo } from '@/components/ui/brand-logo';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import { clearClientSessionCache } from '@/lib/session/client-session-cache';
 import { createClient } from '@/lib/supabase/client';
 import { completeAdminSetupAction } from '@/actions/auth-actions';
 
@@ -145,6 +146,7 @@ export default function CompleteAdminSetupPage() {
   };
 
   const handleSignOut = async () => {
+    clearClientSessionCache();
     try {
       const supabase = createClient();
       await supabase.auth.signOut();

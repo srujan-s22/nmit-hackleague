@@ -1,10 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { AppHeader } from '../layout/app-header';
 import { SidebarNav, NavSection } from '../layout/sidebar-nav';
 import { Badge } from '../ui/badge';
 import { WebPushGateModal } from './web-push-gate-modal';
+import { getMyHeaderProfileAction, type HeaderProfile } from '@/actions/header-profile-actions';
+import {
+  avatarUrlToDataUrl,
+  clearHeaderProfileCache,
+  readHeaderProfileCache,
+  subscribeHeaderProfileCache,
+  writeHeaderProfileCache,
+} from '@/lib/student/header-profile-cache';
 
 export interface StudentShellProfile {
   full_name: string;
@@ -27,6 +35,56 @@ export function StudentShell({
   studentProfile,
 }: StudentShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Every student page renders its own shell, so the header photo is kept in a
+  // per-tab store (sessionStorage, as a small data URL): fetched and downloaded
+  // once when the student opens the site, then reused on every page with no
+  // network. The server snapshot is null so SSR never touches the store.
+  const cachedProfile = useSyncExternalStore(
+    subscribeHeaderProfileCache,
+    readHeaderProfileCache,
+    () => null
+  );
+  const serverUsn = studentProfile?.usn;
+  const serverAvatarUrl = studentProfile?.avatarUrl;
+  const cacheUsn = cachedProfile?.usn;
+  useEffect(() => {
+    // A different student signed in on this tab: drop the previous one's photo.
+    if (cachedProfile && serverUsn && cacheUsn && cacheUsn !== serverUsn) {
+      clearHeaderProfileCache();
+      return;
+    }
+    if (cachedProfile) return;
+    let cancelled = false;
+    (async () => {
+      let profile: HeaderProfile | null = null;
+      let sourceUrl: string | null = null;
+      if (serverAvatarUrl && studentProfile) {
+        // Page already has a signed URL: reuse it instead of another round trip.
+        profile = { full_name: studentProfile.full_name, usn: studentProfile.usn ?? null, avatarUrl: null };
+        sourceUrl = serverAvatarUrl;
+      } else {
+        const res = await getMyHeaderProfileAction();
+        if (!res.success || !res.profile) return;
+        profile = { ...res.profile, avatarUrl: null };
+        sourceUrl = res.profile.avatarUrl;
+      }
+      const dataUrl = sourceUrl ? await avatarUrlToDataUrl(sourceUrl) : null;
+      // Don't cache a failed photo download: a later page retries instead of
+      // pinning initials for the whole session.
+      if (cancelled || (sourceUrl && !dataUrl)) return;
+      writeHeaderProfileCache({ ...profile, avatarUrl: dataUrl });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!cachedProfile, serverUsn, cacheUsn, serverAvatarUrl]);
+
+  const fetchedProfile = cachedProfile;
+
+  const displayName = studentProfile?.full_name || fetchedProfile?.full_name;
+  const displayUsn = studentProfile?.usn || fetchedProfile?.usn;
 
   const sections: NavSection[] = [
     {
@@ -112,9 +170,9 @@ export function StudentShell({
       <AppHeader
         roleTitle="Student Portal"
         roleBadge={<Badge variant="info">Student Portal</Badge>}
-        userName={studentProfile?.full_name || 'Student Portal'}
-        userRole={studentProfile?.usn ? `Student (${studentProfile.usn})` : 'Student Account'}
-        avatarUrl={studentProfile?.avatarUrl}
+        userName={displayName || 'Student Portal'}
+        userRole={displayUsn ? `Student (${displayUsn})` : 'Student Account'}
+        avatarUrl={fetchedProfile?.avatarUrl}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
       />

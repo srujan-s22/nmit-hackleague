@@ -299,26 +299,26 @@ SELECT lives_ok(
   'P11-DB-24: Ordinary admin succeeds on assigned hackathon metrics'
 );
 
--- P11-DB-25: Ordinary admin metrics for unassigned event denied (42501)
-SELECT throws_ok(
+-- P11-DB-25..27 (updated by 20261030000003): homepage analytics are identical for
+-- every active admin. Aggregate counts are platform-wide for any admin, regardless
+-- of hackathon assignment; operational authorization elsewhere is unchanged.
+-- P11-DB-25: Ordinary admin may view aggregate metrics for a hackathon they are NOT assigned to
+SELECT lives_ok(
   $$ SELECT public.get_admin_dashboard_metrics('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') $$,
-  'P0001',
-  'Access denied: not authorized for this hackathon.',
-  'P11-DB-25: Ordinary admin denied unassigned hackathon metrics'
+  'P11-DB-25: Ordinary admin can view aggregate metrics for any hackathon (homepage analytics are uniform)'
 );
 
--- P11-DB-26: Ordinary admin default metrics (NULL hackathon) scopes to assigned events only
+-- P11-DB-26: Ordinary admin default metrics (NULL hackathon) are platform-wide
 SELECT is(
   (public.get_admin_dashboard_metrics(NULL)->'scope'->>'is_global')::boolean,
-  false,
-  'P11-DB-26: Ordinary admin default metrics is NOT global'
+  true,
+  'P11-DB-26: Ordinary admin default metrics are platform-wide (is_global)'
 );
 
--- P11-DB-27: Ordinary admin default metrics event count equals assigned count (1)
-SELECT is(
-  (public.get_admin_dashboard_metrics(NULL)->'scope'->>'events_count')::int,
-  1,
-  'P11-DB-27: Ordinary admin metrics reflects 1 assigned event'
+-- P11-DB-27: Ordinary admin default metrics cover every hackathon, not just the assigned one
+SELECT ok(
+  (public.get_admin_dashboard_metrics(NULL)->'scope'->>'events_count')::int >= 2,
+  'P11-DB-27: Ordinary admin metrics span all hackathons (>= the 2 fixture events), not just the 1 assigned'
 );
 
 -- P11-DB-28: Non-existent hackathon throws P0002 for Super Admin

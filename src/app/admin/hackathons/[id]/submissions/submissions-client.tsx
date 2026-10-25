@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/layout/page-header';
@@ -64,6 +64,27 @@ export interface SubmissionRow {
   reviews: ReviewInfo[];
 }
 
+export interface RegistrationClaimRow {
+  id: string;
+  name: string;
+  hackathon_id: string;
+  leader_id: string;
+  internal_status: string;
+  external_status: string;
+  external_proof_path: string | null;
+  external_proof_submitted_at: string | null;
+  cdc_declaration_accepted: boolean;
+  cdc_declaration_accepted_at: string | null;
+  created_at: string;
+  leader: {
+    id: string;
+    full_name: string;
+    usn: string;
+    branch: string;
+    academic_year: number;
+  } | null;
+}
+
 export interface ResultRow {
   id: string;
   round_id: string;
@@ -81,18 +102,38 @@ export interface SubmissionsClientProps {
   };
   rounds: HackathonRoundInfo[];
   initialSubmissions: SubmissionRow[];
+  initialClaims?: RegistrationClaimRow[];
   results: ResultRow[];
   isSuperAdmin: boolean;
+  fetchError?: string | null;
 }
 
 export function SubmissionsClient({
   hackathon,
   rounds,
   initialSubmissions,
+  initialClaims,
   results,
   isSuperAdmin,
+  fetchError,
 }: SubmissionsClientProps) {
   const router = useRouter();
+  const claims = useMemo(() => initialClaims || [], [initialClaims]);
+
+  // Default active tab to 'claims' if there are claims but no round submissions
+  // yet; otherwise default to 'rounds', the more actionable tab once round
+  // deliverables exist. (Previously both branches returned 'claims' — dead
+  // conditional, fixed.)
+  const [activeTab, setActiveTab] = useState<'claims' | 'rounds'>(() => {
+    if (initialSubmissions.length === 0 && (initialClaims?.length || 0) > 0) {
+      return 'claims';
+    }
+    return 'rounds';
+  });
+
+  const [claimsSearchQuery, setClaimsSearchQuery] = useState('');
+  const [claimsStatusFilter, setClaimsStatusFilter] = useState<string>('all');
+
   const [currentTimestamp] = useState(() => Date.now());
   const [selectedRoundId, setSelectedRoundId] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -169,6 +210,29 @@ export function SubmissionsClient({
     }));
   };
 
+  const filteredClaims = useMemo(() => {
+    return claims.filter((claim) => {
+      if (claimsStatusFilter !== 'all' && claim.external_status !== claimsStatusFilter) {
+        return false;
+      }
+      if (claimsSearchQuery.trim()) {
+        const q = claimsSearchQuery.toLowerCase();
+        const matchName = claim.name.toLowerCase().includes(q);
+        const matchLeader =
+          claim.leader?.full_name.toLowerCase().includes(q) ||
+          claim.leader?.usn.toLowerCase().includes(q) ||
+          claim.leader?.branch.toLowerCase().includes(q);
+        if (!matchName && !matchLeader) return false;
+      }
+      return true;
+    });
+  }, [claims, claimsSearchQuery, claimsStatusFilter]);
+
+  const claimsSubmittedCount = claims.filter((c) => c.external_status === 'submitted').length;
+  const submissionsPendingCount = currentSubmissions.filter(
+    (s) => s.status === 'submitted' || s.status === 'under_review'
+  ).length;
+
   const renderStatusBadge = (status: string) => {
     switch (status) {
       case 'accepted':
@@ -185,22 +249,44 @@ export function SubmissionsClient({
     }
   };
 
+  const renderClaimStatusBadge = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return <Badge variant="success">Verified</Badge>;
+      case 'rejected':
+        return <Badge variant="error">Rejected</Badge>;
+      case 'submitted':
+        return <Badge variant="neutral">Submitted</Badge>;
+      case 'not_submitted':
+      default:
+        return <Badge variant="neutral">Not Submitted</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`Submissions Review: ${hackathon.title}`}
-        description="Verify submitted milestone artifacts, evaluate evidence provenance, and award sequential round advancement."
+        title={`Submissions & Reviews: ${hackathon.title}`}
+        description="Verify external registration claims and sequential round milestone deliverables for institutional oversight."
         breadcrumbs={[
           { label: 'Admin Workspace', href: '/admin' },
           { label: 'Hackathons', href: '/admin/hackathons' },
-          { label: hackathon.title, href: `/admin/hackathons/${hackathon.id}` },
-          { label: 'Round Submissions' },
+          { label: hackathon.title, href: `/hackathons/${hackathon.slug}` },
+          { label: 'Submissions Review' },
         ]}
         actions={
           <div className="flex items-center gap-2">
             <Link
+              href={`/admin/hackathons/${hackathon.id}/teams`}
+              className="text-xs font-semibold px-3 py-1.5 rounded bg-surface-canvas border border-border-subtle text-text-primary hover:bg-surface-subtle transition-colors"
+              id="btn-nav-teams-roster"
+            >
+              Registered Teams Roster &rarr;
+            </Link>
+            <Link
               href={`/admin/hackathons/${hackathon.id}/rounds`}
-              className="text-xs text-brand-primary hover:underline"
+              className="text-xs font-semibold px-3 py-1.5 rounded bg-surface-canvas border border-border-subtle text-text-secondary hover:text-text-primary transition-colors"
+              id="btn-nav-configure-rounds"
             >
               Configure Rounds &rarr;
             </Link>
@@ -208,92 +294,365 @@ export function SubmissionsClient({
         }
       />
 
-      {/* Filter Toolbar */}
-      <Card>
-        <CardContent className="pt-4 space-y-4">
-          <div className="flex flex-wrap items-center gap-4 justify-between">
-            {/* Round Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Round filter">
-              <button
-                type="button"
-                onClick={() => setSelectedRoundId('all')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                  selectedRoundId === 'all'
-                    ? 'bg-surface-inverse text-text-inverse shadow-xs'
-                    : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
-                }`}
-                id="filter-round-all"
-              >
-                All Rounds ({currentSubmissions.length})
-              </button>
-              {rounds.map((r) => {
-                const count = currentSubmissions.filter((s) => s.round_id === r.id).length;
-                return (
+      {/* Safe Error Banner */}
+      {fetchError && (
+        <div
+          role="alert"
+          className="p-4 rounded-md bg-status-error-bg border border-status-error-border text-status-error-text text-xs flex items-center justify-between"
+          id="alert-submissions-fetch-error"
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Notice:</span>
+            <span>{fetchError}</span>
+          </div>
+        </div>
+      )}
+
+      {/* KPI Overview Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card
+          className={`p-4 flex flex-col justify-between cursor-pointer transition-colors ${
+            activeTab === 'claims' ? 'border-brand-primary ring-1 ring-brand-primary/30' : 'hover:border-brand-primary/50'
+          }`}
+          onClick={() => setActiveTab('claims')}
+          id="kpi-card-registration-claims"
+        >
+          <span className="text-xs font-medium text-text-secondary">Registration Claims</span>
+          <div className="mt-2 flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-text-primary">{claims.length}</span>
+            <span className="text-xs text-text-muted">{claimsSubmittedCount} submitted</span>
+          </div>
+        </Card>
+
+        <Card
+          className={`p-4 flex flex-col justify-between cursor-pointer transition-colors ${
+            activeTab === 'rounds' ? 'border-brand-primary ring-1 ring-brand-primary/30' : 'hover:border-brand-primary/50'
+          }`}
+          onClick={() => setActiveTab('rounds')}
+          id="kpi-card-round-submissions"
+        >
+          <span className="text-xs font-medium text-text-secondary">Round Deliverables</span>
+          <div className="mt-2 flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-text-primary">{currentSubmissions.length}</span>
+            <span className="text-xs text-text-muted">{submissionsPendingCount} pending</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-text-secondary">Hackathon Rounds</span>
+          <span className="text-2xl font-bold text-text-primary mt-2">{rounds.length}</span>
+        </Card>
+
+        <Card className="p-4 flex flex-col justify-between">
+          <span className="text-xs font-medium text-text-secondary">Winner Placements</span>
+          <span className="text-2xl font-bold text-amber-400 mt-2">{results.length}</span>
+        </Card>
+      </div>
+
+      {/* Workflow Tabs */}
+      <div className="flex border-b border-border-subtle gap-4 sm:gap-8 text-xs sm:text-sm font-semibold">
+        <button
+          type="button"
+          onClick={() => setActiveTab('claims')}
+          className={`pb-3 relative flex items-center gap-2 transition-colors cursor-pointer ${
+            activeTab === 'claims'
+              ? 'text-brand-primary border-b-2 border-brand-primary font-bold'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          id="tab-external-claims"
+        >
+          <span>External Registration Claims</span>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full ${
+              activeTab === 'claims'
+                ? 'bg-brand-primary/15 text-brand-primary font-bold'
+                : 'bg-surface-subtle text-text-muted'
+            }`}
+          >
+            {claims.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('rounds')}
+          className={`pb-3 relative flex items-center gap-2 transition-colors cursor-pointer ${
+            activeTab === 'rounds'
+              ? 'text-brand-primary border-b-2 border-brand-primary font-bold'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          id="tab-round-submissions"
+        >
+          <span>Round Deliverables</span>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full ${
+              activeTab === 'rounds'
+                ? 'bg-brand-primary/15 text-brand-primary font-bold'
+                : 'bg-surface-subtle text-text-muted'
+            }`}
+          >
+            {currentSubmissions.length}
+          </span>
+        </button>
+      </div>
+
+      {/* WORKFLOW A: External Registration Claims */}
+      {activeTab === 'claims' && (
+        <div className="space-y-4" id="section-external-claims">
+          {/* Claims Filter Card */}
+          <Card>
+            <CardContent className="pt-4 space-y-4">
+              <div className="flex flex-wrap items-center gap-4 justify-between">
+                {/* Search */}
+                <div className="w-full sm:w-72">
+                  <Input
+                    placeholder="Search team or leader..."
+                    value={claimsSearchQuery}
+                    onChange={(e) => setClaimsSearchQuery(e.target.value)}
+                    className="text-xs h-8"
+                    id="search-claims-input"
+                  />
+                </div>
+
+                {/* Status Filter Chips */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-text-muted font-medium">Claim Status:</span>
+                  {(['all', 'submitted', 'verified', 'rejected'] as const).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setClaimsStatusFilter(st)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                        claimsStatusFilter === st
+                          ? 'bg-surface-inverse text-text-inverse font-bold'
+                          : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
+                      }`}
+                      id={`filter-claim-status-${st}`}
+                    >
+                      {st === 'all' ? 'All Claims' : st.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Claims List */}
+          {filteredClaims.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-text-muted">
+                <p className="text-sm font-semibold">No registration claims found</p>
+                <p className="text-xs mt-1">
+                  {claimsSearchQuery || claimsStatusFilter !== 'all'
+                    ? 'No external registration claims match your search or filter criteria.'
+                    : 'No teams have submitted external registration claims for this hackathon yet.'}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="border border-border-subtle rounded-md overflow-hidden bg-surface-canvas shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-text-primary divide-y divide-border-subtle">
+                  <thead className="bg-surface-subtle text-text-secondary font-semibold uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th scope="col" className="p-3.5 pl-4">Team</th>
+                      <th scope="col" className="p-3.5">Leader</th>
+                      <th scope="col" className="p-3.5">Submitted At</th>
+                      <th scope="col" className="p-3.5">CDC Declaration</th>
+                      <th scope="col" className="p-3.5">Registration Status</th>
+                      <th scope="col" className="p-3.5 pr-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-subtle bg-surface-canvas">
+                    {filteredClaims.map((claim) => (
+                      <tr key={claim.id} className="hover:bg-surface-subtle/50 transition-colors" id={`claim-row-${claim.id}`}>
+                        <td className="p-3.5 pl-4 align-top">
+                          <div className="font-semibold text-text-primary text-xs sm:text-sm">
+                            {claim.name}
+                          </div>
+                          <span className="text-[11px] text-text-muted block mt-0.5">
+                            Created {formatDateTime(claim.created_at)}
+                          </span>
+                        </td>
+
+                        <td className="p-3.5 align-top">
+                          {claim.leader ? (
+                            <div>
+                              <div className="font-medium text-text-primary">
+                                {claim.leader.full_name}
+                              </div>
+                              <div className="text-[11px] text-text-muted font-mono mt-0.5">
+                                {claim.leader.usn} &bull; {claim.leader.branch} (Yr {claim.leader.academic_year})
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-text-muted italic">Unassigned</span>
+                          )}
+                        </td>
+
+                        <td className="p-3.5 align-top whitespace-nowrap">
+                          {claim.external_proof_submitted_at ? (
+                            <span className="font-medium text-text-primary">
+                              {formatDateTime(claim.external_proof_submitted_at)}
+                            </span>
+                          ) : (
+                            <span className="text-text-muted italic">Pending</span>
+                          )}
+                        </td>
+
+                        <td className="p-3.5 align-top">
+                          {claim.cdc_declaration_accepted ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-status-success-text bg-status-success-bg border border-status-success-border/40 px-2 py-0.5 rounded">
+                              ✓ Accepted
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-status-warning-text bg-status-warning-bg border border-status-warning-border/40 px-2 py-0.5 rounded">
+                              Missing
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="p-3.5 align-top">
+                          {renderClaimStatusBadge(claim.external_status)}
+                        </td>
+
+                        <td className="p-3.5 pr-4 align-top text-right">
+                          {claim.external_proof_path ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() =>
+                                setPreviewProofTeam({
+                                  teamId: claim.id,
+                                  teamName: claim.name,
+                                  cdcAccepted: claim.cdc_declaration_accepted,
+                                })
+                              }
+                              id={`btn-inspect-claim-proof-${claim.id}`}
+                            >
+                              Inspect Proof
+                            </Button>
+                          ) : (
+                            <span className="text-[11px] text-text-muted italic">
+                              No screenshot attached
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* WORKFLOW B: Round Milestone Deliverables */}
+      {activeTab === 'rounds' && (
+        <div className="space-y-4" id="section-round-submissions">
+          {/* Round Filter Toolbar */}
+          <Card>
+            <CardContent className="pt-4 space-y-4">
+              <div className="flex flex-wrap items-center gap-4 justify-between">
+                {/* Round Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Round filter">
                   <button
-                    key={r.id}
                     type="button"
-                    onClick={() => setSelectedRoundId(r.id)}
+                    onClick={() => setSelectedRoundId('all')}
                     className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                      selectedRoundId === r.id
+                      selectedRoundId === 'all'
                         ? 'bg-surface-inverse text-text-inverse shadow-xs'
                         : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
                     }`}
-                    id={`filter-round-${r.round_number}`}
+                    id="filter-round-all"
                   >
-                    Round {r.round_number} ({count})
+                    All Rounds ({currentSubmissions.length})
                   </button>
-                );
-              })}
-            </div>
+                  {rounds.map((r) => {
+                    const count = currentSubmissions.filter((s) => s.round_id === r.id).length;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setSelectedRoundId(r.id)}
+                        className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
+                          selectedRoundId === r.id
+                            ? 'bg-surface-inverse text-text-inverse shadow-xs'
+                            : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
+                        }`}
+                        id={`filter-round-${r.round_number}`}
+                      >
+                        Round {r.round_number} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
 
-            {/* Search Input */}
-            <div className="w-full sm:w-64">
-              <Input
-                placeholder="Search team or title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-xs h-8"
-                id="search-submissions-input"
-              />
-            </div>
-          </div>
+                {/* Search Input */}
+                <div className="w-full sm:w-64">
+                  <Input
+                    placeholder="Search team or title..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="text-xs h-8"
+                    id="search-submissions-input"
+                  />
+                </div>
+              </div>
 
-          {/* Status Filter Chips */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border-subtle text-xs">
-            <span className="text-text-muted font-medium">Status:</span>
-            {(['all', 'submitted', 'under_review', 'revision_requested', 'accepted', 'rejected'] as const).map((st) => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setStatusFilter(st)}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
-                  statusFilter === st
-                    ? 'bg-surface-inverse text-text-inverse font-bold'
-                    : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
-                }`}
-                id={`filter-status-${st}`}
-              >
-                {st === 'all' ? 'All Statuses' : st.replace('_', ' ').toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Submissions List */}
-      <div className="space-y-4">
-        {filteredSubmissions.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-text-muted">
-              <p className="text-sm font-semibold">No milestone submissions found</p>
-              <p className="text-xs mt-1">
-                {searchQuery || statusFilter !== 'all' || selectedRoundId !== 'all'
-                  ? 'Try broadening your search or filter criteria.'
-                  : 'Teams have not submitted milestones for the active rounds yet.'}
-              </p>
+              {/* Status Filter Chips */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border-subtle text-xs">
+                <span className="text-text-muted font-medium">Status:</span>
+                {(['all', 'submitted', 'under_review', 'revision_requested', 'accepted', 'rejected'] as const).map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setStatusFilter(st)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                      statusFilter === st
+                        ? 'bg-surface-inverse text-text-inverse font-bold'
+                        : 'bg-surface-subtle text-text-secondary hover:text-text-primary'
+                    }`}
+                    id={`filter-status-${st}`}
+                  >
+                    {st === 'all' ? 'All Statuses' : st.replace('_', ' ').toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </CardContent>
           </Card>
-        ) : (
+
+          {/* Submissions List */}
+          <div className="space-y-4">
+            {filteredSubmissions.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-text-muted">
+                  <p className="text-sm font-semibold">No round submissions yet</p>
+                  <p className="text-xs mt-1">
+                    {searchQuery || statusFilter !== 'all' || selectedRoundId !== 'all'
+                      ? 'Try broadening your search or filter criteria.'
+                      : 'Teams have not submitted milestone deliverables for the active rounds yet.'}
+                  </p>
+                  {claims.length > 0 && (
+                    <div className="mt-4">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setActiveTab('claims')}
+                        id="btn-switch-to-claims"
+                      >
+                        View External Registration Claims ({claims.length}) &rarr;
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
           filteredSubmissions.map((sub) => {
             const round = getRoundInfo(sub.round_id);
             const teamRoundKey = `${sub.round_id}-${sub.team_id}`;
@@ -602,6 +961,8 @@ export function SubmissionsClient({
           })
         )}
       </div>
+    </div>
+  )}
 
       {/* Dialogs */}
       {previewSubmissionId && (

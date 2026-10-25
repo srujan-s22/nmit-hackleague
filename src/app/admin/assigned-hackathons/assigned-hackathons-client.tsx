@@ -238,6 +238,14 @@ export function AssignedHackathonsClient({
                   {/* Right: Direct Review Entry Point */}
                   <div className="flex items-center gap-2 shrink-0 self-start">
                     <ButtonLink
+                      href={`/admin/hackathons/${h.id}/teams`}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Registered Teams
+                    </ButtonLink>
+
+                    <ButtonLink
                       href={`/admin/hackathons/${h.id}/submissions`}
                       variant="primary"
                       size="sm"

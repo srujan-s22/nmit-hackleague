@@ -1,5 +1,7 @@
 import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
+import { once } from 'node:events';
+import { PassThrough, Readable } from 'node:stream';
 import { sanitizeCellValue } from '@/lib/validation/export-schemas';
 
 export { sanitizeCellValue };
@@ -30,7 +32,7 @@ export function generateCsvString(
 /**
  * Escapes an individual cell value for CSV output.
  */
-function escapeCsvCell(value: string): string {
+export function escapeCsvCell(value: string): string {
   if (
     value.includes(',') ||
     value.includes('"') ||
@@ -134,4 +136,125 @@ export async function generateExcelWorkbook(
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
+}
+
+// ---------------------------------------------------------------------------
+// Streaming generators
+//
+// These produce output incrementally from async row sources (the paged export
+// RPC), so memory stays bounded by one page rather than the whole dataset.
+// Formula-injection protection is applied to every textual cell, exactly as in
+// the buffered generators above.
+// ---------------------------------------------------------------------------
+
+export type ExportColumn = { key: string; label: string };
+export type RowSource = AsyncIterable<Record<string, unknown>>;
+
+export interface StreamDataset {
+  /** Worksheet name (xlsx) */
+  sheetName: string;
+  /** File name without extension (zip / csv) */
+  fileName: string;
+  columns: ExportColumn[];
+  rows: RowSource;
+}
+
+const CSV_CHUNK_ROWS = 500;
+
+/** CSV text in chunks: header first (so an empty dataset is still a valid file), then rows. */
+export async function* csvChunks(columns: ExportColumn[], rows: RowSource): AsyncGenerator<string> {
+  yield columns.map((c) => escapeCsvCell(c.label)).join(',') + '\r\n';
+
+  let buffer: string[] = [];
+  for await (const row of rows) {
+    buffer.push(
+      columns.map((c) => escapeCsvCell(sanitizeCellValue(row[c.key]))).join(',') + '\r\n'
+    );
+    if (buffer.length >= CSV_CHUNK_ROWS) {
+      yield buffer.join('');
+      buffer = [];
+    }
+  }
+  if (buffer.length > 0) yield buffer.join('');
+}
+
+function toNodeReadable(chunks: AsyncIterable<string>): Readable {
+  return Readable.from(
+    (async function* () {
+      for await (const chunk of chunks) yield Buffer.from(chunk, 'utf-8');
+    })(),
+    { objectMode: false }
+  );
+}
+
+/** ZIP archive streamed file-by-file, one CSV per dataset. */
+export function createZipStream(datasets: StreamDataset[]): Readable {
+  const zip = new JSZip();
+  for (const ds of datasets) {
+    zip.file(`${ds.fileName}.csv`, toNodeReadable(csvChunks(ds.columns, ds.rows)));
+  }
+  // JSZip returns a legacy (readable-stream) object that isn't async-iterable;
+  // pipe it into a native PassThrough and forward errors.
+  const source = zip.generateNodeStream({
+    type: 'nodebuffer',
+    streamFiles: true,
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 },
+  });
+  const out = new PassThrough();
+  source.on('error', (err: unknown) => out.destroy(err instanceof Error ? err : new Error('ZIP generation failed.')));
+  source.pipe(out);
+  return out;
+}
+
+function xlsxCellValue(value: unknown): string | number | boolean {
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  return sanitizeCellValue(value);
+}
+
+/** Multi-sheet workbook written row-by-row with ExcelJS's streaming writer. */
+export function createXlsxStream(datasets: StreamDataset[], creator = 'NMIT HackLeague Platform'): Readable {
+  const out = new PassThrough();
+
+  void (async () => {
+    try {
+      const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+        stream: out,
+        useStyles: true,
+        useSharedStrings: false,
+      });
+      workbook.creator = creator;
+      workbook.created = new Date();
+
+      for (const ds of datasets) {
+        const sheetName = ds.sheetName.slice(0, 31).replace(/[\\/?*:[\]]/g, '_');
+        const sheet = workbook.addWorksheet(sheetName, {
+          views: [{ state: 'frozen', ySplit: 1 }],
+        });
+        sheet.columns = ds.columns.map((c) => ({
+          key: c.key,
+          width: Math.min(Math.max(c.label.length + 4, 14), 40),
+        }));
+
+        const header = sheet.addRow(ds.columns.map((c) => c.label));
+        header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+        header.alignment = { vertical: 'middle', horizontal: 'left' };
+        header.height = 24;
+        header.commit();
+
+        for await (const row of ds.rows) {
+          sheet.addRow(ds.columns.map((c) => xlsxCellValue(row[c.key]))).commit();
+          if (out.writableNeedDrain) await once(out, 'drain');
+        }
+        await sheet.commit();
+      }
+
+      await workbook.commit();
+    } catch (err) {
+      out.destroy(err instanceof Error ? err : new Error('Workbook generation failed.'));
+    }
+  })();
+
+  return out;
 }

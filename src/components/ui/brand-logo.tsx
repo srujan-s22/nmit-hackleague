@@ -94,13 +94,6 @@ export function BrandLogo({
         >
           NMIT <span className="font-semibold text-text-secondary">HackLeague</span>
         </span>
-        <span
-          className={`text-[10px] tracking-wider uppercase font-medium leading-none ${
-            isDark ? 'text-neutral-400' : 'text-text-helper'
-          }`}
-        >
-          Autonomous Institution
-        </span>
       </div>
     </div>
   );

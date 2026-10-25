@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, Suspense } from 'react';
+import React, { useEffect, useState, useTransition, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BrandLogo } from '@/components/ui/brand-logo';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { loginAction } from '@/actions/auth-actions';
+import { clearClientSessionCache } from '@/lib/session/client-session-cache';
 
 function LoginCard() {
   const router = useRouter();
@@ -20,6 +21,12 @@ function LoginCard() {
   const [errorMessage, setErrorMessage] = useState<string | null>(urlError);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [isPending, startTransition] = useTransition();
+
+  // Every signed-out path (including server-rendered sign-out forms and expired
+  // sessions) ends on this page: drop any previous user's cached browser data.
+  useEffect(() => {
+    clearClientSessionCache();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
