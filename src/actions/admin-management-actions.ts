@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireSuperAdmin } from '@/lib/auth/guards';
+import { requireSuperAdmin, requireAdmin } from '@/lib/auth/guards';
 import { checkRateLimit } from '@/lib/auth/rate-limiter';
 import {
   generateSecureTemporaryPassword,
@@ -43,7 +43,14 @@ async function getAppUrl(): Promise<string> {
  */
 export async function fetchAdminsAction(): Promise<ActionResult<AdminWithPermissions[]>> {
   try {
-    await requireSuperAdmin();
+    const { admin, permissions } = await requireAdmin();
+    const isSuperAdmin = Boolean(admin.is_super_admin);
+    const canAssign = isSuperAdmin || permissions.includes('assign_hackathons');
+
+    if (!canAssign) {
+      return { success: false, error: 'Unauthorized: Administrator governance requires assign_hackathons or Super Admin access.' };
+    }
+
     const supabase = await createClient();
     const adminClient = createAdminClient();
 

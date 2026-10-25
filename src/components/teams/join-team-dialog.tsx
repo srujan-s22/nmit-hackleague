@@ -57,7 +57,7 @@ export function JoinTeamDialog({
     if (!validation.success) {
       setFieldError(
         validation.error.issues[0]?.message ||
-          'Please enter a valid 12-character invitation code.'
+          'Please enter a valid invitation code.'
       );
       return;
     }
@@ -97,7 +97,7 @@ export function JoinTeamDialog({
       isOpen={isOpen}
       onClose={handleClose}
       title="Join Team with Invitation Code"
-      description="Enter the 12-character code provided by your team leader to join their roster."
+      description="Enter the 6-character code (or 12-character legacy code) provided by your team leader to join their roster."
       maxWidth="md"
       footer={
         <>
@@ -128,14 +128,14 @@ export function JoinTeamDialog({
 
         <div>
           <Input
-            label="12-Character Invitation Code"
-            placeholder="e.g., 7KV9N2P4WR5X"
+            label="Team Invitation Code"
+            placeholder="e.g., 4F4D3E"
             required
             value={code}
             onChange={handleCodeChange}
             disabled={isSubmitting}
             error={fieldError || undefined}
-            helperText="Invitation codes are 12 alphanumeric characters (Crockford Base32)."
+            helperText="Invitation codes are 6 alphanumeric characters (or 12 for legacy codes)."
             maxLength={12}
             className="font-mono tracking-widest text-base uppercase text-center"
           />

@@ -1,11 +1,9 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireHackathonReviewScope } from '@/lib/auth/guards';
 import { revalidatePath } from 'next/cache';
-
-export const MANDATORY_CDC_DECLARATION_TEXT =
-  "By submitting this screenshot, you confirm that it is genuine, unaltered, and represents your team's actual registration on the official hackathon platform. Submitting fake, manipulated, or misleading registration proof may result in strict disciplinary action by the Career Development Centre (CDC), including disqualification from the hackathon and other action under applicable college rules. Your submission may be reviewed, and providing proof does not guarantee acceptance.";
+import { MANDATORY_CDC_DECLARATION_TEXT } from '@/lib/validation/team-schemas';
 
 export interface SubmitRegistrationProofResult {
   success: boolean;
@@ -81,7 +79,7 @@ export async function submitRegistrationProofAction(
 
 /**
  * Evaluates round advancement claims (Round 2 and later).
- * Strictly requires authorized in-charge Admin or Super Admin review.
+ * Strictly requires authorized in-charge Admin, assigned reviewer, or Super Admin review.
  * Updates verified results, rank, and advancement points upon approval.
  */
 export async function reviewRoundAdvancementAction(
@@ -90,9 +88,6 @@ export async function reviewRoundAdvancementAction(
   feedback?: string
 ): Promise<{ success: boolean; error?: string; message?: string }> {
   try {
-    await requireAdmin('manage_hackathons');
-    const supabase = await createClient();
-
     if (!submissionId) {
       return { success: false, error: 'Submission ID is required.' };
     }
@@ -100,6 +95,21 @@ export async function reviewRoundAdvancementAction(
     if (!['accepted', 'rejected', 'revision_requested'].includes(decision)) {
       return { success: false, error: `Invalid decision '${decision}'.` };
     }
+
+    const supabase = await createClient();
+
+    // Verify submission existence and find hackathon_id for scoped review check
+    const { data: sub, error: subErr } = await supabase
+      .from('submissions')
+      .select('id, hackathon_id')
+      .eq('id', submissionId)
+      .single();
+
+    if (subErr || !sub) {
+      return { success: false, error: 'Submission not found.' };
+    }
+
+    await requireHackathonReviewScope(sub.hackathon_id);
 
     const { data: rpcData, error: rpcError } = await supabase.rpc('review_round_advancement', {
       p_submission_id: submissionId,
@@ -114,6 +124,7 @@ export async function reviewRoundAdvancementAction(
       };
     }
 
+    revalidatePath(`/admin/hackathons/${sub.hackathon_id}/submissions`);
     revalidatePath('/admin/hackathons');
 
     return {
@@ -124,6 +135,28 @@ export async function reviewRoundAdvancementAction(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to review round advancement claim.',
+    };
+  }
+}
+
+/**
+ * Generates a short-lived secure preview URL for a registration proof screenshot.
+ * Authorized for team members, assigned hackathon reviewers, and Super Admins.
+ */
+export async function getRegistrationProofPreviewUrlAction(
+  teamId: string
+): Promise<{ success: boolean; data?: { url: string }; error?: string }> {
+  try {
+    const { getRegistrationProofPreviewUrl } = await import('@/lib/teams/queries');
+    const res = await getRegistrationProofPreviewUrl(teamId);
+    if (!res.success || !res.url) {
+      return { success: false, error: res.error || 'Failed to generate preview URL.' };
+    }
+    return { success: true, data: { url: res.url } };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to generate preview URL.',
     };
   }
 }

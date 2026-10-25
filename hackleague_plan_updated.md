@@ -5,11 +5,11 @@ NMIT HackLeague. Use it alongside the project's `rules.md`, which
 remains the source of truth for requirements, architecture, security,
 UI, and unresolved decisions.
 
-**Total:** 13 phases, from project setup through launch.
+**Total:** 13 primary phases plus Phase 2B architectural hardening, from project setup through launch.
 
-**Current project status:** Phases 1–6 have previously been reported as implemented. Do not restart or rebuild completed phases from scratch. Before implementing the new requirements, audit the actual repository, migrations, tests, branch state, and current implementation. Apply only necessary, approved amendments to completed phases, add regression tests, and preserve working functionality and uncommitted user work.
+**Current project status:** Phases 1–6 have previously been reported as implemented. Phase 2B (Admin Assignments, RBAC Hardening, and Scoped Navigation Workspaces) has been established to harden administrative governance, decouple review authority, and deliver role-tailored workspaces. Do not restart or rebuild completed phases from scratch. Before implementing the new requirements, audit the actual repository, migrations, tests, branch state, and current implementation. Apply only necessary, approved amendments to completed phases, add regression tests, and preserve working functionality and uncommitted user work.
 
-**New requirements integration:** Six product updates have been added to the project requirements. Their work is mapped into the existing 13 phases below. This does not mean earlier phases are automatically reopened in full or that any changes are authorized without an implementation plan and owner approval.
+**New requirements integration:** Six product updates and finalized Phase 2B administrative navigation and assignment requirements have been added to the project requirements. Their work is mapped into the roadmap below. This does not mean earlier phases are automatically reopened in full or that any changes are authorized without an implementation plan and owner approval.
 
 ## Mandatory rules before starting
 
@@ -78,6 +78,109 @@ UI, and unresolved decisions.
 -   Layouts work on desktop and mobile.
 -   Login and internal pages follow the approved visual direction.
 -   No invented official logos or fake production data.
+
+## Phase 2B --- Admin Assignments, RBAC Hardening, and Scoped Navigation Workspaces
+
+### Scope & Architectural Objectives
+
+Phase 2B establishes the authoritative administrative assignment architecture, decouples submission-review authority from global hackathon management, enforces multi-layered RBAC boundaries, and delivers dedicated navigation workspaces for administrators and reviewers.
+
+### 1. Completed & Verified Work (Do Not Re-Implement)
+
+-   **Database Migration (`20261029000001_phase2b_admin_assignment_and_rbac_hardening.sql`):**
+    -   Applied to remote/hosted Supabase (`hmmhghnljaloipkkgeqj`) via non-destructive, fail-closed transaction.
+    -   Table `public.hackathon_admin_assignments` created with columns `id`, `hackathon_id`, `admin_id`, `assigned_by`, `assigned_at`, `role`, `notes`, `created_at`, `updated_at`.
+    -   Constraints: `uq_hackathon_admin_assignments (hackathon_id, admin_id)`, role check `chk_hackathon_admin_role (role IN ('in_charge', 'reviewer', 'coordinator'))`, and partial unique index `uq_hackathon_admin_assignments_in_charge` enforcing at most one in-charge admin per hackathon.
+    -   Write-Privilege Revocation: `REVOKE INSERT, UPDATE, DELETE FROM authenticated` with defense-in-depth deny RLS policy `hackathon_admin_assignments_deny_direct_write`.
+    -   Database RPCs: `assign_admin_to_hackathon`, `remove_admin_from_hackathon`, `reassign_hackathon_in_charge_admin`, `can_admin_manage_assignments`, `can_admin_manage_hackathon_config`, and `can_admin_review_hackathon`.
+    -   Storage Path Safety: Helpers `can_view_registration_proof` and `can_view_team_round_evidence` bound to UUID paths and scoped through `can_admin_review_hackathon`.
+-   **RBAC & Catalog Parity:**
+    -   Expanded canonical permission catalog in `src/lib/auth/permissions.ts` to include `'assign_hackathons'` (13 canonical permissions, exact parity with database constraint `chk_admin_permissions_key`).
+    -   Updated Zod schemas (`adminPermissionKeySchema`, `adminPermissionsArraySchema`, `adminCreationSchema`, `adminPermissionsUpdateSchema`).
+-   **Scoped Review Authorization Guard:**
+    -   Implemented `requireHackathonReviewScope` in `src/lib/auth/guards.ts` calling RPC `can_admin_review_hackathon`.
+    -   Decoupled `/admin/hackathons/[id]/submissions` and review server actions (`reviewRoundSubmissionAction`, `reopenRejectedSubmissionAction`, `recordRoundWinnerPlacementAction`, `reviewRoundAdvancementAction`) from global `manage_hackathons`.
+-   **Mandatory Creation External Registration URL:**
+    -   Required external registration URL during hackathon creation in form and Zod schema with boundary regex matching `chk_hackathons_external_url`.
+-   **Hackathons Table UI Polish:**
+    -   Replaced crowded flex-wrapped action buttons on `/admin/hackathons` with a responsive secondary actions dropdown menu using `createPortal`, outside-click detection, and Escape key dismissal; eliminated nested scrolling.
+-   **Automated Verification:**
+    -   Unit test suite `tests/unit/phase2b-rbac-and-reviewer-scope.test.ts` (9 test cases) passing cleanly with 100% assertions satisfied.
+
+### 2. Planned & Pending Scope Additions (Finalized Requirements)
+
+#### A. Administrator Governance — Hackathon Assignment Management UI (`/admin/admins`)
+
+-   **Access Authorization:**
+    -   Update `/admin/admins/page.tsx` from `requireSuperAdmin()` to allow both the Super Admin (global scope) and administrators holding the `assign_hackathons` permission.
+    -   Super Admin retains global management across all admin accounts, permissions, deactivations, and assignments.
+    -   Administrators with `assign_hackathons` can access the governance interface to manage hackathon assignments, but are strictly prohibited from provisioning accounts, altering functional permissions, or deactivating accounts.
+    -   Navigation: Render the Administrator Governance / Accounts link in `admin-shell.tsx` for administrators holding `assign_hackathons`.
+-   **Assignment Interface & Capabilities:**
+    -   Provide an assignment-management interface within Administrator Accounts / Governance.
+    -   Enable authorized users to select a hackathon and assign one or more currently active administrators.
+    -   Support multiple administrators per hackathon and multiple hackathons per administrator.
+    -   Render existing assignments for the selected hackathon, displaying administrator name, email, assignment role (`reviewer` or `coordinator`), and assigned timestamp.
+    -   Allow authorized assigners to unassign/remove an administrator assignment with a mandatory justification (minimum 10 characters), calling the `remove_admin_from_hackathon` RPC.
+    -   Exclude inactive administrators (`is_active = false`) from new assignment selection.
+    -   Ensure inactive administrators cannot retain effective review, assignment, or evidence access merely because an old assignment record exists in `hackathon_admin_assignments` (fail-closed check on `is_active = true` in `can_admin_review_hackathon`, `requireAdmin`, and storage policies).
+    -   Reuse existing `public.hackathon_admin_assignments` table, supported assignment roles (`reviewer`, `coordinator`), RPCs, and RLS policies; do not create a duplicate assignment system.
+
+#### B. Hackathons — Shared Browsing Interface (`/admin/hackathons`)
+
+-   **Universal Administrator Visibility:**
+    -   All active administrators must see the "Hackathons" menu item in the navigation sidebar (`admin-shell.tsx`).
+-   **Presentation Parity:**
+    -   Adopt the same general hackathon browsing presentation as the student-facing catalog (`/student/hackathons`), reusing/adapting `EventCard` and catalog grid components where practical.
+    -   Display useful hackathon details: mode (`online`, `offline`, `hybrid`), venue, event dates, registration deadlines, registration state badge, and external registration information.
+-   **Strict Separation of Management Actions:**
+    -   The shared admin browsing page must not expose management actions to ordinary administrators, including those with `manage_hackathons` or `assign_hackathons`.
+    -   **Only the Super Admin sees hackathon management actions in the Hackathons menu.**
+    -   Super Admin retains complete existing management controls: `+ New Hackathon` button, `Edit Details`, `Configure Rounds`, `Override Deadline`, `Publish Hackathon`, `Close Registration`, `Reopen Registration`, and `Archive Event`.
+    -   Ordinary administrators browse read-only on `/admin/hackathons` without management buttons or secondary dropdown actions.
+    -   Do not expose student-only registration actions (e.g., "Register Team", "Join Team") to administrator accounts.
+    -   Keep browsing visibility strictly separate from management authorization.
+
+#### C. My Assigned Hackathons — Dedicated Administrator Workspace (`/admin/assigned-hackathons`)
+
+-   **Dedicated Navigation Menu:**
+    -   Introduce a dedicated navigation sidebar menu item named **"My Assigned Hackathons"** in `admin-shell.tsx`.
+    -   Conditionally display this item **only** to administrators who currently hold active assignments in `hackathon_admin_assignments` (or in-charge designation).
+    -   Do not expose the "My Assigned Hackathons" menu item to ordinary administrators who have no relevant assignments.
+-   **Dedicated Workspace Page:**
+    -   Create `/admin/assigned-hackathons` listing only hackathons assigned to the currently authenticated administrator.
+    -   Provide a prominent, dedicated entry point linking directly to the assigned hackathon's authorized review workspace (`/admin/hackathons/[id]/submissions`).
+    -   Display the administrator's assignment role (`reviewer`, `coordinator`, `in_charge`) alongside key event schedule details.
+-   **Authorized Review Operations & Tracking:**
+    -   Assigned administrators can view and evaluate submissions for their assigned hackathons via `requireHackathonReviewScope(hackathonId)`, executing `reviewRoundSubmissionAction`, `reopenRejectedSubmissionAction`, `recordRoundWinnerPlacementAction`, and `reviewRoundAdvancementAction` within their permitted scope.
+    -   Registration proofs must be visible to authorized assigned administrators for tracking purposes. Do not introduce a mandatory registration-proof approval workflow (initial registration points remain automated upon proof upload and CDC declaration acceptance).
+    -   Assigned administrators access relevant proof screenshots and round evidence only when authorized via path-bound storage policies (`can_view_registration_proof`, `can_view_team_round_evidence`).
+-   **Fail-Closed Defense-in-Depth:**
+    -   Hiding navigation is not security: direct route URLs, server actions, APIs, database queries, and storage access must enforce identical authorization.
+    -   Super Admin retains global access and does not require an explicit assignment record to access or review any hackathon.
+    -   `manage_hackathons` alone must never grant global submission-review access.
+
+#### D. Permission Boundaries & Invariants
+
+Maintain these four strictly decoupled capabilities:
+
+1.  **`assign_hackathons`:** Authorizes assignment management within the permitted scope; does not grant event editing, round configuration, or global submission review.
+2.  **`manage_hackathons`:** Authorizes hackathon creation, editing, round configuration, and lifecycle transitions as defined by the existing permission system; does not grant global submission-review access.
+3.  **Assignment Membership & Role (`hackathon_admin_assignments`):** Authorizes scoped access to the assigned hackathon's review queue and evidence artifacts.
+4.  **Super Admin (`is_super_admin = true`):** Retains global access across all governance, event management, assignment, and review operations.
+
+Do not weaken existing RLS, storage policies, audit logging, or server-side permission checks.
+
+### Completion Criteria
+
+-   Admins with `assign_hackathons` and Super Admin can manage assignments via `/admin/admins`.
+-   Multiple admins can be assigned per hackathon; multiple hackathons per admin.
+-   Inactive admins cannot be newly assigned and cannot retain effective access from past assignments.
+-   All admins can browse hackathons on `/admin/hackathons` with student-parity presentation; only Super Admin sees management controls.
+-   "My Assigned Hackathons" appears in navigation only for admins with active assignments, providing direct entry to `/admin/hackathons/[id]/submissions`.
+-   Registration proofs are visible for tracking without mandatory approval workflow.
+-   `manage_hackathons` alone never grants review access; all permissions remain strictly decoupled.
+-   All automated tests, type-check, and lint pass with zero errors.
 
 ## Phase 3 --- Supabase setup and database design
 
@@ -437,20 +540,22 @@ funds are available.
 
 ## New-requirements implementation map
 
-This map integrates the six owner-requested updates into the existing 13-phase roadmap. It does not automatically reopen completed phases in full.
+This map integrates the owner-requested updates and Phase 2B architectural requirements into the existing roadmap. It does not automatically reopen completed phases in full.
 
 | Update | Primary phases | Related phases |
 |---|---|---|
 | 1. Automatic round/stage pausing | Phase 6 (schedule/lifecycle) and Phase 8 (round enforcement) | Phase 7 (registration deadline), Phase 13 (regression tests) |
-| 2. Hackathon-specific Admin assignment | Phase 5 (authorization) and Phase 6 (assignment during event setup) | Phase 8 (review responsibility), Phase 9 (points approval), Phase 11 (report scope) |
+| 2. Hackathon-specific Admin assignment | Phase 2B (assignments UI & workspaces) and Phase 5/6 | Phase 8 (review responsibility), Phase 9 (points approval), Phase 11 (report scope) |
 | 3. Initial registration screenshot + CDC declaration | Phase 7 | Phase 8 (later-round reviews), Phase 9 (points) |
 | 4. Upload limits and scheduled evidence deletion | Phase 4 (profile/ID uploads), Phase 8 (event evidence deletion) | Phase 6 (event-end anchor), Phase 13 (retention tests) |
 | 5. Mandatory browser push notifications | Phase 12 | Phase 4 (authenticated setup flow), Phase 5 (dashboard authorization), Phase 13 (cross-role/browser tests) |
 | 6. Data & Reports and master exports | Phase 11 | Phase 5 (permission model), Phases 6–9 (source data and scope), Phase 13 (security tests) |
+| 7. Multi-Admin Assignment & Navigation Workspaces | Phase 2B (Administrator Governance, Hackathons Browsing, My Assigned Hackathons) | Phase 5 (RBAC), Phase 6 (Hackathons), Phase 8 (Review Queue) |
 
 ### Revision strategy for completed phases
 
 - Phases 1–3 remain unchanged unless the audit finds a concrete dependency or defect requiring an owner-approved change.
+- Phase 2B incorporates hackathon assignment management in Administrator Governance (`/admin/admins`), shared student-parity browsing for all admins with Super-Admin-only management controls on `/admin/hackathons`, dedicated "My Assigned Hackathons" navigation workspace (`/admin/assigned-hackathons`), and strict RBAC decoupling without requiring additional database migrations.
 - Phase 4 receives only necessary changes for upload limits and notification access gating.
 - Phase 5 receives only necessary changes for notification/export permissions and hackathon-scoped authorization.
 - Phase 6 receives only necessary changes for assigned Admins, stage schedules, and event-end retention integration.

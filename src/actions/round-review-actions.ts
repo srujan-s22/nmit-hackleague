@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin, requireHackathonScope } from '@/lib/auth/guards';
+import { requireHackathonReviewScope } from '@/lib/auth/guards';
 import { revalidatePath } from 'next/cache';
 import {
   reviewRoundSubmissionSchema,
@@ -30,7 +30,7 @@ export interface WinnerPlacementActionResult {
 
 /**
  * Reviews a round milestone submission.
- * Strictly checks reviewer assignment to hackathon.
+ * Strictly checks reviewer assignment to hackathon via requireHackathonReviewScope.
  * Enforces feedback rules (>=10 chars for rejected/revision_requested).
  */
 export async function reviewRoundSubmissionAction(
@@ -52,8 +52,8 @@ export async function reviewRoundSubmissionAction(
       return { success: false, error: 'Submission not found.' };
     }
 
-    // Require hackathon-scoped admin permission
-    await requireHackathonScope(sub.hackathon_id, 'manage_hackathons');
+    // Require hackathon-scoped reviewer permission
+    await requireHackathonReviewScope(sub.hackathon_id);
 
     // Validate schema
     const validation = reviewRoundSubmissionSchema.safeParse({
@@ -120,8 +120,8 @@ export async function reopenRejectedSubmissionAction(
       return { success: false, error: 'Submission not found.' };
     }
 
-    // Require hackathon-scoped admin permission
-    await requireHackathonScope(sub.hackathon_id, 'manage_hackathons');
+    // Require hackathon-scoped reviewer permission
+    await requireHackathonReviewScope(sub.hackathon_id);
 
     const validation = reopenSubmissionSchema.safeParse({
       submissionId,
@@ -183,7 +183,7 @@ export async function recordRoundWinnerPlacementAction(
       return { success: false, error: 'Submission not found.' };
     }
 
-    await requireHackathonScope(sub.hackathon_id, 'manage_hackathons');
+    await requireHackathonReviewScope(sub.hackathon_id);
 
     const validation = recordWinnerPlacementSchema.safeParse({
       submissionId,

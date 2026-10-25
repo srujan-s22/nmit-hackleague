@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { EvidencePreviewModal } from '@/components/submissions/evidence-preview-modal';
+import { RegistrationProofModal } from '@/components/submissions/registration-proof-modal';
 import { ReviewActionDialog } from '@/components/submissions/review-action-dialog';
 import { ReopenActionDialog } from '@/components/submissions/reopen-action-dialog';
 import { WinnerPlacementDialog } from '@/components/submissions/winner-placement-dialog';
@@ -56,6 +57,9 @@ export interface SubmissionRow {
     name: string;
     leader_id: string;
     external_status: string;
+    external_proof_path?: string | null;
+    external_proof_submitted_at?: string | null;
+    cdc_declaration_accepted?: boolean;
   };
   reviews: ReviewInfo[];
 }
@@ -97,6 +101,11 @@ export function SubmissionsClient({
 
   // Dialog states
   const [previewSubmissionId, setPreviewSubmissionId] = useState<string | null>(null);
+  const [previewProofTeam, setPreviewProofTeam] = useState<{
+    teamId: string;
+    teamName: string;
+    cdcAccepted?: boolean;
+  } | null>(null);
   const [reviewDialog, setReviewDialog] = useState<{
     isOpen: boolean;
     submissionId: string;
@@ -379,6 +388,24 @@ export function SubmissionsClient({
                     ) : (
                       <span className="text-[11px] text-text-muted italic">No screenshot attached</span>
                     )}
+
+                    {sub.team?.external_proof_path && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[11px] px-2.5 border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10"
+                        onClick={() =>
+                          setPreviewProofTeam({
+                            teamId: sub.team.id,
+                            teamName: sub.team.name,
+                            cdcAccepted: sub.team.cdc_declaration_accepted,
+                          })
+                        }
+                        id={`admin-btn-preview-proof-${sub.id}`}
+                      >
+                        Registration Proof
+                      </Button>
+                    )}
                   </div>
 
                   {/* Review Feedback Banner */}
@@ -582,6 +609,16 @@ export function SubmissionsClient({
           isOpen={Boolean(previewSubmissionId)}
           onClose={() => setPreviewSubmissionId(null)}
           submissionId={previewSubmissionId}
+        />
+      )}
+
+      {previewProofTeam && (
+        <RegistrationProofModal
+          isOpen={Boolean(previewProofTeam)}
+          onClose={() => setPreviewProofTeam(null)}
+          teamId={previewProofTeam.teamId}
+          teamName={previewProofTeam.teamName}
+          cdcDeclarationAccepted={previewProofTeam.cdcAccepted}
         />
       )}
 

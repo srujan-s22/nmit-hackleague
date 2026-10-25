@@ -111,26 +111,26 @@ export function InvitationCodeCard({
             </Alert>
           )}
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-surface-subtle border border-border-subtle rounded-md">
-            <div className="space-y-1 text-center sm:text-left">
+          <div className="p-4 bg-surface-subtle border border-border-subtle rounded-md min-w-0 space-y-3">
+            <div className="space-y-1 min-w-0">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary block">
                 Active Code
               </span>
-              <span className="font-mono text-xl sm:text-2xl font-bold tracking-widest text-text-primary select-all">
+              <span className="font-mono text-xl sm:text-2xl font-bold tracking-widest text-text-primary select-all break-all block">
                 {currentCode || 'NO-ACTIVE-CODE'}
               </span>
-              <p className="text-[11px] text-text-muted">
+              <p className="text-[11px] text-text-muted leading-relaxed break-words pt-0.5">
                 Expires on: <span className="font-medium text-text-secondary">{formattedExpiry}</span>
               </p>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border-subtle/50 min-w-0">
               <Button
                 variant={isCopied ? 'secondary' : 'primary'}
                 size="sm"
                 onClick={handleCopy}
                 disabled={!currentCode}
-                className="flex-1 sm:flex-initial"
+                className="flex-1 min-w-[120px]"
                 leftIcon={
                   isCopied ? (
                     <svg className="w-4 h-4 text-status-success-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -152,6 +152,8 @@ export function InvitationCodeCard({
                 size="sm"
                 onClick={() => setIsConfirmOpen(true)}
                 title="Regenerate invitation code"
+                aria-label="Regenerate invitation code"
+                className="flex-1 sm:flex-initial"
               >
                 Regenerate
               </Button>

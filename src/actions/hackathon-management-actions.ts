@@ -5,12 +5,16 @@ import { createClient } from '@/lib/supabase/server';
 import { requireAdmin, requireHackathonScope } from '@/lib/auth/guards';
 import {
   hackathonFormSchema,
+  hackathonCreateSchema,
+  hackathonUpdateSchema,
   deadlineOverrideSchema,
   roundConfigArraySchema,
   lifecycleTransitionSchema,
   roundScheduleOverrideSchema,
   roundPauseResumeSchema,
   type HackathonFormData,
+  type HackathonCreateData,
+  type HackathonUpdateData,
   type DeadlineOverrideData,
   type RoundConfigArrayData,
   type LifecycleTransitionData,
@@ -24,6 +28,7 @@ import type { Json } from '@/types/database';
  * Creates a new hackathon in 'draft' status using the security definer RPC create_hackathon_draft.
  * Restricted to administrators with 'manage_hackathons' or Super Admin.
  * Super Admin can specify an in-charge Admin; ordinary Admin defaults to self.
+ * Requires a valid external registration URL.
  */
 export async function createHackathonDraftAction(
   rawInput: unknown
@@ -31,7 +36,7 @@ export async function createHackathonDraftAction(
   try {
     await requireAdmin('manage_hackathons');
 
-    const parsed = hackathonFormSchema.safeParse(rawInput);
+    const parsed = hackathonCreateSchema.safeParse(rawInput);
     if (!parsed.success) {
       const fieldErrors: Record<string, string[]> = {};
       for (const issue of parsed.error.issues) {
@@ -46,7 +51,20 @@ export async function createHackathonDraftAction(
       };
     }
 
-    const data: HackathonFormData = parsed.data;
+    const data: HackathonCreateData = parsed.data;
+
+    // Explicit rejection of missing, empty, or whitespace-only URL before RPC invocation
+    const cleanExternalUrl = (data.externalRegistrationUrl || '').trim();
+    if (cleanExternalUrl.length === 0) {
+      return {
+        success: false,
+        error: 'External registration URL is mandatory for new hackathons.',
+        fieldErrors: {
+          externalRegistrationUrl: ['External registration URL is mandatory for new hackathons.'],
+        },
+      };
+    }
+
     const supabase = await createClient();
 
     const { data: result, error } = await supabase.rpc('create_hackathon_draft', {
@@ -67,7 +85,7 @@ export async function createHackathonDraftAction(
       p_eligibility: data.eligibility,
       p_prizes_summary: data.prizesSummary || undefined,
       p_prizes_detail: (data.prizesDetail ?? []) as unknown as Json,
-      p_external_registration_url: data.externalRegistrationUrl || undefined,
+      p_external_registration_url: cleanExternalUrl,
       p_community_url: data.communityUrl || undefined,
       p_in_charge_admin_id: data.inChargeAdminId ? data.inChargeAdminId : undefined,
     });
@@ -98,6 +116,7 @@ export async function createHackathonDraftAction(
 /**
  * Updates hackathon configuration/metadata without modifying registration deadline.
  * Enforces round boundary safety checks server-side inside the RPC and hackathon scope.
+ * Preserves historical records where external registration URL is NULL.
  */
 export async function updateHackathonMetadataAction(
   hackathonId: string,
@@ -106,7 +125,7 @@ export async function updateHackathonMetadataAction(
   try {
     await requireHackathonScope(hackathonId, 'manage_hackathons');
 
-    const parsed = hackathonFormSchema.safeParse(rawInput);
+    const parsed = hackathonUpdateSchema.safeParse(rawInput);
     if (!parsed.success) {
       const fieldErrors: Record<string, string[]> = {};
       for (const issue of parsed.error.issues) {
@@ -121,7 +140,7 @@ export async function updateHackathonMetadataAction(
       };
     }
 
-    const data: HackathonFormData = parsed.data;
+    const data: HackathonUpdateData = parsed.data;
     const supabase = await createClient();
 
     const { data: result, error } = await supabase.rpc('update_hackathon_metadata', {

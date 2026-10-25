@@ -237,6 +237,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"hackathon_admin_assignments": {
+                  Row: {
+                    "admin_id": string,"assigned_at": string,"assigned_by": string,"created_at": string,"hackathon_id": string,"id": string,"notes": string | null,"role": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "admin_id": string,"assigned_at"?: string,"assigned_by": string,"created_at"?: string,"hackathon_id": string,"id"?: string,"notes"?: string | null,"role"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "admin_id"?: string,"assigned_at"?: string,"assigned_by"?: string,"created_at"?: string,"hackathon_id"?: string,"id"?: string,"notes"?: string | null,"role"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+                      foreignKeyName: "hackathon_admin_assignments_admin_id_fkey"
+                      columns: ["admin_id"]
+                      isOneToOne: false
+                      referencedRelation: "admin_profiles"
+                      referencedColumns: ["id"]
+                    },{
+                      foreignKeyName: "hackathon_admin_assignments_assigned_by_fkey"
+                      columns: ["assigned_by"]
+                      isOneToOne: false
+                      referencedRelation: "admin_profiles"
+                      referencedColumns: ["id"]
+                    },{
+                      foreignKeyName: "hackathon_admin_assignments_hackathon_id_fkey"
+                      columns: ["hackathon_id"]
+                      isOneToOne: false
+                      referencedRelation: "hackathons"
+                      referencedColumns: ["id"]
+                    }
+                  ]
                 },"hackathons": {
                   Row: {
                     "academic_term": string,"academic_year": string,"community_url": string | null,"created_at": string,"created_by": string,"description": string,"eligibility": string,"event_end_at": string,"event_start_at": string,"external_registration_url": string | null,"id": string,"in_charge_admin_id": string | null,"is_solo_allowed": boolean,"max_team_size": number,"min_team_size": number,"mode": string,"organizer": string,"prizes_detail": NonNullable<Json>,"prizes_summary": string | null,"registration_end_at": string,"registration_start_at": string,"slug": string,"status": string,"tagline": string | null,"timezone": string,"title": string,"updated_at": string,"venue": string | null
@@ -751,11 +783,23 @@ isOneToOne: false
 "award_milestone_points":
 { Args: { "p_hackathon_id": string,"p_milestone_type": string,"p_reason": string,"p_result_id": string,"p_round_id": string,"p_student_id": string,"p_team_id": string }; Returns: string
                            },
+"assign_admin_to_hackathon":
+{ Args: { "p_hackathon_id": string,"p_notes"?: string | null,"p_role"?: string,"p_target_admin_id": string }; Returns: Json
+                            },
 "bootstrap_super_admin":
 { Args: { "p_auth_uid": string,"p_email": string,"p_full_name": string }; Returns: Json
                            },
+"can_admin_manage_assignments":
+{ Args: { "p_hackathon_id": string }; Returns: boolean
+                           },
 "can_admin_manage_hackathon":
 { Args: { "p_hackathon_id": string,"p_permission_key": string }; Returns: boolean
+                           },
+"can_admin_manage_hackathon_config":
+{ Args: { "p_hackathon_id": string }; Returns: boolean
+                           },
+"can_admin_review_hackathon":
+{ Args: { "p_hackathon_id": string }; Returns: boolean
                            },
 "can_upload_registration_proof":
 { Args: { "p_team_id_text": string }; Returns: boolean
@@ -962,6 +1006,9 @@ isOneToOne: false
 "resolve_reconciliation_job":
 { Args: { "p_http_status": number,"p_job_id": string,"p_lease_token": string }; Returns: undefined
                            },
+"remove_admin_from_hackathon":
+{ Args: { "p_hackathon_id": string,"p_justification": string,"p_target_admin_id": string }; Returns: Json
+                            },
 "resubmit_round_milestone":
 { Args: { "p_demo_url"?: string,"p_description"?: string,"p_evidence_path"?: string,"p_evidence_sha256"?: string,"p_prior_submission_id": string,"p_repo_url"?: string,"p_title": string }; Returns: Json
                            },

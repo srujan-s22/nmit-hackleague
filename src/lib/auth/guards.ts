@@ -283,3 +283,34 @@ export async function requireHackathonScope(
     isSuperAdmin: Boolean(admin.is_super_admin),
   };
 }
+
+/**
+ * Scopes route and action access to administrators authorized to review submissions for a specific hackathon.
+ * Leverages the canonical can_admin_review_hackathon database authorization helper.
+ * Grants access to Super Admins and explicitly assigned reviewers/in-charge administrators.
+ * Redirects unauthorized callers to /admin/hackathons without demanding global manage_hackathons.
+ */
+export async function requireHackathonReviewScope(hackathonId: string): Promise<{
+  admin: AdminProfile;
+  permissions: string[];
+  hackathonId: string;
+  isSuperAdmin: boolean;
+}> {
+  const { admin, permissions } = await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: canReview, error } = await supabase.rpc('can_admin_review_hackathon', {
+    p_hackathon_id: hackathonId,
+  });
+
+  if (error || !canReview) {
+    redirect('/admin/hackathons');
+  }
+
+  return {
+    admin,
+    permissions,
+    hackathonId,
+    isSuperAdmin: Boolean(admin.is_super_admin),
+  };
+}

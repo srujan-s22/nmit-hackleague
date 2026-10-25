@@ -26,18 +26,43 @@ export const createTeamSchema = z.object({
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 
+import {
+  INVITATION_CODE_REGEX,
+  LEGACY_INVITATION_CODE_REGEX,
+} from '@/lib/teams/invitation-code';
+
 /**
- * Validates 12-character Crockford Base32 invitation code (case-insensitive, no 0, 1, I, O).
+ * Validates team invitation codes:
+ * - Primary standard: exactly 6 Crockford Base32 characters (e.g. 4F4D3E)
+ * - Backward compatibility: allows active 12-character legacy codes until natural expiry
+ * - Case-insensitive with whitespace normalization (no 0, 1, I, O)
  */
 export const invitationCodeSchema = z
   .string()
   .trim()
-  .length(12, 'Invitation code must be exactly 12 characters.')
-  .regex(
-    /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{12}$/i,
-    'Invitation code must contain 12 valid alphanumeric characters.'
-  )
-  .transform((val) => val.toUpperCase());
+  .transform((val) => val.toUpperCase().replace(/\s+/g, ''))
+  .refine(
+    (val) => INVITATION_CODE_REGEX.test(val) || LEGACY_INVITATION_CODE_REGEX.test(val),
+    {
+      message:
+        'Invitation code must be 6 alphanumeric characters (or 12 characters for legacy codes).',
+    }
+  );
+
+/**
+ * Validates strictly newly generated 6-character invitation codes.
+ */
+export const newInvitationCodeSchema = z
+  .string()
+  .trim()
+  .transform((val) => val.toUpperCase().replace(/\s+/g, ''))
+  .refine(
+    (val) => INVITATION_CODE_REGEX.test(val),
+    {
+      message:
+        'Invitation code must be exactly 6 valid alphanumeric characters (Crockford Base32).',
+    }
+  );
 
 /**
  * Validates payload to join a team with code.

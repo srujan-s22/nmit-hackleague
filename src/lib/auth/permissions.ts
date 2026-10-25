@@ -5,6 +5,7 @@ export const CANONICAL_PERMISSIONS = [
   'manage_students',
   'manage_password_resets',
   'manage_hackathons',
+  'assign_hackathons',
   'manage_teams',
   'manage_followups',
   'view_analytics',
@@ -66,6 +67,13 @@ export const PERMISSION_DEFINITIONS: Record<AdminPermissionKey, PermissionDefini
     category: 'Event Operations',
     description: 'Create, edit, draft, publish, close, archive hackathons; configure rounds and deadlines.',
     phaseAvailability: 'Active in Phase 6',
+  },
+  assign_hackathons: {
+    key: 'assign_hackathons',
+    label: 'Assign Hackathons',
+    category: 'Event Operations',
+    description: 'Assign and manage administrator and reviewer assignments for institutional hackathons.',
+    phaseAvailability: 'Active in Phase 2B',
   },
   manage_teams: {
     key: 'manage_teams',

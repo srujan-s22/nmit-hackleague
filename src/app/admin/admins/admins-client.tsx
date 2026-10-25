@@ -16,15 +16,26 @@ import { PERMISSION_DEFINITIONS } from '@/lib/auth/permissions';
 import { fetchAdminsAction, retryAdminOnboardingAction } from '@/actions/admin-management-actions';
 import { sendResendDiagnosticEmailAction } from '@/actions/diagnostic-actions';
 import { formatDate } from '@/lib/utils/date-format';
+import { HackathonAssignmentsSection } from './hackathon-assignments-section';
 import type { AdminWithPermissions } from '@/types/auth';
 
 interface AdminsClientProps {
   initialAdmins: AdminWithPermissions[];
   currentSuperAdminId: string;
+  isSuperAdmin?: boolean;
+  canAssignHackathons?: boolean;
 }
 
-export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClientProps) {
+export function AdminsClient({
+  initialAdmins,
+  currentSuperAdminId,
+  isSuperAdmin = true,
+  canAssignHackathons = true,
+}: AdminsClientProps) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'accounts' | 'assignments'>(
+    isSuperAdmin ? 'accounts' : 'assignments'
+  );
   const [admins, setAdmins] = useState<AdminWithPermissions[]>(initialAdmins);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'deactivated'>('all');
@@ -122,21 +133,57 @@ export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClien
 
   return (
     <div className="space-y-6">
-      {feedback && (
-        <Alert
-          variant={feedback.type}
-          title={
-            feedback.type === 'success'
-              ? 'Operation Completed'
-              : feedback.type === 'warning'
-              ? 'Administrator Provisioned (Notice)'
-              : 'Error Encountered'
-          }
-          onClose={() => setFeedback(null)}
-        >
-          {feedback.message}
-        </Alert>
+      {/* Tab Switcher for Super Admin */}
+      {isSuperAdmin && (
+        <div className="flex items-center gap-2 border-b border-border-subtle pb-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab('accounts')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xs transition-colors ${
+              activeTab === 'accounts'
+                ? 'bg-surface-inverse text-text-inverse'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
+            }`}
+          >
+            Administrator Accounts ({admins.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('assignments')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xs transition-colors ${
+              activeTab === 'assignments'
+                ? 'bg-surface-inverse text-text-inverse'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
+            }`}
+          >
+            Hackathon Assignments
+          </button>
+        </div>
       )}
+
+      {activeTab === 'assignments' ? (
+        <HackathonAssignmentsSection
+          isSuperAdmin={Boolean(isSuperAdmin)}
+          canAssignHackathons={Boolean(canAssignHackathons)}
+          currentAdminId={currentSuperAdminId}
+        />
+      ) : (
+        <>
+          {feedback && (
+            <Alert
+              variant={feedback.type}
+              title={
+                feedback.type === 'success'
+                  ? 'Operation Completed'
+                  : feedback.type === 'warning'
+                  ? 'Administrator Provisioned (Notice)'
+                  : 'Error Encountered'
+              }
+              onClose={() => setFeedback(null)}
+            >
+              {feedback.message}
+            </Alert>
+          )}
 
       {/* Control Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-surface-canvas p-4 rounded-md border border-border-subtle shadow-xs">
@@ -420,6 +467,8 @@ export function AdminsClient({ initialAdmins, currentSuperAdminId }: AdminsClien
           </Table>
         </div>
       )}
+    </>
+  )}
 
       {/* Provisioning Dialog */}
       <CreateAdminDialog

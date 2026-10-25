@@ -92,7 +92,7 @@ export async function createTeamAction(
 }
 
 /**
- * Joins an existing forming team using a 12-character invitation code.
+ * Joins an existing forming team using a team invitation code.
  */
 export async function joinTeamWithCodeAction(
   invitationCode: string
@@ -264,7 +264,7 @@ export async function removeTeamMemberAction(
 }
 
 /**
- * Regenerates the 12-character team invitation code.
+ * Regenerates the team invitation code (6 characters).
  * Strictly limited to the team leader during the forming phase.
  */
 export async function regenerateInvitationCodeAction(

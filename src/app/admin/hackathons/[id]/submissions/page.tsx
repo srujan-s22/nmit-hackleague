@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { requireHackathonScope, getCurrentAdminProfile } from '@/lib/auth/guards';
+import { requireHackathonReviewScope, getCurrentAdminProfile } from '@/lib/auth/guards';
 import { AdminShell } from '@/components/shells/admin-shell';
 import { SubmissionsClient } from './submissions-client';
 
@@ -17,7 +17,7 @@ interface SubmissionsPageProps {
 
 export default async function HackathonSubmissionsPage({ params }: SubmissionsPageProps) {
   const { id } = await params;
-  const scope = await requireHackathonScope(id, 'manage_hackathons');
+  const scope = await requireHackathonReviewScope(id);
   const currentAdmin = await getCurrentAdminProfile();
   const supabase = await createClient();
 
@@ -66,7 +66,10 @@ export default async function HackathonSubmissionsPage({ params }: SubmissionsPa
         id,
         name,
         leader_id,
-        external_status
+        external_status,
+        external_proof_path,
+        external_proof_submitted_at,
+        cdc_declaration_accepted
       ),
       reviews:submission_reviews (
         id,

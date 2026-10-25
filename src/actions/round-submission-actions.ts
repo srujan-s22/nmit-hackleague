@@ -341,13 +341,12 @@ export async function getSignedEvidenceUrlAction(
 
     let hasAccess = Boolean(membership);
 
-    // If not a team member, check if user is an authorized admin for the hackathon
+    // If not a team member, check if user is an authorized assigned admin or Super Admin for the hackathon
     if (!hasAccess) {
-      const { data: canManage } = await supabase.rpc('can_admin_manage_hackathon', {
+      const { data: canReview } = await supabase.rpc('can_admin_review_hackathon', {
         p_hackathon_id: submission.hackathon_id,
-        p_permission_key: 'manage_hackathons',
       });
-      if (canManage) {
+      if (canReview) {
         hasAccess = true;
       }
     }

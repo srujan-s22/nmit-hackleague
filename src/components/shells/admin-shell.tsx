@@ -12,6 +12,7 @@ export interface AdminShellProps {
   currentPath?: string;
   adminProfile?: AdminProfile;
   permissions?: string[];
+  assignedHackathonsCount?: number;
 }
 
 export function AdminShell({
@@ -19,8 +20,35 @@ export function AdminShell({
   currentPath = '/admin/verifications',
   adminProfile,
   permissions = [],
+  assignedHackathonsCount,
 }: AdminShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [fetchedHasAssignments, setFetchedHasAssignments] = useState(false);
+  const hasAssignedHackathons =
+    typeof assignedHackathonsCount === 'number'
+      ? assignedHackathonsCount > 0
+      : fetchedHasAssignments;
+
+  React.useEffect(() => {
+    if (typeof assignedHackathonsCount === 'number') {
+      return;
+    }
+    let isMounted = true;
+    if (adminProfile?.is_active) {
+      import('@/actions/admin-assignment-actions')
+        .then(({ fetchMyAssignedHackathonsAction }) => {
+          fetchMyAssignedHackathonsAction().then((res) => {
+            if (isMounted && res.success && res.data && res.data.length > 0) {
+              setFetchedHasAssignments(true);
+            }
+          }).catch(() => {});
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [assignedHackathonsCount, adminProfile?.is_active]);
 
   const hasVerifyStudents =
     adminProfile?.is_super_admin || permissions.includes('verify_students');
@@ -28,6 +56,8 @@ export function AdminShell({
     adminProfile?.is_super_admin || permissions.includes('view_student_data');
   const hasManageHackathons =
     adminProfile?.is_super_admin || permissions.includes('manage_hackathons');
+  const hasAssignHackathons =
+    adminProfile?.is_super_admin || permissions.includes('assign_hackathons');
   const hasManagePoints =
     adminProfile?.is_super_admin || permissions.includes('manage_points');
   const hasExportData =
@@ -50,7 +80,8 @@ export function AdminShell({
       ),
     },
   ];
-  if (hasManageHackathons) {
+  // Accessible to all active administrators (hackathon managers, assignment managers, and reviewers)
+  if (adminProfile?.is_active) {
     eventOpItems.push({
       label: 'Hackathons',
       href: '/admin/hackathons',
@@ -61,6 +92,19 @@ export function AdminShell({
         </svg>
       ),
     });
+
+    if (hasAssignedHackathons || isSuperAdmin) {
+      eventOpItems.push({
+        label: 'My Assigned Hackathons',
+        href: '/admin/assigned-hackathons',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+        ),
+      });
+    }
   }
   if (hasManagePoints) {
     eventOpItems.push({
@@ -141,7 +185,7 @@ export function AdminShell({
   }
 
   const governanceItems = [];
-  if (isSuperAdmin) {
+  if (isSuperAdmin || hasAssignHackathons) {
     governanceItems.push({
       label: 'Administrator Accounts',
       href: '/admin/admins',

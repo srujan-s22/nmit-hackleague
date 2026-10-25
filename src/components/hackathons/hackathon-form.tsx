@@ -16,6 +16,8 @@ import {
 } from '@/actions/hackathon-management-actions';
 import {
   hackathonFormSchema,
+  hackathonCreateSchema,
+  hackathonUpdateSchema,
   type HackathonFormData,
 } from '@/lib/validation/hackathon-schemas';
 
@@ -133,7 +135,7 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
     setFormError(null);
     setFieldErrors({});
 
-    const payload: HackathonFormData = {
+    const payload = {
       title: title.trim(),
       slug: slug.trim(),
       tagline: tagline.trim() || undefined,
@@ -152,12 +154,13 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
       eligibility: eligibility.trim(),
       prizesSummary: prizesSummary.trim() || undefined,
       prizesDetail: prizesDetail.filter((p) => p.placement.trim() && p.reward.trim()),
-      externalRegistrationUrl: externalRegistrationUrl.trim() || undefined,
+      externalRegistrationUrl: externalRegistrationUrl.trim() || (isEdit ? undefined : ''),
       communityUrl: communityUrl.trim() || undefined,
     };
 
-    // Client-side schema validation
-    const clientValidation = hackathonFormSchema.safeParse(payload);
+    // Client-side schema validation (mandatory external registration URL for new events)
+    const activeSchema = isEdit ? hackathonUpdateSchema : hackathonCreateSchema;
+    const clientValidation = activeSchema.safeParse(payload);
     if (!clientValidation.success) {
       const errors: Record<string, string[]> = {};
       for (const issue of clientValidation.error.issues) {
@@ -518,11 +521,12 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <Input
               type="url"
-              label="External Registration URL (Optional)"
+              label={isEdit ? 'External Registration URL' : 'External Registration URL *'}
               value={externalRegistrationUrl}
               onChange={(e) => setExternalRegistrationUrl(e.target.value)}
               placeholder="https://..."
               error={fieldErrors['externalRegistrationUrl']?.[0]}
+              required={!isEdit}
             />
             <Input
               type="url"
