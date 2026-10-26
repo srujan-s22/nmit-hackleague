@@ -6,6 +6,8 @@ export interface BrandLogoProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'light' | 'dark';
   size?: 'sm' | 'md' | 'lg';
   priority?: boolean;
+  /** Hide the wordmark on very narrow screens, leaving only the emblem. */
+  compactOnMobile?: boolean;
 }
 
 export function BrandLogo({
@@ -13,6 +15,7 @@ export function BrandLogo({
   variant = 'light',
   size = 'md',
   priority = false,
+  compactOnMobile = false,
   className = '',
   ...props
 }: BrandLogoProps) {
@@ -86,7 +89,7 @@ export function BrandLogo({
           className="select-none"
         />
       </div>
-      <div className="flex flex-col">
+      <div className={compactOnMobile ? 'hidden min-[480px]:flex flex-col' : 'flex flex-col'}>
         <span
           className={`font-bold tracking-tight leading-tight ${
             size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-xl' : 'text-base'

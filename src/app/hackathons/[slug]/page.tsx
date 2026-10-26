@@ -150,7 +150,7 @@ export default async function HackathonDetailsPage({ params }: HackathonDetailsP
   const content = (
     <div className="max-w-5xl space-y-6">
       {/* Back navigation */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Link
           href="/admin/hackathons"
           className="text-xs text-brand-primary hover:underline flex items-center gap-1"
@@ -159,7 +159,7 @@ export default async function HackathonDetailsPage({ params }: HackathonDetailsP
         </Link>
 
         {/* Quick action buttons for authorized viewers */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canReview && (
             <>
               <Link

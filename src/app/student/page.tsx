@@ -106,7 +106,7 @@ export default async function StudentPortalPage() {
           {/* Verified Qualifications */}
           <Card>
             <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-2">
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Qualifications
                 </span>
@@ -124,7 +124,7 @@ export default async function StudentPortalPage() {
           {/* Submitted Claims (Distinct from verified) */}
           <Card>
             <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-2">
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Submitted Claims
                 </span>

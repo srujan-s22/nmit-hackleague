@@ -97,7 +97,7 @@ export function AppHeader({
         )}
 
         <Link href="/" className="flex items-center focus:outline-none focus:ring-2 focus:ring-border-focus rounded-sm">
-          <BrandLogo asset="combined" size="sm" />
+          <BrandLogo asset="combined" size="sm" compactOnMobile />
         </Link>
 
         {roleBadge && <div className="hidden sm:inline-flex">{roleBadge}</div>}
@@ -147,7 +147,7 @@ export function AppHeader({
           onClick={handleSignOut}
           disabled={isSigningOut}
           aria-label="Sign out of account"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border border-border-subtle bg-surface-subtle hover:bg-surface-muted text-text-secondary hover:text-status-error-text text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+          className="inline-flex items-center justify-center gap-1.5 min-h-10 min-w-10 sm:min-h-0 sm:min-w-0 px-2.5 py-1.5 rounded-sm border border-border-subtle bg-surface-subtle hover:bg-surface-muted text-text-secondary hover:text-status-error-text text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
         >
           {isSigningOut ? (
             <svg
