@@ -42,3 +42,9 @@ yarn-error.log*
 
 # Database Backups
 /backups/
+
+# Internal project documentation and AI tooling (kept locally, not published)
+/project-docs/
+/graphify-out/
+/.planning/
+*.bak
