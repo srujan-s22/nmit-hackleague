@@ -51,7 +51,7 @@ isOneToOne: false
                   ]
                 },"admin_profiles": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"email": string,"full_name": string,"id": string,"is_active": boolean,"is_super_admin": boolean,"must_change_password"?: boolean,"onboarding_expires_at"?: string | null,"onboarding_status"?: string,"updated_at": string
+                    "created_at": string,"created_by": string | null,"email": string,"full_name": string,"id": string,"is_active": boolean,"is_super_admin": boolean,"must_change_password": boolean,"onboarding_expires_at": string | null,"onboarding_status": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
@@ -86,12 +86,6 @@ isOneToOne: false
       columns: ["announcement_id"]
 isOneToOne: false
       referencedRelation: "announcements"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "announcement_reads_user_id_fkey"
-      columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -211,6 +205,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"hackathon_admin_assignments": {
+                  Row: {
+                    "admin_id": string,"assigned_at": string,"assigned_by": string,"created_at": string,"hackathon_id": string,"id": string,"notes": string | null,"role": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "admin_id": string,"assigned_at"?: string,"assigned_by": string,"created_at"?: string,"hackathon_id": string,"id"?: string,"notes"?: string | null,"role"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "admin_id"?: string,"assigned_at"?: string,"assigned_by"?: string,"created_at"?: string,"hackathon_id"?: string,"id"?: string,"notes"?: string | null,"role"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hackathon_admin_assignments_admin_id_fkey"
+      columns: ["admin_id"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hackathon_admin_assignments_assigned_by_fkey"
+      columns: ["assigned_by"]
+isOneToOne: false
+      referencedRelation: "admin_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hackathon_admin_assignments_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "hackathon_admin_assignments_hackathon_id_fkey"
+      columns: ["hackathon_id"]
+isOneToOne: false
+      referencedRelation: "hackathons_public_view"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"hackathon_rounds": {
                   Row: {
                     "created_at": string,"description": string | null,"end_at": string,"hackathon_id": string,"id": string,"is_final_round": boolean,"name": string,"round_number": number,"start_at": string,"status": string,"updated_at": string
@@ -236,38 +268,6 @@ isOneToOne: false
       referencedRelation: "hackathons_public_view"
       referencedColumns: ["id"]
     }
-                  ]
-                },"hackathon_admin_assignments": {
-                  Row: {
-                    "admin_id": string,"assigned_at": string,"assigned_by": string,"created_at": string,"hackathon_id": string,"id": string,"notes": string | null,"role": string,"updated_at": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "admin_id": string,"assigned_at"?: string,"assigned_by": string,"created_at"?: string,"hackathon_id": string,"id"?: string,"notes"?: string | null,"role"?: string,"updated_at"?: string
-                  }
-                  Update: {
-                    "admin_id"?: string,"assigned_at"?: string,"assigned_by"?: string,"created_at"?: string,"hackathon_id"?: string,"id"?: string,"notes"?: string | null,"role"?: string,"updated_at"?: string
-                  }
-                  Relationships: [
-                    {
-                      foreignKeyName: "hackathon_admin_assignments_admin_id_fkey"
-                      columns: ["admin_id"]
-                      isOneToOne: false
-                      referencedRelation: "admin_profiles"
-                      referencedColumns: ["id"]
-                    },{
-                      foreignKeyName: "hackathon_admin_assignments_assigned_by_fkey"
-                      columns: ["assigned_by"]
-                      isOneToOne: false
-                      referencedRelation: "admin_profiles"
-                      referencedColumns: ["id"]
-                    },{
-                      foreignKeyName: "hackathon_admin_assignments_hackathon_id_fkey"
-                      columns: ["hackathon_id"]
-                      isOneToOne: false
-                      referencedRelation: "hackathons"
-                      referencedColumns: ["id"]
-                    }
                   ]
                 },"hackathons": {
                   Row: {
@@ -765,17 +765,17 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "adjust_points_ledger_entry":
-{ Args: { "p_adjusted_entry_id"?: string,"p_hackathon_id": string,"p_idempotency_key": string,"p_override_negative_floor"?: boolean,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: Json
+            "_export_authorize":
+{ Args: { "p_dataset": string,"p_hackathon_id": string }; Returns: Record<string, unknown>
                            },
-"adjust_student_points":
-{ Args: { "p_hackathon_id": string,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: string
+"adjust_points_ledger_entry":
+{ Args: { "p_adjusted_entry_id"?: string,"p_hackathon_id": string,"p_idempotency_key": string,"p_override_negative_floor"?: boolean,"p_points": number,"p_reason": string,"p_student_id": string,"p_team_id": string }; Returns: Json
                            },
 "approve_profile_change_request":
 { Args: { "p_request_id": string }; Returns: boolean
                            },
-"audit_data_export":
-{ Args: { "p_dataset": string,"p_filters"?: Json,"p_format": string,"p_hackathon_id"?: string }; Returns: undefined
+"assign_admin_to_hackathon":
+{ Args: { "p_hackathon_id": string,"p_notes"?: string,"p_role"?: string,"p_target_admin_id": string }; Returns: Json
                            },
 "auto_pause_expired_rounds":
 { Args: { "p_hackathon_id"?: string }; Returns: number
@@ -783,9 +783,6 @@ isOneToOne: false
 "award_milestone_points":
 { Args: { "p_hackathon_id": string,"p_milestone_type": string,"p_reason": string,"p_result_id": string,"p_round_id": string,"p_student_id": string,"p_team_id": string }; Returns: string
                            },
-"assign_admin_to_hackathon":
-{ Args: { "p_hackathon_id": string,"p_notes"?: string | null,"p_role"?: string,"p_target_admin_id": string }; Returns: Json
-                            },
 "bootstrap_super_admin":
 { Args: { "p_auth_uid": string,"p_email": string,"p_full_name": string }; Returns: Json
                            },
@@ -810,6 +807,9 @@ isOneToOne: false
 "can_upload_team_round_evidence":
 { Args: { "p_round_id": string,"p_team_id": string }; Returns: boolean
                            },
+"can_view_legacy_evidence":
+{ Args: { "p_hackathon_id_text": string,"p_submission_id_text": string }; Returns: boolean
+                           },
 "can_view_profile_photo":
 { Args: { "p_student_id_text": string }; Returns: boolean
                            },
@@ -818,6 +818,9 @@ isOneToOne: false
                            },
 "can_view_submission_evidence":
 { Args: { "p_submission_id": string }; Returns: boolean
+                           },
+"can_view_team_round_evidence":
+{ Args: { "p_team_id_text": string }; Returns: boolean
                            },
 "claim_reconciliation_batch":
 { Args: { "p_batch_size"?: number,"p_lease_seconds"?: number,"p_worker_id": string }; Returns: {
@@ -880,27 +883,11 @@ isOneToOne: false
 "enqueue_storage_deletion_job":
 { Args: { "p_bucket_id": string,"p_object_path": string,"p_target_id": string,"p_target_type": string }; Returns: string
                            },
-"export_profile_change_requests_report":
-{ Args: { "p_status_filter"?: string }; Returns: {
-              "created_at": string,
-"field_name": string,
-"id": string,
-"new_value": string,
-"old_value": string,
-"reason": string,
-"rejection_reason": string | null,
-"reviewed_at": string | null,
-"reviewed_by": string | null,
-"status": string,
-"student_id": string,
-"updated_at": string
+"export_dataset_page":
+{ Args: { "p_after"?: string,"p_dataset": string,"p_hackathon_id": string,"p_limit"?: number }; Returns: {
+              "data": Json,"row_id": string
             }[]
-                          SetofOptions: {
-        from: "*"
-        to: "profile_change_requests"
-        isOneToOne: false
-        isSetofReturn: true
-      } },
+                           },
 "extend_hackathon_event_deadline":
 { Args: { "p_hackathon_id": string,"p_new_event_end_at": string,"p_reason": string }; Returns: Json
                            },
@@ -912,6 +899,20 @@ isOneToOne: false
                            },
 "get_admin_dashboard_metrics":
 { Args: { "p_hackathon_id"?: string }; Returns: Json
+                           },
+"get_admin_participation_analytics":
+{ Args: { "p_hackathon_id"?: string }; Returns: Json
+                           },
+"get_export_capabilities":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"get_export_dataset_counts":
+{ Args: { "p_datasets": (string)[],"p_hackathon_id": string }; Returns: Json
+                           },
+"get_exportable_hackathons":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "id": string,"slug": string,"status": string,"title": string
+            }[]
                            },
 "get_platform_leaderboard":
 { Args: { "p_academic_year"?: number,"p_event_academic_year"?: string,"p_event_term"?: string,"p_limit"?: number,"p_offset"?: number }; Returns: {
@@ -979,8 +980,17 @@ isOneToOne: false
 "reassign_hackathon_in_charge_admin":
 { Args: { "p_hackathon_id": string,"p_justification": string,"p_new_admin_id": string }; Returns: Json
                            },
+"record_data_export":
+{ Args: { "p_datasets": (string)[],"p_failure_category"?: string,"p_format": string,"p_hackathon_id": string,"p_outcome": string,"p_row_counts"?: Json }; Returns: undefined
+                           },
 "record_round_winner_placement":
 { Args: { "p_notes"?: string,"p_placement": string,"p_submission_id": string }; Returns: Json
+                           },
+"refresh_hackathon_statuses":
+{ Args: { "p_hackathon_id"?: string }; Returns: number
+                           },
+"refresh_round_statuses":
+{ Args: { "p_hackathon_id"?: string }; Returns: number
                            },
 "regenerate_team_invitation_code":
 { Args: { "p_team_id": string }; Returns: Json
@@ -991,6 +1001,9 @@ isOneToOne: false
 "reject_profile_change_request":
 { Args: { "p_rejection_reason": string,"p_request_id": string }; Returns: boolean
                            },
+"remove_admin_from_hackathon":
+{ Args: { "p_hackathon_id": string,"p_justification": string,"p_target_admin_id": string }; Returns: Json
+                           },
 "remove_team_member":
 { Args: { "p_student_id": string,"p_team_id": string }; Returns: Json
                            },
@@ -1000,15 +1013,9 @@ isOneToOne: false
 "replace_college_id":
 { Args: { "p_new_storage_path": string }; Returns: Json
                            },
-"resolve_investigation_job":
-{ Args: { "p_action": string,"p_job_id": string,"p_justification": string,"p_ticket_reference"?: string }; Returns: Json
-                           },
 "resolve_reconciliation_job":
 { Args: { "p_http_status": number,"p_job_id": string,"p_lease_token": string }; Returns: undefined
                            },
-"remove_admin_from_hackathon":
-{ Args: { "p_hackathon_id": string,"p_justification": string,"p_target_admin_id": string }; Returns: Json
-                            },
 "resubmit_round_milestone":
 { Args: { "p_demo_url"?: string,"p_description"?: string,"p_evidence_path"?: string,"p_evidence_sha256"?: string,"p_prior_submission_id": string,"p_repo_url"?: string,"p_title": string }; Returns: Json
                            },
@@ -1020,9 +1027,6 @@ isOneToOne: false
                            },
 "reverse_points_ledger_entry":
 { Args: { "p_ledger_id": string,"p_reason": string }; Returns: Json
-                           },
-"review_round_advancement":
-{ Args: { "p_decision": string,"p_feedback"?: string,"p_submission_id": string }; Returns: Json
                            },
 "review_round_submission":
 { Args: { "p_decision": string,"p_feedback"?: string,"p_submission_id": string }; Returns: Json

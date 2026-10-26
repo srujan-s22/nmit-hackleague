@@ -195,7 +195,7 @@ SELECT throws_ok(
 );
 
 -- TS-P9-02 (AC-03): Direct SQL insert of win_placement into points_ledger blocked by trigger
-SET LOCAL ROLE service_role;
+RESET ROLE; -- trigger guards apply to every role; run as owner
 
 SELECT throws_ok(
   $$
@@ -302,11 +302,14 @@ SELECT lives_ok(
 );
 
 -- TS-P9-07 (AC-06): Audit log record created with action points.adjusted
+-- (service_role has no SELECT on audit_logs by design; read as the owner)
+RESET ROLE;
 SELECT is(
   (SELECT count(*)::int FROM public.audit_logs WHERE action = 'points.adjusted' AND details->>'idempotency_key' = 'adj_test_key_001'),
   1,
   'TS-P9-07 (AC-06): Audit log record created for manual adjustment'
 );
+SET LOCAL ROLE service_role;
 
 -- TS-P9-08 (AC-06): Adjustment linked to adjusted_entry_id succeeds
 SELECT lives_ok(
@@ -946,11 +949,12 @@ BEGIN
   ON CONFLICT (id) DO NOTHING;
 
   -- Insert 3 more extra results for Team Gamma to test Cartesian multiplication immunity
+  -- (round_qualification is unique per team/round, so extra rows use 'participation')
   INSERT INTO public.results (hackathon_id, round_id, team_id, milestone_type, is_published, verified_by)
   VALUES
-    (v_h1_id, v_r1_id, v_t3_id, 'round_qualification', true, v_sa_id),
-    (v_h1_id, v_r1_id, v_t3_id, 'round_qualification', true, v_sa_id),
-    (v_h1_id, v_r2_id, v_t3_id, 'round_qualification', true, v_sa_id);
+    (v_h1_id, v_r1_id, v_t3_id, 'participation', true, v_sa_id),
+    (v_h1_id, v_r1_id, v_t3_id, 'participation', true, v_sa_id),
+    (v_h1_id, v_r2_id, v_t3_id, 'participation', true, v_sa_id);
 
   -- Entry 1: Participation claim for Student 5 (15 points)
   INSERT INTO public.points_ledger (

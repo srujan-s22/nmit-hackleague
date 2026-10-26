@@ -236,7 +236,6 @@ export const CORE_DATASETS = [
       { key: 'event_start_at', label: 'Event Starts' },
       { key: 'event_end_at', label: 'Event Ends' },
       { key: 'total_teams', label: 'Teams' },
-      { key: 'verified_registrations', label: 'Verified Registrations' },
       { key: 'total_participants', label: 'Participants' },
       { key: 'total_submissions', label: 'Submissions' },
       { key: 'total_reviews', label: 'Reviews' },

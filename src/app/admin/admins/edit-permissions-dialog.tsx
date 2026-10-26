@@ -125,9 +125,6 @@ function EditPermissionsForm({
                       <span className="font-medium text-xs text-text-primary">
                         {perm.label}
                       </span>
-                      <span className="text-[11px] text-text-secondary ml-2 font-mono">
-                        ({perm.key})
-                      </span>
                       <p className="text-[11px] text-text-secondary font-normal mt-0.5">
                         {perm.description}
                       </p>

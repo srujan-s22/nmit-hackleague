@@ -97,7 +97,7 @@ export function JoinTeamDialog({
       isOpen={isOpen}
       onClose={handleClose}
       title="Join Team with Invitation Code"
-      description="Enter the 6-character code (or 12-character legacy code) provided by your team leader to join their roster."
+      description="Enter the invitation code shared by your team leader."
       maxWidth="md"
       footer={
         <>

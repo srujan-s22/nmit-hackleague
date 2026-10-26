@@ -163,18 +163,17 @@ export function DeactivateDialog({
 
         <Alert
           variant={isDeactivating ? 'warning' : 'info'}
-          title={isDeactivating ? 'Security Consequence Notice' : 'Permission Restoration Notice'}
+          title={isDeactivating ? 'What happens' : 'Restoring access'}
         >
           {isDeactivating ? (
             <p className="text-xs">
-              Deactivating this account immediately revokes all PostgreSQL and server-guard authorizations.
-              Subsequent API requests will be denied with HTTP 403, and active sessions will be terminated.
-              Assigned permissions are preserved in the database for future reactivation.
+              The administrator is signed out and loses access immediately. Their permissions are kept, so
+              reactivating the account restores them.
             </p>
           ) : (
             <p className="text-xs">
-              Reactivating this account restores full access corresponding to previously granted permissions
-              ({admin.permissions.length} active permission{admin.permissions.length === 1 ? '' : 's'}).
+              The administrator regains access with their previous {admin.permissions.length} permission
+              {admin.permissions.length === 1 ? '' : 's'}.
             </p>
           )}
         </Alert>

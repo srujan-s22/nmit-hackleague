@@ -275,7 +275,7 @@ function PortalActionsMenu({
               className="flex items-center justify-between w-full px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-subtle transition-colors border-t border-border-subtle"
             >
               <span>Public Details</span>
-              <span className="text-[10px] text-text-muted">&nearr;</span>
+              <span className="text-[10px] text-text-muted">↗</span>
             </Link>
           </div>,
           document.body
@@ -327,7 +327,7 @@ function AdminHackathonCatalogCard({
             </Badge>
             {h.venue && h.mode !== 'online' && (
               <span className="text-[11px] text-text-secondary truncate max-w-[140px]" title={h.venue}>
-                📍 {h.venue}
+                {h.venue}
               </span>
             )}
             {isAssigned && !isSuperAdmin && (
@@ -385,7 +385,6 @@ function AdminHackathonCatalogCard({
 
         <div className="flex items-center justify-between pt-2 border-t border-border-subtle/40">
           <div className="flex items-center gap-1.5 text-[11px] text-text-secondary">
-            <span>👥</span>
             <span>
               {h.min_team_size === h.max_team_size
                 ? `${h.min_team_size} per team`
@@ -404,7 +403,7 @@ function AdminHackathonCatalogCard({
                 title="External Registration Portal"
               >
                 <span>Portal</span>
-                <span className="text-[10px]">&nearr;</span>
+                <span className="text-[10px]">↗</span>
               </a>
             )}
             <Link
@@ -572,8 +571,8 @@ export function HackathonsClient({
           </h1>
           <p className="text-sm text-text-secondary mt-1">
             {isSuperAdmin
-              ? 'Author, configure, publish, and oversee institutional hackathons and round structures.'
-              : 'Explore upcoming institutional hackathons, view event schedules, mode, venue, and external registration details.'}
+              ? 'Create, publish and manage hackathons.'
+              : 'Upcoming and active hackathons.'}
           </p>
         </div>
         {isSuperAdmin && (

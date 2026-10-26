@@ -58,10 +58,10 @@ export default async function HackathonRoundsPage({ params }: RoundsPageProps) {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-text-primary tracking-tight">
-                Round Architecture: {h.title}
+                Rounds: {h.title}
               </h1>
               <p className="text-sm text-text-secondary mt-1">
-                Configure sequential evaluation rounds. At least one round is required before an event can be published.
+                At least one round is required before publishing.
               </p>
             </div>
             <Link

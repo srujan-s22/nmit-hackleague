@@ -51,7 +51,6 @@ export default async function AdminDashboardPage() {
       total: 0,
       internal_registered: 0,
       submitted_claims: 0,
-      verified_external: 0,
       rejected_external: 0,
     },
     submissions: {
@@ -98,7 +97,7 @@ export default async function AdminDashboardPage() {
       <div className="space-y-6">
         <PageHeader
           title="Executive Overview & Analytics"
-          description="Institutional performance at a glance across student participation, hackathon activity, and points distribution."
+          description="Platform activity at a glance."
           breadcrumbs={[
             { label: 'Admin Workspace', href: '/admin' },
             { label: 'Overview & Analytics' },

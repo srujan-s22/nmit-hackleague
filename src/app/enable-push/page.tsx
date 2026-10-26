@@ -121,13 +121,26 @@ function EnablePushContent() {
     };
   }, [checkInitialState]);
 
+  // A browser prompt that is never answered (or a service worker that never activates)
+  // must not leave the user on an endless spinner.
+  function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+    ]);
+  }
+
   async function handleEnablePush() {
     setGateState('REGISTERING');
     setErrorMessage('');
 
     try {
       // 1. Request native browser notification permission
-      const permission = await Notification.requestPermission();
+      const permission = await withTimeout(
+        Notification.requestPermission(),
+        30000,
+        'No response to the notification prompt. Click the icon at the left of the address bar, allow notifications for this site, then try again.'
+      );
       if (permission !== 'granted') {
         setGateState('PERMISSION_DENIED');
         return;
@@ -135,7 +148,11 @@ function EnablePushContent() {
 
       // 2. Register Web Push Service Worker
       const registration = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
+      await withTimeout(
+        navigator.serviceWorker.ready,
+        20000,
+        'The notification service did not start. Reload the page and try again.'
+      );
 
       // 3. Retrieve authoritative VAPID public key
       let vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
@@ -351,10 +368,12 @@ function EnablePushContent() {
                       Because you are connected via a mobile device or tablet on the local network, you can
                       proceed directly using real-time <strong>In-App Notifications</strong> and emergency emails.
                     </p>
+                    {process.env.NODE_ENV !== 'production' && (
                     <div className="bg-status-info-bg/50 border border-status-info-border/60 p-2.5 rounded text-[11px] text-text-secondary">
-                      💡 <strong>Developer Note:</strong> To test native Web Push on physical phones, run the dev
+                      <strong>Developer note:</strong> To test native Web Push on physical phones, run the dev
                       server with local HTTPS (<code className="font-mono">npm run dev:https</code>) or access via a secure tunnel.
                     </div>
+                    )}
                   </>
                 ) : (
                   <>
@@ -425,8 +444,7 @@ function EnablePushContent() {
                   Your desktop browser does not support Service Workers or Web Push.
                 </p>
                 <p className="text-xs">
-                  Desktop workstations require push notifications to guarantee immediate delivery of hackathon
-                  round changes, review submissions, and emergency alerts. Please open HackLeague in a modern
+                  Notifications are required on desktop so you never miss round changes or review results. Please open HackLeague in a modern
                   browser: Google Chrome, Microsoft Edge, Mozilla Firefox, or Safari 16.4+.
                 </p>
               </div>
@@ -455,11 +473,10 @@ function EnablePushContent() {
             {gateState === 'SUPPORTED_READY' && (
               <>
                 <p>
-                  Instant Web Push notifications keep you updated in real-time regarding hackathon rounds,
-                  judging feedback, and emergency schedule changes—even when HackLeague is in another tab or backgrounded.
+                  Get notified about rounds, review results and schedule changes, even when HackLeague is not open.
                 </p>
                 <p className="text-xs text-text-muted">
-                  Click below to grant permission and activate your secure device endpoint.
+                  Your browser will ask for permission.
                 </p>
               </>
             )}

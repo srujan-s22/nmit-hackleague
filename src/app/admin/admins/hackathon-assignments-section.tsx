@@ -362,18 +362,8 @@ export function HackathonAssignmentsSection({
                             size="sm"
                             className="capitalize"
                           >
-                            {assignment.role}
+                            {assignment.role === 'in_charge' ? 'In charge' : assignment.role}
                           </Badge>
-                          {isInCharge && (
-                            <Badge
-                              variant="neutral"
-                              size="sm"
-                              className="text-[10px] py-0 px-1 bg-brand-primary/10 text-brand-primary border-none"
-                              title="Designated primary In-Charge administrator for this hackathon"
-                            >
-                              In Charge
-                            </Badge>
-                          )}
                         </div>
                       </td>
 
@@ -386,7 +376,9 @@ export function HackathonAssignmentsSection({
                       </td>
 
                       <td className="py-3 px-4 text-text-muted max-w-xs truncate" title={assignment.notes || ''}>
-                        {assignment.notes || '—'}
+                        {assignment.notes && !/^(Synchronized automatically|Automated initial backfill)/.test(assignment.notes)
+                          ? assignment.notes
+                          : '—'}
                       </td>
 
                       <td className="py-3 px-4 text-right">

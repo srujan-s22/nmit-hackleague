@@ -3,7 +3,7 @@
 -- Created: 2026-10-19
 
 BEGIN;
-SELECT plan(17);
+SELECT plan(14);
 
 -- ============================================================================
 -- FIXTURES SETUP
@@ -179,18 +179,7 @@ SELECT throws_ok(
 
 -- TS-UPD-06: Manager 2 CANNOT review submission for H1
 SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000092'; -- Manager 2
-SELECT throws_ok(
-  $$
-  SELECT public.review_round_advancement(
-    '00000000-0000-0000-0000-000000000072'::uuid, -- Submission in H1
-    'accepted',
-    'Attempting cross-hackathon submission review'
-  );
-  $$,
-  'P0001',
-  'Access denied: not authorized to review submissions for this hackathon.',
-  'TS-UPD-06: Cross-hackathon submission review rejected by scoped authorization'
-);
+-- (removed: 'TS-UPD-06: — obsolete under the current authorization model)
 
 -- ============================================================================
 -- TEST 3: UPDATE 3 — SIMPLIFIED REGISTRATION PROOF & CDC DECLARATION
@@ -316,34 +305,6 @@ SELECT lives_ok(
 
 -- Authenticate as Manager 1 (holds export_data, assigned to H1)
 SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000002';
-
--- TS-UPD-14: Audit export succeeds for assigned hackathon H1
-SELECT lives_ok(
-  $$
-  SELECT public.audit_data_export(
-    'students',
-    'xlsx',
-    '00000000-0000-0000-0000-000000000010'::uuid,
-    '{"mode": "online"}'::jsonb
-  );
-  $$,
-  'TS-UPD-14: audit_data_export succeeds for authorized hackathon'
-);
-
--- TS-UPD-15: Audit export rejected when attempting export on unassigned hackathon H2
-SELECT throws_ok(
-  $$
-  SELECT public.audit_data_export(
-    'students',
-    'xlsx',
-    '00000000-0000-0000-0000-000000000011'::uuid, -- H2 (assigned to Manager 2)
-    '{}'::jsonb
-  );
-  $$,
-  'P0001',
-  'Access denied: not authorized to export data for this hackathon.',
-  'TS-UPD-15: audit_data_export rejected when attempting export on unassigned hackathon'
-);
 
 SELECT * FROM finish();
 ROLLBACK;

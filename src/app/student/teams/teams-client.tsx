@@ -191,10 +191,8 @@ export function TeamsClient({
                     <span className="text-text-secondary">Registration Proof:</span>
                     <Badge
                       variant={
-                        team.external_status === 'verified'
+                        team.external_status === 'submitted'
                           ? 'success'
-                          : team.external_status === 'submitted'
-                          ? 'info'
                           : team.external_status === 'rejected'
                           ? 'error'
                           : 'neutral'
@@ -202,10 +200,8 @@ export function TeamsClient({
                       size="sm"
                       dot
                     >
-                      {team.external_status === 'verified'
-                        ? 'Verified'
-                        : team.external_status === 'submitted'
-                        ? 'Under Review'
+                      {team.external_status === 'submitted'
+                        ? 'Submitted'
                         : team.external_status === 'rejected'
                         ? 'Rejected'
                         : 'Not Submitted'}

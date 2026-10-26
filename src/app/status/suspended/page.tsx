@@ -49,7 +49,7 @@ export default async function SuspendedStatusPage() {
       <main className="flex-1 flex items-center justify-center py-10">
         <div className="w-full max-w-lg bg-surface-canvas rounded-md border border-border-subtle p-6 sm:p-8 shadow-card text-center">
           <div className="w-12 h-12 rounded-full bg-brand-error/10 text-brand-error mx-auto flex items-center justify-center mb-4">
-            <span className="text-xl">⛔</span>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M5.7 5.7l12.6 12.6" /></svg>
           </div>
 
           <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-error bg-brand-error/10 px-2.5 py-1 rounded-xs inline-block mb-3">
@@ -61,7 +61,7 @@ export default async function SuspendedStatusPage() {
           </h1>
 
           <p className="text-xs sm:text-sm text-text-secondary mb-6 leading-relaxed">
-            Your HackLeague student account has been suspended by an authorized institutional administrator. Access to hackathons, team collaboration, and profile modifications is restricted.
+            Your HackLeague account has been suspended by an administrator. Access to hackathons, team collaboration, and profile modifications is restricted.
           </p>
 
           <div className="bg-surface-subtle rounded-sm border border-border-subtle p-4 text-left text-xs mb-6">
@@ -75,7 +75,7 @@ export default async function SuspendedStatusPage() {
           </div>
 
           <p className="text-[11px] text-text-muted leading-relaxed">
-            To appeal this suspension or clarify disciplinary actions, please contact the Dean of Student Affairs or HackLeague Committee in person.
+            To appeal, contact the HackLeague committee or the Dean of Student Affairs.
           </p>
         </div>
       </main>

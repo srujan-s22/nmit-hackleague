@@ -64,17 +64,26 @@ export function AuditLogsClient({
     }));
   };
 
+  // "hackathon_round.schedule_overridden" -> "Hackathon round: schedule overridden"
+  const humanize = (code: string | null | undefined) => {
+    if (!code) return '—';
+    const [scope, ...rest] = code.split('.');
+    const words = (t: string) => t.replace(/_/g, ' ');
+    const text = rest.length ? `${words(scope)}: ${words(rest.join(' '))}` : words(scope);
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
+
   const formatActionBadge = (action: string) => {
     if (action.includes('reject') || action.includes('failed') || action.includes('danger')) {
-      return <Badge variant="error">{action}</Badge>;
+      return <Badge variant="error">{humanize(action)}</Badge>;
     }
     if (action.includes('reopen') || action.includes('revision') || action.includes('warning')) {
-      return <Badge variant="warning">{action}</Badge>;
+      return <Badge variant="warning">{humanize(action)}</Badge>;
     }
     if (action.includes('accept') || action.includes('winner') || action.includes('success')) {
-      return <Badge variant="success">{action}</Badge>;
+      return <Badge variant="success">{humanize(action)}</Badge>;
     }
-    return <Badge variant="neutral">{action}</Badge>;
+    return <Badge variant="neutral">{humanize(action)}</Badge>;
   };
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -83,7 +92,7 @@ export function AuditLogsClient({
     <div className="space-y-6">
       <PageHeader
         title="Audit Trail & Compliance Log"
-        description="Immutable record of administrative decisions, milestone reviews, exception overrides, and system operations."
+        description="Record of administrative actions."
         breadcrumbs={[
           { label: 'Admin Workspace', href: '/admin' },
           { label: 'Audit Trail' },
@@ -209,17 +218,17 @@ export function AuditLogsClient({
                           </td>
                           <td className="py-2.5 px-4 whitespace-nowrap text-text-secondary">
                             <span className="font-semibold text-text-primary">
-                              {log.actor_role || 'system'}
+                              {log.actor_name || (log.actor_role ? log.actor_role.replace(/_/g, ' ') : 'System')}
                             </span>
-                            {log.actor_id && (
-                              <span className="block text-[10px] text-text-muted font-mono truncate max-w-[120px]">
-                                {log.actor_id}
+                            {log.actor_name && log.actor_role && (
+                              <span className="block text-[11px] text-text-muted capitalize">
+                                {log.actor_role.replace(/_/g, ' ')}
                               </span>
                             )}
                           </td>
                           <td className="py-2.5 px-4 whitespace-nowrap text-text-secondary">
                             <span className="font-medium text-text-primary">
-                              {log.target_type || '—'}
+                              {humanize(log.target_type)}
                             </span>
                             {log.target_id && (
                               <span className="block text-[10px] text-text-muted font-mono truncate max-w-[140px]">

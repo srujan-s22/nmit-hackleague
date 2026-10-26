@@ -39,7 +39,7 @@ export default async function AdminStudentDirectoryPage() {
       <div className="space-y-6">
         <PageHeader
           title="Student Directory"
-          description="Institutional roster of approved and verified students across all departments and academic years."
+          description="Approved students across all departments and years."
           breadcrumbs={[
             { label: 'Admin Workspace', href: '/admin' },
             { label: 'Student Directory' },

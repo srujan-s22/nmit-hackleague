@@ -135,7 +135,9 @@ export function RoundMilestoneSubmissionCard({
           <div>
             <div className="flex items-center gap-2">
               <CardTitle className="text-sm font-semibold">
-                Round {round.round_number}: {round.name}
+                {/^round\s*\d+/i.test(round.name.trim())
+                  ? round.name
+                  : `Round ${round.round_number}: ${round.name}`}
               </CardTitle>
               {round.status === 'open' && !isExpired && <Badge variant="success">Open</Badge>}
               {isPaused && <Badge variant="warning">Paused</Badge>}
@@ -175,31 +177,37 @@ export function RoundMilestoneSubmissionCard({
 
           {!isRegistrationSubmitted && (
             <div className="p-3 bg-status-warning-bg text-status-warning-text rounded text-xs" id="reg-required-notice">
-              ⚠ Initial registration proof must be submitted and confirmed before round milestone submissions can be made.
+              Submit your registration proof before submitting round work.
             </div>
           )}
 
           {!isQualified && round.round_number > 1 && (
             <div className="p-3 bg-status-danger-bg text-status-danger-text rounded text-xs" id="qualification-required-notice">
-              ✕ Qualification from Round {round.round_number - 1} is strictly required before submitting to this round.
+              Qualification from Round {round.round_number - 1} is strictly required before submitting to this round.
+            </div>
+          )}
+
+          {isScheduled && !isExpired && (
+            <div className="p-3 bg-surface-subtle border border-border-subtle text-text-secondary rounded text-xs" id="round-scheduled-notice">
+              Submissions open on {formatDateTime(round.start_at)}.
             </div>
           )}
 
           {isPaused && (
             <div className="p-3 bg-status-warning-bg text-status-warning-text rounded text-xs" id="round-paused-notice">
-              ⏸ This round is currently paused by organizers. Submissions are temporarily held.
+              This round is currently paused by organizers. Submissions are temporarily held.
             </div>
           )}
 
           {isExpired && !currentSubmission && (
             <div className="p-3 bg-status-danger-bg text-status-danger-text rounded text-xs" id="deadline-passed-notice">
-              ⌛ The milestone submission deadline for Round {round.round_number} has passed.
+              The milestone submission deadline for Round {round.round_number} has passed.
             </div>
           )}
 
           {isCompleted && (
             <div className="p-3 bg-background-elevated border border-border-subtle text-text-secondary rounded text-xs" id="round-completed-notice">
-              🔒 This round is finalized and locked. Submissions are strictly view-only.
+              This round is finalized and locked. Submissions are strictly view-only.
             </div>
           )}
 

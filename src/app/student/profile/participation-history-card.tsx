@@ -27,7 +27,7 @@ export function ParticipationHistoryCard({
           <div>
             <CardTitle>Hackathon Participation History</CardTitle>
             <CardDescription>
-              Your verified team enrolments, round milestone qualifications, and competitive progression.
+              Your teams and round progress.
             </CardDescription>
           </div>
 
@@ -123,10 +123,8 @@ export function ParticipationHistoryCard({
                       Internal Status: <span className="font-medium capitalize text-text-primary">{item.internalStatus}</span>
                       {' • '}
                       Registration Proof:{' '}
-                      {item.externalStatusLabel === 'Verified' ? (
-                        <span className="text-status-success font-semibold">Verified</span>
-                      ) : item.externalStatusLabel === 'Submitted Claim' ? (
-                        <span className="text-status-warning font-semibold">Submitted Claim (Pending Review)</span>
+                      {item.externalStatusLabel === 'Submitted Claim' ? (
+                        <span className="text-status-success font-semibold">Submitted</span>
                       ) : item.externalStatusLabel === 'Rejected' ? (
                         <span className="text-status-error font-semibold">Claim Rejected</span>
                       ) : (
@@ -199,11 +197,8 @@ export function ParticipationHistoryCard({
                           className="flex items-center justify-between p-2 rounded-md bg-surface-subtle/60 border border-border-subtle/60 text-xs"
                         >
                           <div className="flex items-center gap-1.5 truncate">
-                            <span className="font-semibold text-text-primary">
-                              R{m.roundNumber}:
-                            </span>
                             <span className="text-text-secondary truncate">
-                              {m.roundName}
+                              {/^round\s*\d+/i.test(m.roundName.trim()) ? m.roundName : `Round ${m.roundNumber}: ${m.roundName}`}
                             </span>
                           </div>
                           {m.isQualified ? (
@@ -211,7 +206,7 @@ export function ParticipationHistoryCard({
                               Qualified
                             </Badge>
                           ) : (
-                            <Badge variant="neutral" size="sm">
+                            <Badge variant="neutral" size="sm" className="capitalize">
                               {m.status}
                             </Badge>
                           )}

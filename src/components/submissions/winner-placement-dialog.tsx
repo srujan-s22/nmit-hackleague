@@ -49,9 +49,9 @@ export function WinnerPlacementDialog({
   };
 
   const placementLabels: Record<1 | 2 | 3, { title: string; badge: string; color: string }> = {
-    1: { title: '1st Place — Champion', badge: '🥇 1st Place', color: 'border-amber-400 bg-amber-500/10 text-amber-300' },
-    2: { title: '2nd Place — Runner Up', badge: '🥈 2nd Place', color: 'border-slate-300 bg-slate-400/10 text-slate-200' },
-    3: { title: '3rd Place — Bronze Finalist', badge: '🥉 3rd Place', color: 'border-amber-700 bg-amber-700/10 text-amber-500' },
+    1: { title: '1st Place — Champion', badge: '1st Place', color: 'border-amber-400 bg-amber-500/10 text-amber-300' },
+    2: { title: '2nd Place — Runner Up', badge: '2nd Place', color: 'border-slate-300 bg-slate-400/10 text-slate-200' },
+    3: { title: '3rd Place — Bronze Finalist', badge: '3rd Place', color: 'border-amber-700 bg-amber-700/10 text-amber-500' },
   };
 
   return (

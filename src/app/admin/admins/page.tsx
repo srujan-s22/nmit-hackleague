@@ -37,8 +37,8 @@ export default async function AdminManagementPage() {
           title="Administrator Governance"
           description={
             isSuperAdmin
-              ? 'Provision institutional administrator accounts, configure functional permissions, govern active status, and manage hackathon assignments.'
-              : 'Manage hackathon reviewer and coordinator assignments for institutional hackathons.'
+              ? 'Manage administrator accounts, permissions and hackathon assignments.'
+              : 'Manage reviewer and coordinator assignments.'
           }
           breadcrumbs={[
             { label: 'Administrator Governance', href: '/admin/admins' },

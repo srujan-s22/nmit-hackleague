@@ -143,7 +143,7 @@ export function RejectedClient({ profile }: RejectedClientProps) {
     <div className="w-full max-w-xl bg-surface-canvas rounded-md border border-border-subtle p-6 sm:p-8 shadow-card">
       <div className="flex flex-col items-center text-center mb-6">
         <div className="w-12 h-12 rounded-full bg-brand-warning/10 text-brand-warning mx-auto flex items-center justify-center mb-3">
-          <span className="text-xl">⚠️</span>
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="9" /></svg>
         </div>
 
         <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-warning bg-brand-warning/10 px-2.5 py-1 rounded-xs inline-block mb-2">

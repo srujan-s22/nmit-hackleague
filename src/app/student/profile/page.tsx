@@ -38,7 +38,7 @@ export default async function StudentProfilePage() {
       <div className="space-y-6">
         <PageHeader
           title="Student Profile & Progression"
-          description="Manage your institutional identity, verified contact details, and comprehensive competition history."
+          description="Your details and competition history."
           breadcrumbs={[
             { label: 'Portal Hub', href: '/' },
             { label: 'Student Workspace', href: '/student' },

@@ -18,6 +18,16 @@ export default async function OnboardingPage() {
     redirect('/login');
   }
 
+  // Administrators never onboard as students.
+  const { data: adminRow } = await supabase
+    .from('admin_profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (adminRow) {
+    redirect('/admin');
+  }
+
   // Fetch student profile
   let { data: profile } = await supabase
     .from('profiles')
@@ -144,7 +154,7 @@ export default async function OnboardingPage() {
             Student Onboarding & Verification
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Complete your profile by uploading your institutional College ID card for administrative approval.
+            Upload your College ID to complete registration.
           </p>
         </div>
 

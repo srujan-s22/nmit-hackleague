@@ -311,7 +311,7 @@ export function AdminsClient({
                       {(admin.activeHackathonsCount || 0) > 0 ? (
                         <div className="flex items-center gap-2">
                           <span
-                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-status-info-bg text-status-info-text"
                             title={admin.activeHackathons?.map((h) => `${h.title} (${h.status})`).join('\n')}
                           >
                             {admin.activeHackathonsCount} active event{admin.activeHackathonsCount === 1 ? '' : 's'}
@@ -335,7 +335,7 @@ export function AdminsClient({
                     <td className="py-3.5 px-4 max-w-xs">
                       {isSuper ? (
                         <span className="text-[11px] font-medium text-text-secondary italic">
-                          Implicit full platform authority (0 DB rows)
+                          All permissions
                         </span>
                       ) : admin.permissions.length === 0 ? (
                         <span className="text-[11px] font-medium text-status-warning-text bg-status-warning-bg px-2 py-0.5 rounded-xs border border-status-warning-border">

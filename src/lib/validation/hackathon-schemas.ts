@@ -165,7 +165,7 @@ export const deadlineOverrideSchema = z.object({
   reason: z
     .string()
     .trim()
-    .min(5, 'A meaningful justification of at least 5 characters is mandatory.')
+    .min(10, 'A reason of at least 10 characters is required.')
     .max(500, 'Reason cannot exceed 500 characters.'),
 });
 
@@ -230,7 +230,7 @@ export const roundScheduleOverrideSchema = z.object({
   reason: z
     .string()
     .trim()
-    .min(5, 'A meaningful justification of at least 5 characters is mandatory.')
+    .min(10, 'A reason of at least 10 characters is required.')
     .max(500, 'Reason cannot exceed 500 characters.'),
 }).refine(
   (data) => new Date(data.newEndAt) > new Date(data.newStartAt),
@@ -250,7 +250,7 @@ export const roundPauseResumeSchema = z.object({
   reason: z
     .string()
     .trim()
-    .min(5, 'A meaningful justification of at least 5 characters is mandatory.')
+    .min(10, 'A reason of at least 10 characters is required.')
     .max(500, 'Reason cannot exceed 500 characters.'),
 });
 

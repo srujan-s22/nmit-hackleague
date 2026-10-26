@@ -21,7 +21,7 @@ export default async function AdminVerificationsPage() {
     admin.is_super_admin || permissions.includes('manage_students');
 
   if (!canVerifyStudents && !canManageStudents) {
-    redirect('/login');
+    redirect('/admin');
   }
 
   const supabase = await createClient();
@@ -50,7 +50,7 @@ export default async function AdminVerificationsPage() {
       <div className="space-y-6">
         <PageHeader
           title="Student Verifications & Corrections"
-          description="Review institutional onboarding credentials, verify College IDs, and manage student profile correction requests."
+          description="Review new student registrations and profile change requests."
           breadcrumbs={[
             { label: 'Admin Workspace', href: '/admin' },
             { label: 'Student Verifications' },

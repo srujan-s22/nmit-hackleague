@@ -36,7 +36,7 @@ BEGIN
   INSERT INTO public.results (
     id, hackathon_id, round_id, team_id, milestone_type, is_published, verified_by
   ) VALUES (
-    v_res2_id, v_h1_id, v_r1_id, v_t1_id, 'round_qualification', false, v_admin_id
+    v_res2_id, v_h1_id, v_r1_id, v_t1_id, 'participation', false, v_admin_id
   );
 END $$;
 

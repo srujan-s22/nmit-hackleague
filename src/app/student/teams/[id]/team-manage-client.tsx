@@ -88,7 +88,7 @@ export function TeamManageClient({ initialTeam, currentUserId }: TeamManageClien
                   Competition Rounds & Milestone Deliverables
                 </h2>
                 <span className="text-xs text-text-muted">
-                  Sequential Round Advancement
+                  Complete each round to unlock the next
                 </span>
               </div>
 
@@ -109,7 +109,7 @@ export function TeamManageClient({ initialTeam, currentUserId }: TeamManageClien
                     <SubmissionVersionHistoryCard
                       versions={rm.history}
                       teamName={team.name}
-                      roundName={`Round ${rm.round.round_number}: ${rm.round.name}`}
+                      roundName={/^round\s*\d+/i.test(rm.round.name.trim()) ? rm.round.name : `Round ${rm.round.round_number}: ${rm.round.name}`}
                     />
                   )}
                 </div>
@@ -146,7 +146,7 @@ export function TeamManageClient({ initialTeam, currentUserId }: TeamManageClien
                 </div>
                 {hackathon.is_round_1_paused && (
                   <div className="p-2 bg-status-warning-bg text-status-warning-text rounded-xs mt-2">
-                    ⚠ Round 1 is currently paused by organizers. No new registrations can be accepted.
+                    Round 1 is currently paused by organizers. No new registrations can be accepted.
                   </div>
                 )}
               </CardContent>

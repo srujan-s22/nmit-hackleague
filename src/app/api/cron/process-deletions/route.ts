@@ -64,6 +64,10 @@ export async function POST(request: NextRequest) {
   // --------------------------------------------------------------------------
   let enqueuedEvidenceJobs = 0;
   try {
+    // Advance hackathon/round statuses by date so ended events become 'completed'
+    // and are picked up by the evidence-retention scan below.
+    await adminClient.rpc('refresh_round_statuses' as never, { p_hackathon_id: null } as never);
+
     const { data: scanData, error: scanError } = await adminClient.rpc(
       'scan_and_enqueue_expired_hackathons_evidence' as never
     );

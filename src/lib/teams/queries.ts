@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { computeRegistrationState } from '@/lib/hackathons/registration-state';
 import type { RegistrationState } from '@/types/hackathon';
 import { getSignedPreviewUrlWithClient } from '@/lib/storage/paths';
+import { refreshRoundStatuses } from '@/lib/hackathons/round-status';
 
 export interface StudentTeamSummary {
   id: string;
@@ -227,6 +228,7 @@ export async function getStudentTeams(hackathonId?: string): Promise<StudentTeam
  */
 export async function getTeamDetails(teamId: string): Promise<TeamDetails | null> {
   const supabase = await createClient();
+  await refreshRoundStatuses(supabase);
   const {
     data: { user },
     error: authErr,
@@ -378,12 +380,12 @@ export async function getTeamDetails(teamId: string): Promise<TeamDetails | null
       status,
       title,
       description,
-      github_url,
-      live_demo_url,
+      github_url:repo_url,
+      live_demo_url:demo_url,
       evidence_path,
       evidence_deleted_at,
       evidence_lifecycle_state,
-      submitted_at,
+      submitted_at:created_at,
       created_at,
       updated_at,
       reviews:submission_reviews (
@@ -471,6 +473,7 @@ export async function getHackathonRegistrationContext(
   hackathonId: string
 ): Promise<HackathonRegistrationContext | null> {
   const supabase = await createClient();
+  await refreshRoundStatuses(supabase, hackathonId);
 
   const { data: hackathon, error } = await supabase
     .from('hackathons')

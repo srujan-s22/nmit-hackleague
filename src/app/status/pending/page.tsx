@@ -59,7 +59,7 @@ export default async function PendingStatusPage() {
       <main className="flex-1 flex items-center justify-center py-10">
         <div className="w-full max-w-lg bg-surface-canvas rounded-md border border-border-subtle p-6 sm:p-8 shadow-card text-center">
           <div className="w-12 h-12 rounded-full bg-brand-warning/10 text-brand-warning mx-auto flex items-center justify-center mb-4">
-            <span className="text-xl">⏳</span>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
           </div>
 
           <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-warning bg-brand-warning/10 px-2.5 py-1 rounded-xs inline-block mb-3">
@@ -71,7 +71,7 @@ export default async function PendingStatusPage() {
           </h1>
 
           <p className="text-xs sm:text-sm text-text-secondary mb-6 leading-relaxed">
-            Your profile details and College ID document have been submitted. An authorized institutional administrator is verifying your credentials. Reviews are typically completed within 24–48 business hours.
+            Your details and College ID have been submitted. An administrator will review them, usually within 1–2 working days.
           </p>
 
           <div className="bg-surface-subtle rounded-sm border border-border-subtle p-4 text-left text-xs mb-6">
@@ -85,7 +85,7 @@ export default async function PendingStatusPage() {
           </div>
 
           <p className="text-[11px] text-text-muted">
-            You will be granted full access to hackathon registrations and team formation as soon as your account is approved.
+            You can join hackathons and form teams once your account is approved.
           </p>
         </div>
       </main>

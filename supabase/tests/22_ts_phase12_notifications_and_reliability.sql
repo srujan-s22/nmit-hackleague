@@ -69,7 +69,7 @@ BEGIN
 
   -- 6. Create Team with Student 1 enrolled
   INSERT INTO public.teams (id, hackathon_id, name, leader_id, invitation_code, internal_status, external_status) VALUES
-    (v_team_id, v_hackathon_id, 'P12 Code Warriors', v_student_1_id, 'INVP12WAR', 'complete', 'verified')
+    (v_team_id, v_hackathon_id, 'P12 Code Warriors', v_student_1_id, 'INVP12WAR', 'complete', 'submitted')
   ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.team_members (id, team_id, student_id, hackathon_id, role) VALUES

@@ -80,8 +80,8 @@ export function LifecycleConfirmDialog({
   const handleConfirm = async () => {
     setErrorMessage(null);
 
-    if (isPrematureArchival && reason.trim().length < 5) {
-      setErrorMessage('A meaningful justification of at least 5 characters is mandatory for premature archival.');
+    if (isPrematureArchival && reason.trim().length < 10) {
+      setErrorMessage('A meaningful reason of at least 10 characters is required to archive an event before it ends.');
       return;
     }
 
@@ -123,7 +123,7 @@ export function LifecycleConfirmDialog({
             variant={config.variant === 'danger' ? 'destructive' : config.variant === 'warning' ? 'secondary' : 'primary'}
             onClick={handleConfirm}
             isLoading={isSubmitting}
-            disabled={isPrematureArchival && reason.trim().length < 5}
+            disabled={isPrematureArchival && reason.trim().length < 10}
           >
             {config.confirmText}
           </Button>

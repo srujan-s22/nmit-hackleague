@@ -311,7 +311,7 @@ describe('Unified Hackathon Experience & Registration Workflow Fix Suite', () =>
     test('REQ6-03: claims filtering by status and search matches expected records', () => {
       const claims = [
         { id: 't1', name: 'Alpha Devs', external_status: 'submitted', leader: { full_name: 'Alice', usn: '1NT24CS001', branch: 'CSE' } },
-        { id: 't2', name: 'Beta Hackers', external_status: 'verified', leader: { full_name: 'Bob', usn: '1NT24IS002', branch: 'ISE' } },
+        { id: 't2', name: 'Beta Hackers', external_status: 'not_submitted', leader: { full_name: 'Bob', usn: '1NT24IS002', branch: 'ISE' } },
         { id: 't3', name: 'Gamma Coders', external_status: 'rejected', leader: { full_name: 'Charlie', usn: '1NT24EC003', branch: 'ECE' } },
       ];
 

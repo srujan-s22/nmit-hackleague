@@ -92,7 +92,7 @@ export default async function StudentPortalPage() {
                 <span className="text-text-helper text-xs">#</span>
               </div>
               <p className="text-2xl font-bold text-text-primary">
-                {profileData.rank !== null ? `#${profileData.rank}` : 'Unranked'}
+                {profileData.rank !== null && profileData.totalPoints > 0 ? `#${profileData.rank}` : 'Unranked'}
               </p>
               <Link
                 href="/leaderboard"
@@ -178,7 +178,7 @@ export default async function StudentPortalPage() {
                 </div>
                 <h3 className="text-sm font-semibold text-text-primary">No Active Hackathon Enrolments</h3>
                 <p className="text-xs text-text-secondary max-w-md mx-auto">
-                  You are not currently enrolled in any active hackathons. Explore upcoming events, form a team, or join an existing squad with an invitation code.
+                  You are not in an active hackathon yet. Browse events to create a team, or join one with an invitation code.
                 </p>
                 <div className="pt-2 flex justify-center gap-3">
                   <Link href="/student/hackathons">
@@ -226,10 +226,8 @@ export default async function StudentPortalPage() {
                     {/* Registration Status Pill */}
                     <div className="p-2.5 rounded-md bg-surface-subtle border border-border-subtle flex items-center justify-between text-xs">
                       <span className="text-text-secondary">Registration Proof:</span>
-                      {team.externalStatusLabel === 'Verified' ? (
-                        <Badge variant="success" size="sm">Verified Registration</Badge>
-                      ) : team.externalStatusLabel === 'Submitted Claim' ? (
-                        <Badge variant="warning" size="sm">Submitted Claim (Pending Review)</Badge>
+                      {team.externalStatusLabel === 'Submitted Claim' ? (
+                        <Badge variant="success" size="sm">Submitted</Badge>
                       ) : team.externalStatusLabel === 'Rejected' ? (
                         <Badge variant="error" size="sm">Proof Rejected</Badge>
                       ) : (
@@ -274,7 +272,7 @@ export default async function StudentPortalPage() {
                 <div>
                   <CardTitle>Upcoming Competitions</CardTitle>
                   <CardDescription>
-                    Explore official hackathons and start forming your team.
+                    Open for registration.
                   </CardDescription>
                 </div>
                 <Link

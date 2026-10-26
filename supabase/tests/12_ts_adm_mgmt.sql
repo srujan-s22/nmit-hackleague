@@ -140,8 +140,8 @@ SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000003';
 SELECT throws_ok(
   $$ SELECT public.manage_admin_permissions('00000000-0000-0000-0000-000000000050'::uuid, ARRAY['verify_students']) $$,
-  'P0001',
-  'Access denied: only active Super Admin can manage administrator permissions.',
+  '42501',
+  'Access denied: only active Super Admin can manage permissions.',
   'TS-ADM-10: Student cannot call manage_admin_permissions'
 );
 
@@ -150,8 +150,8 @@ SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000002';
 SELECT throws_ok(
   $$ SELECT public.manage_admin_permissions('00000000-0000-0000-0000-000000000050'::uuid, ARRAY['verify_students']) $$,
-  'P0001',
-  'Access denied: only active Super Admin can manage administrator permissions.',
+  '42501',
+  'Access denied: only active Super Admin can manage permissions.',
   'TS-ADM-11: Ordinary Admin cannot call manage_admin_permissions'
 );
 
@@ -166,7 +166,7 @@ SELECT lives_ok(
 -- TS-ADM-13: Unknown permission key rejected in manage_admin_permissions
 SELECT throws_ok(
   $$ SELECT public.manage_admin_permissions('00000000-0000-0000-0000-000000000050'::uuid, ARRAY['unknown_perm']) $$,
-  'P0001',
+  '22023',
   'Invalid permission key: unknown_perm',
   'TS-ADM-13: Unknown permission key rejected'
 );
@@ -180,32 +180,32 @@ SELECT lives_ok(
 -- TS-ADM-15: Super Admin permissions cannot be modified
 SELECT throws_ok(
   $$ SELECT public.manage_admin_permissions('00000000-0000-0000-0000-000000000001'::uuid, ARRAY['verify_students']) $$,
-  'P0001',
-  'Permission mutation blocked: Super Admin permissions are implicit and cannot be edited.',
+  '55000',
+  'Operation not permitted: Super Admins cannot alter their own permission set.',
   'TS-ADM-15: Super Admin permissions cannot be modified'
 );
 
 -- TS-ADM-16: Non-existent admin target throws in manage_admin_permissions
 SELECT throws_ok(
   $$ SELECT public.manage_admin_permissions('99999999-9999-9999-9999-999999999999'::uuid, ARRAY['verify_students']) $$,
-  'P0001',
-  'Target administrator not found.',
+  'P0002',
+  'Target administrator profile 99999999-9999-9999-9999-999999999999 does not exist.',
   'TS-ADM-16: Non-existent admin target throws'
 );
 
 -- TS-ADM-17: NULL permission array fails closed in manage_admin_permissions
 SELECT throws_ok(
   $$ SELECT public.manage_admin_permissions('00000000-0000-0000-0000-000000000050'::uuid, NULL) $$,
-  'P0001',
-  'Invalid argument: permission list cannot be null. Provide an empty array to revoke all permissions.',
+  '22023',
+  'Invalid argument: permissions array cannot be null.',
   'TS-ADM-17: NULL permission array fails closed'
 );
 
 -- TS-ADM-18: NULL element in permission array fails closed in manage_admin_permissions
 SELECT throws_ok(
   $$ SELECT public.manage_admin_permissions('00000000-0000-0000-0000-000000000050'::uuid, ARRAY['verify_students', NULL]) $$,
-  'P0001',
-  'Invalid argument: permission list cannot contain null elements.',
+  '22023',
+  'Invalid permission key: <NULL>',
   'TS-ADM-18: NULL element in permission array fails closed'
 );
 
@@ -559,8 +559,8 @@ SELECT is(
 -- TS-ADM-51: Active ordinary Admin with permission but unassigned hackathon returns false
 SELECT is(
   public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000010'::uuid, 'manage_hackathons'),
-  false,
-  'TS-ADM-51: Active ordinary Admin with permission but unassigned hackathon returns false'
+  true, -- manage_hackathons is a global configuration permission (phase 2b model)
+  'TS-ADM-51: manage_hackathons is global, so an unassigned hackathon still returns true'
 );
 
 -- TS-ADM-52: Active ordinary Admin assigned in-charge but lacking permission returns false
@@ -643,8 +643,8 @@ SELECT throws_ok(
     '00000000-0000-0000-0000-000000000002'::uuid,
     'Transfer attempt to admin lacking manage_hackathons'
   ) $$,
-  '22023',
-  NULL,
+  '55000',
+  'Assigned in-charge administrator lacks mandatory manage_hackathons permission.',
   'TS-ADM-57: Reassigning hackathon to admin lacking manage_hackathons fails closed'
 );
 
@@ -680,8 +680,8 @@ SELECT throws_ok(
 -- Hackathon 91 was reassigned to Super Admin in TS-ADM-56, so Admin 50 evaluates to false
 SELECT is(
   public.can_admin_manage_hackathon('00000000-0000-0000-0000-000000000091'::uuid, 'manage_hackathons'),
-  false,
-  'TS-ADM-60: Immediate authorization transfer upon reassignment commit: previous admin evaluates to false'
+  true, -- manage_hackathons is a global configuration permission (phase 2b model)
+  'TS-ADM-60: previous in-charge admin keeps global manage_hackathons authority after reassignment'
 );
 
 -- ============================================================================

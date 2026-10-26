@@ -69,7 +69,7 @@ export function RoundConfigForm({
     return [
       {
         roundNumber: 1,
-        name: 'Round 1: Ideation & Architecture',
+        name: 'Ideation & Architecture',
         description: 'Submission of project pitch deck, problem statement alignment, and architecture diagrams.',
         startAt: toLocalDatetimeString(startDate.toISOString()),
         endAt: toLocalDatetimeString(midDate.toISOString()),
@@ -77,7 +77,7 @@ export function RoundConfigForm({
       },
       {
         roundNumber: 2,
-        name: 'Round 2: Prototype & Grand Finale',
+        name: 'Prototype & Grand Finale',
         description: 'Live evaluation of working prototypes and final presentations.',
         startAt: toLocalDatetimeString(midDate.toISOString()),
         endAt: toLocalDatetimeString(endDate.toISOString()),
@@ -219,12 +219,7 @@ export function RoundConfigForm({
     <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-text-primary">
-            Configure Rounds: {hackathonTitle}
-          </h2>
-          <p className="text-xs text-text-secondary mt-0.5">
-            Define evaluation stages and chronological rounds. At least 1 round is required to publish.
-          </p>
+          <h2 className="text-base font-semibold text-text-primary">Rounds</h2>
         </div>
         <Button type="button" variant="secondary" size="sm" onClick={addRound}>
           + Add New Round
@@ -254,7 +249,7 @@ export function RoundConfigForm({
                   </Badge>
                   {round.isFinalRound && (
                     <Badge variant="warning" size="sm">
-                      🏆 Final Round
+                      Final round
                     </Badge>
                   )}
                 </div>
@@ -301,7 +296,7 @@ export function RoundConfigForm({
                     label="Round Name"
                     value={round.name}
                     onChange={(e) => updateRound(idx, 'name', e.target.value)}
-                    placeholder="e.g. Round 1: Ideation & Submission"
+                    placeholder="e.g. Ideation & Submission"
                     required
                   />
                 </div>

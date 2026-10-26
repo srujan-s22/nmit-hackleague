@@ -14,6 +14,7 @@ import { ReviewActionDialog } from '@/components/submissions/review-action-dialo
 import { ReopenActionDialog } from '@/components/submissions/reopen-action-dialog';
 import { WinnerPlacementDialog } from '@/components/submissions/winner-placement-dialog';
 import { formatDateTime } from '@/lib/utils/date-format';
+import { RoundControlsPanel } from '@/components/hackathons/round-controls-panel';
 
 export interface HackathonRoundInfo {
   id: string;
@@ -22,6 +23,7 @@ export interface HackathonRoundInfo {
   status: string;
   start_at: string;
   end_at: string;
+  is_final_round?: boolean;
 }
 
 export interface ReviewInfo {
@@ -105,6 +107,8 @@ export interface SubmissionsClientProps {
   initialClaims?: RegistrationClaimRow[];
   results: ResultRow[];
   isSuperAdmin: boolean;
+  /** Admin has configuration authority: can pause, resume and reschedule rounds. */
+  canManageRounds?: boolean;
   fetchError?: string | null;
 }
 
@@ -115,6 +119,7 @@ export function SubmissionsClient({
   initialClaims,
   results,
   isSuperAdmin,
+  canManageRounds = false,
   fetchError,
 }: SubmissionsClientProps) {
   const router = useRouter();
@@ -251,12 +256,10 @@ export function SubmissionsClient({
 
   const renderClaimStatusBadge = (status: string) => {
     switch (status) {
-      case 'verified':
-        return <Badge variant="success">Verified</Badge>;
       case 'rejected':
         return <Badge variant="error">Rejected</Badge>;
       case 'submitted':
-        return <Badge variant="neutral">Submitted</Badge>;
+        return <Badge variant="success">Submitted</Badge>;
       case 'not_submitted':
       default:
         return <Badge variant="neutral">Not Submitted</Badge>;
@@ -267,7 +270,7 @@ export function SubmissionsClient({
     <div className="space-y-6">
       <PageHeader
         title={`Submissions & Reviews: ${hackathon.title}`}
-        description="Verify external registration claims and sequential round milestone deliverables for institutional oversight."
+        description="Review registrations and round submissions."
         breadcrumbs={[
           { label: 'Admin Workspace', href: '/admin' },
           { label: 'Hackathons', href: '/admin/hackathons' },
@@ -283,6 +286,7 @@ export function SubmissionsClient({
             >
               Registered Teams Roster &rarr;
             </Link>
+            {canManageRounds && (
             <Link
               href={`/admin/hackathons/${hackathon.id}/rounds`}
               className="text-xs font-semibold px-3 py-1.5 rounded bg-surface-canvas border border-border-subtle text-text-secondary hover:text-text-primary transition-colors"
@@ -290,6 +294,7 @@ export function SubmissionsClient({
             >
               Configure Rounds &rarr;
             </Link>
+            )}
           </div>
         }
       />
@@ -417,7 +422,7 @@ export function SubmissionsClient({
                 {/* Status Filter Chips */}
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="text-text-muted font-medium">Claim Status:</span>
-                  {(['all', 'submitted', 'verified', 'rejected'] as const).map((st) => (
+                  {(['all', 'submitted', 'rejected'] as const).map((st) => (
                     <button
                       key={st}
                       type="button"
@@ -553,6 +558,8 @@ export function SubmissionsClient({
       {/* WORKFLOW B: Round Milestone Deliverables */}
       {activeTab === 'rounds' && (
         <div className="space-y-4" id="section-round-submissions">
+          {canManageRounds && <RoundControlsPanel hackathonId={hackathon.id} rounds={rounds} />}
+
           {/* Round Filter Toolbar */}
           <Card>
             <CardContent className="pt-4 space-y-4">
@@ -664,7 +671,11 @@ export function SubmissionsClient({
             const isRoundCompleted = round?.status === 'completed';
             const isRoundPaused = round?.status === 'paused';
             const isRoundExpired = round ? new Date(round.end_at).getTime() <= currentTimestamp : false;
-            const canReview = !isRoundCompleted && !isRoundPaused && (!isRoundExpired || round?.status === 'evaluation');
+            // Finished decisions (accepted / rejected) are not re-reviewed here; rejected ones use "Reopen".
+            const canReview =
+              sub.status !== 'accepted' &&
+              sub.status !== 'rejected' &&
+              !isRoundCompleted && !isRoundPaused && (!isRoundExpired || round?.status === 'evaluation');
 
             return (
               <Card key={sub.id} className="overflow-hidden border border-border-subtle" id={`submission-row-${sub.id}`}>
@@ -674,7 +685,9 @@ export function SubmissionsClient({
                       {sub.team?.name || 'Unnamed Team'}
                     </span>
                     <Badge variant="neutral">
-                      Round {round?.round_number || '?'}: {round?.name || 'Round'}
+                      {round?.name && /^round\s*\d+/i.test(round.name.trim())
+                        ? round.name
+                        : `Round ${round?.round_number || '?'}: ${round?.name || 'Round'}`}
                     </Badge>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary">
                       v{sub.version}
@@ -682,7 +695,7 @@ export function SubmissionsClient({
                     {renderStatusBadge(sub.status)}
                     {winnerPlacement && (
                       <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {winnerPlacement === 1 ? '🥇 1st Place' : winnerPlacement === 2 ? '🥈 2nd Place' : '🥉 3rd Place'}
+                        {winnerPlacement === 1 ? '1st Place' : winnerPlacement === 2 ? '2nd Place' : '3rd Place'}
                       </span>
                     )}
                   </div>
@@ -885,8 +898,8 @@ export function SubmissionsClient({
                         </Button>
                       )}
 
-                      {/* Winner Placement Button */}
-                      {sub.status === 'accepted' && (
+                      {/* Winner Placement Button (placements are recorded on the final round only) */}
+                      {sub.status === 'accepted' && (round?.is_final_round ?? round?.round_number === Math.max(...rounds.map((r) => r.round_number))) && (
                         <Button
                           variant="outline"
                           size="sm"

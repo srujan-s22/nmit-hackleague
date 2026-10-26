@@ -289,7 +289,7 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
           )}
         </div>
         <p className="text-xs text-text-secondary mb-4">
-          Upload a clear headshot for your participant badge and certificate (Max 1MB, PNG/JPEG/WebP).
+          A clear headshot. JPG, PNG or WebP, up to 1 MB.
         </p>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -403,7 +403,7 @@ export function OnboardingClient({ profile }: OnboardingClientProps) {
             Ready to Submit for Institutional Review?
           </h3>
           <p className="text-xs text-text-secondary mt-0.5">
-            Once submitted, your profile will be queued for manual review by an authorized administrator.
+            An administrator will review your profile after you submit.
           </p>
         </div>
 

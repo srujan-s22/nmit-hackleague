@@ -150,10 +150,8 @@ export function RegistrationProofCard({
 
   const getStatusBadge = () => {
     switch (externalStatus) {
-      case 'verified':
-        return <Badge variant="success" dot>Registration Verified</Badge>;
       case 'submitted':
-        return <Badge variant="info" dot>Under Review</Badge>;
+        return <Badge variant="success" dot>Submitted</Badge>;
       case 'rejected':
         return <Badge variant="error" dot>Proof Rejected</Badge>;
       default:
@@ -233,15 +231,9 @@ export function RegistrationProofCard({
                 )}
               </div>
 
-              {externalStatus === 'verified' && (
-                <p className="text-status-success-text font-medium">
-                  ✓ Your team registration has been officially approved by the organizing committee.
-                </p>
-              )}
-
               {externalStatus === 'submitted' && (
                 <p className="text-text-secondary">
-                  Your verification screenshot has been submitted and is currently awaiting review by institutional coordinators.
+                  Your registration proof is on file.
                 </p>
               )}
 
@@ -261,9 +253,8 @@ export function RegistrationProofCard({
             <>
               {!isRosterLocked ? (
                 <div className="p-4 bg-surface-subtle border border-border-subtle rounded-md text-xs text-text-secondary">
-                  <span className="font-semibold text-text-primary block mb-1">Roster Must Be Finalized</span>
-                  You must lock your team roster before submitting registration proof.
-                  Ensure your team has at least {minTeamSize} {minTeamSize === 1 ? 'member' : 'members'} and click &quot;Lock Roster&quot; above.
+                  <span className="font-semibold text-text-primary block mb-1">Lock your roster first</span>
+                  Your team needs at least {minTeamSize} {minTeamSize === 1 ? 'member' : 'members'}. Then click &quot;Lock Roster&quot; above.
                 </div>
               ) : !isLeader ? (
                 <div className="p-4 bg-surface-subtle border border-border-subtle rounded-md text-xs text-text-secondary">

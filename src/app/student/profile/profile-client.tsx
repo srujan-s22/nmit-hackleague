@@ -238,7 +238,7 @@ export function ProfileClient({
             <div className="flex-1 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-bold text-text-primary">{profile.full_name}</h1>
-                <Badge variant="success" dot>Institutional Verified</Badge>
+                <Badge variant="success" dot>Verified</Badge>
               </div>
 
               <p className="text-xs font-mono text-text-secondary">
@@ -302,7 +302,7 @@ export function ProfileClient({
                   Platform Rank
                 </span>
                 <p className="text-lg font-bold text-text-primary">
-                  {initialData.rank !== null ? `#${initialData.rank}` : 'Unranked'}
+                  {initialData.rank !== null && initialData.totalPoints > 0 ? `#${initialData.rank}` : 'Unranked'}
                 </p>
               </div>
             </div>
@@ -317,7 +317,7 @@ export function ProfileClient({
           <CardHeader>
             <CardTitle>Direct Contact Information</CardTitle>
             <CardDescription>
-              Your verified mobile number is used for urgent hackathon SMS and team alerts.
+              Used by organisers to contact you about your events.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -381,7 +381,7 @@ export function ProfileClient({
                 {profile.email}
               </p>
               <p className="text-[11px] text-text-helper mt-1">
-                Managed strictly by Supabase Auth and institutional SSO.
+                Your sign-in email. It cannot be changed here.
               </p>
             </div>
           </CardContent>
@@ -394,7 +394,7 @@ export function ProfileClient({
               <div>
                 <CardTitle>Professional Profiles</CardTitle>
                 <CardDescription>
-                  Optional links to your public developer and professional presence.
+                  Optional public profile links.
                 </CardDescription>
               </div>
               {!isEditingSocial && (
@@ -530,7 +530,7 @@ export function ProfileClient({
               <div>
                 <CardTitle>Institutional Identity</CardTitle>
                 <CardDescription>
-                  Official student records verified during onboarding.
+                  Verified during registration.
                 </CardDescription>
               </div>
               <Button
@@ -566,7 +566,7 @@ export function ProfileClient({
             </div>
 
             <p className="text-[11px] text-text-helper pt-2">
-              Note: To prevent fraudulent score manipulation, institutional identity details require administrative approval to change.
+              Changes to these details need administrator approval.
             </p>
           </CardContent>
         </Card>
@@ -577,7 +577,7 @@ export function ProfileClient({
         <CardHeader>
           <CardTitle>Correction Request History</CardTitle>
           <CardDescription>
-            Audit log of student profile correction requests submitted for administrative review.
+            Your submitted correction requests.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -653,7 +653,7 @@ export function ProfileClient({
           if (!isSubmitPending) setIsModalOpen(false);
         }}
         title="Request Profile Identity Correction"
-        description="Official institutional records are locked. Provide your corrected details and mandatory justification for administrative review."
+        description="Tell us the correct value and why it needs to change. An administrator will review it."
       >
         <div className="space-y-4 py-2">
           {formError && (

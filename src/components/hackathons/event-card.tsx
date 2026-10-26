@@ -34,7 +34,7 @@ export function EventCard({ hackathon, href }: EventCardProps) {
             </Badge>
             {hackathon.venue && hackathon.mode !== 'online' && (
               <span className="text-[11px] text-text-secondary truncate max-w-[140px]" title={hackathon.venue}>
-                📍 {hackathon.venue}
+                {hackathon.venue}
               </span>
             )}
           </div>
@@ -76,7 +76,6 @@ export function EventCard({ hackathon, href }: EventCardProps) {
 
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-1.5 text-[11px] text-text-secondary">
-            <span>👥</span>
             <span>
               {hackathon.min_team_size === hackathon.max_team_size
                 ? `${hackathon.min_team_size} per team`

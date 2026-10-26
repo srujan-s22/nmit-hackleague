@@ -114,7 +114,7 @@ export function CreateAdminDialog({ isOpen, onClose, onSuccess }: CreateAdminDia
       isOpen={isOpen}
       onClose={handleClose}
       title="Provision New Administrator"
-      description="Create an administrator profile. A high-entropy temporary password will be generated and dispatched securely via institutional email. Dashboard access is blocked until the password is changed."
+      description="A temporary password is emailed to the new administrator, who must change it at first sign-in."
       maxWidth="lg"
       footer={
         <div className="flex items-center justify-between w-full gap-3">
@@ -244,9 +244,6 @@ export function CreateAdminDialog({ isOpen, onClose, onSuccess }: CreateAdminDia
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-semibold text-xs text-text-primary">
                                     {perm.label}
-                                  </span>
-                                  <span className="text-[10px] text-text-secondary font-mono">
-                                    ({perm.key})
                                   </span>
                                 </div>
                                 <p className="text-[11px] text-text-secondary font-normal mt-0.5 leading-relaxed">

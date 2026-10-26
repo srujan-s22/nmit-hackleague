@@ -267,7 +267,7 @@ export async function assignAdminToHackathonAction(rawInput: {
       p_hackathon_id: hackathonId,
       p_target_admin_id: targetAdminId,
       p_role: role,
-      p_notes: notes || null,
+      p_notes: notes || undefined,
     });
 
     if (error) {

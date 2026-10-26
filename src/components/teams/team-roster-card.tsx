@@ -444,7 +444,9 @@ export function TeamRosterCard({
             onChange={(e) => setNewLeaderId(e.target.value)}
             disabled={actionLoading}
             options={otherMembers.map((m) => ({
-              label: `${m.profile?.full_name || 'Member'} (${m.profile?.roll_number || m.student_id.slice(0, 8)})`,
+              label: m.profile?.roll_number
+                ? `${m.profile?.full_name || 'Member'} (${m.profile.roll_number})`
+                : m.profile?.full_name || 'Member',
               value: m.student_id,
             }))}
           />

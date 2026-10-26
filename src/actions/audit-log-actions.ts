@@ -7,6 +7,8 @@ export interface AuditLogItem {
   id: string;
   actor_id: string | null;
   actor_role: string | null;
+  /** Display name of the actor when the viewer can see it (admin or student profile). */
+  actor_name?: string | null;
   action: string;
   target_type: string | null;
   target_id: string | null;
@@ -79,9 +81,23 @@ export async function getAuditLogsAction(
       };
     }
 
+    const logs = (data || []) as unknown as AuditLogItem[];
+    // Resolve actor names in two batched lookups. RLS decides what the viewer may see;
+    // anything not visible falls back to the role label in the UI.
+    const actorIds = Array.from(new Set(logs.map((l) => l.actor_id).filter((id): id is string => Boolean(id))));
+    if (actorIds.length > 0) {
+      const [{ data: admins }, { data: students }] = await Promise.all([
+        supabase.from('admin_profiles').select('id, full_name').in('id', actorIds),
+        supabase.from('profiles').select('id, full_name').in('id', actorIds),
+      ]);
+      const names = new Map<string, string>();
+      for (const row of [...(admins || []), ...(students || [])]) names.set(row.id, row.full_name);
+      for (const log of logs) log.actor_name = log.actor_id ? names.get(log.actor_id) ?? null : null;
+    }
+
     return {
       success: true,
-      logs: (data || []) as unknown as AuditLogItem[],
+      logs,
       totalCount: count || 0,
     };
   } catch (err: unknown) {

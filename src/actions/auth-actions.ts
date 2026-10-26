@@ -482,10 +482,12 @@ export async function verifyOtpAction(
 
   if (verificationError || !verifiedSession) {
     const errorMsg = (verificationError?.message || '').toLowerCase();
+    // Supabase reports a wrong code as "Token has expired or is invalid", so a
+    // message that only says "expired" misleads users who mistyped the code.
     if (errorMsg.includes('expired')) {
       return {
         success: false,
-        error: 'This verification code has expired. Please click "Resend Code" to receive a new one.',
+        error: 'This code is incorrect or has expired. Check the code, or click "Resend Code" to get a new one.',
       };
     }
     if (errorMsg.includes('invalid') || errorMsg.includes('token')) {

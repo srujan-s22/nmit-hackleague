@@ -44,7 +44,7 @@ export function StudentPointsClient({
             </Badge>
           </div>
           <p className="text-sm text-text-secondary mt-1">
-            Track your verified hackathon achievement points, platform rank, and complete immutable transaction ledger history.
+            Your points, rank and point history.
           </p>
         </div>
       </div>
@@ -70,7 +70,7 @@ export function StudentPointsClient({
               <span className="text-sm text-text-muted">points</span>
             </div>
             <p className="text-xs text-text-helper mt-1">
-              Current platform balance across all events
+              Across all events
             </p>
           </CardContent>
         </Card>
@@ -83,11 +83,11 @@ export function StudentPointsClient({
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-3xl font-bold text-text-primary">
-                {summary?.rank ? `#${summary.rank}` : 'Unranked'}
+                {summary?.rank && (summary.total_points ?? 0) > 0 ? `#${summary.rank}` : 'Unranked'}
               </span>
             </div>
             <p className="text-xs text-text-helper mt-1">
-              Dense rank across all approved students
+              Among approved students
             </p>
           </CardContent>
         </Card>
@@ -105,7 +105,7 @@ export function StudentPointsClient({
               <span className="text-sm text-text-muted">rounds</span>
             </div>
             <p className="text-xs text-text-helper mt-1">
-              Evaluated & confirmed by hackathon admins
+              Rounds passed
             </p>
           </CardContent>
         </Card>
@@ -123,25 +123,12 @@ export function StudentPointsClient({
               <span className="text-sm text-text-muted">claims</span>
             </div>
             <p className="text-xs text-text-helper mt-1">
-              Initial proofs with accepted CDC declarations
+              Registration proofs submitted
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Policy Callout Banner */}
-      <Alert variant="info">
-        <div className="text-xs leading-relaxed space-y-1">
-          <p className="font-semibold text-text-primary">
-            Points Milestone System & Ledger Transparency
-          </p>
-          <p className="text-text-secondary">
-            Participation awards (+10 regular member / +15 leader) reflect submitted registration claims with accepted CDC declarations.
-            Round qualification milestones (+20 regular member / +25 leader) are verified upon evaluation acceptance.
-            Winner bonus points remain disabled across the platform. Point adjustments and reversals follow strict append-only accounting rules.
-          </p>
-        </div>
-      </Alert>
 
       {/* Transaction History Ledger */}
       <Card>
@@ -149,9 +136,6 @@ export function StudentPointsClient({
           <CardTitle className="text-base font-semibold">
             Transaction History ({ledger.length})
           </CardTitle>
-          <span className="text-xs text-text-muted">
-            Append-only immutable record
-          </span>
         </CardHeader>
 
         {ledger.length === 0 ? (
@@ -169,7 +153,7 @@ export function StudentPointsClient({
                 <TableHead className="w-56">Hackathon</TableHead>
                 <TableHead className="w-48">Milestone Type</TableHead>
                 <TableHead className="w-28 text-right">Points</TableHead>
-                <TableHead>Reason & References</TableHead>
+                <TableHead>Reason</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -97,7 +97,13 @@ export function VerificationsClient({
       if (result.success) {
         setStudents((prev) => prev.filter((s) => s.id !== selectedStudent.id));
         setFeedbackMessage(
-          `Student ${selectedStudent.full_name} (${selectedStudent.usn}) was marked as ${decisionType}.`
+          `${selectedStudent.full_name} (${selectedStudent.usn}): ${
+            decisionType === 'approved'
+              ? 'approved'
+              : decisionType === 'rejected'
+                ? 'rejected'
+                : 'correction requested'
+          }.`
         );
         setDecisionType(null);
         setSelectedStudent(null);
@@ -183,8 +189,7 @@ export function VerificationsClient({
         <CardContent className="p-0">
           {students.length === 0 ? (
             <div className="py-12 text-center text-xs text-text-secondary">
-              <span className="text-2xl block mb-2">🎉</span>
-              No pending student registrations in the verification queue. All caught up!
+              No registrations waiting for review.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -227,7 +232,7 @@ export function VerificationsClient({
                             size="sm"
                             onClick={() => handleOpenPreview(student)}
                           >
-                            Inspect ID 🔍
+                            View ID
                           </Button>
                         ) : (
                           <Badge variant="neutral">Missing ID</Badge>

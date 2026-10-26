@@ -216,7 +216,7 @@ export function AssignedHackathonsClient({
                         <>
                           <span className="text-text-muted">&bull;</span>
                           <span className="text-text-secondary flex items-center gap-1">
-                            📍 <span>{h.venue}</span>
+                            <span>{h.venue}</span>
                           </span>
                         </>
                       )}
@@ -224,7 +224,7 @@ export function AssignedHackathonsClient({
                       <span className="text-text-muted">
                         Assigned on {formatDate(h.assigned_at)}
                       </span>
-                      {h.notes && (
+                      {h.notes && !/^(Synchronized automatically|Automated initial backfill)/.test(h.notes) && (
                         <>
                           <span className="text-text-muted">&bull;</span>
                           <span className="text-text-secondary italic">
@@ -260,7 +260,7 @@ export function AssignedHackathonsClient({
                         size="sm"
                         target="_blank"
                       >
-                        External Portal &nearr;
+                        External Portal ↗
                       </ButtonLink>
                     )}
 

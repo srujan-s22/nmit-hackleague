@@ -40,7 +40,7 @@ export default async function AdminStudentDetailPage({ params }: AdminStudentDet
       <div className="space-y-6">
         <PageHeader
           title={res.data.full_name}
-          description="Detailed verified student profile, contact information, and competition history."
+          description="Profile, contact details and competition history."
           breadcrumbs={[
             { label: 'Admin Workspace', href: '/admin' },
             { label: 'Student Directory', href: '/admin/students' },

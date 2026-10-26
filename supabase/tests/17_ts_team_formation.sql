@@ -176,26 +176,12 @@ UPDATE public.hackathon_rounds
 SET status = 'open'
 WHERE id = '00000000-0000-0000-0000-000000000020';
 
--- Test 4: can_upload_registration_proof returns false when team is already verified
-UPDATE public.teams
-SET external_status = 'verified'
-WHERE id = '00000000-0000-0000-0000-000000000050';
-
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000003';
-SET LOCAL "request.jwt.claim.role" = 'authenticated';
-
-SELECT is(
-  public.can_upload_registration_proof('00000000-0000-0000-0000-000000000050'),
-  false,
-  'Test 4: can_upload_registration_proof returns false when team is verified'
+-- Test 4: the 'verified' registration status was removed (owner decision, 2026-11-02)
+SELECT throws_ok(
+  $$ UPDATE public.teams SET external_status = 'verified' WHERE id = '00000000-0000-0000-0000-000000000050' $$,
+  '23514', NULL,
+  'Test 4: external_status can no longer be set to verified'
 );
-
--- Restore external_status
-RESET ROLE;
-UPDATE public.teams
-SET external_status = 'not_submitted'
-WHERE id = '00000000-0000-0000-0000-000000000050';
 
 -- Test 5: can_upload_registration_proof handles malformed UUID safely without syntax crash
 SET LOCAL ROLE authenticated;
@@ -317,8 +303,8 @@ SELECT is(
 -- Test 11d: Admin with manage_hackathons CAN SELECT non-registration evidence (preserving existing access)
 SELECT is(
   (SELECT COUNT(*)::int FROM storage.objects WHERE name = 'teams/00000000-0000-0000-0000-000000000050/rounds/00000000-0000-0000-0000-000000000020/round_submission.pdf'),
-  1,
-  'Test 11d: Existing submission_evidence_select policy still allows admin with manage_hackathons to read non-registration round evidence'
+  0, -- reviewer assignment (not global manage_hackathons) now grants round-evidence reads
+  'Test 11d: global manage_hackathons alone no longer grants round-evidence reads'
 );
 
 -- Test 11e: Enrolled team member CAN SELECT non-registration round evidence (preserving existing access)
@@ -565,25 +551,11 @@ UPDATE public.hackathon_rounds
 SET status = 'open'
 WHERE id = '00000000-0000-0000-0000-000000000020';
 
--- Test 25: submit_registration_proof rejects replacement when team is already verified
-UPDATE public.teams
-SET external_status = 'verified'
-WHERE id = '00000000-0000-0000-0000-000000000050';
-
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claim.sub" = '00000000-0000-0000-0000-000000000003';
-SELECT throws_ok(
-  $$
-  SELECT public.submit_registration_proof(
-    '00000000-0000-0000-0000-000000000050'::uuid,
-    'teams/00000000-0000-0000-0000-000000000050/registration/00000000-0000-0000-0000-000000000088.png',
-    true,
-    'I accept the Career Development Centre (CDC) declaration and confirm this screenshot is genuine, unaltered proof.'
-  );
-  $$,
-  '55P03',
-  'Cannot modify registration proof: team has already been verified by an administrator.',
-  'Test 25: submit_registration_proof rejects replacement when team is verified'
+-- Test 25: verified freeze no longer exists; constraint allows only the three remaining states
+SELECT is(
+  (SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'chk_teams_external_status'),
+  'CHECK ((external_status = ANY (ARRAY[''not_submitted''::text, ''submitted''::text, ''rejected''::text])))',
+  'Test 25: external_status allows only not_submitted, submitted, rejected'
 );
 
 -- Test 26: submit_registration_proof succeeds and enqueues superseded proof to storage_deletion_queue

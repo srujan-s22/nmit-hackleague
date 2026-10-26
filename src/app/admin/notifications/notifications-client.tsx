@@ -133,31 +133,31 @@ export function NotificationsClient({
         <div className="bg-surface-canvas border border-border-subtle rounded-xl p-4 shadow-xs">
           <p className="text-xs font-medium text-text-secondary">Delivered Pushes</p>
           <p className="text-2xl font-bold text-status-success-border mt-1">{stats.delivered}</p>
-          <span className="text-[11px] text-text-helper">Confirmed 201 Created</span>
+          <span className="text-[11px] text-text-helper">Successfully delivered</span>
         </div>
 
         <div className="bg-surface-canvas border border-border-subtle rounded-xl p-4 shadow-xs">
           <p className="text-xs font-medium text-text-secondary">Expired Subscriptions</p>
           <p className="text-2xl font-bold text-status-warning-border mt-1">{stats.expired}</p>
-          <span className="text-[11px] text-text-helper">Deactivated 410 Gone</span>
+          <span className="text-[11px] text-text-helper">Removed after expiry</span>
         </div>
 
         <div className="bg-surface-canvas border border-border-subtle rounded-xl p-4 shadow-xs">
           <p className="text-xs font-medium text-text-secondary">Failed Dispatches</p>
           <p className="text-2xl font-bold text-status-error-border mt-1">{stats.failed}</p>
-          <span className="text-[11px] text-text-helper">Exhausted Retries</span>
+          <span className="text-[11px] text-text-helper">After all retries</span>
         </div>
 
         <div className="bg-surface-canvas border border-border-subtle rounded-xl p-4 shadow-xs">
           <p className="text-xs font-medium text-text-secondary">Total Push Events</p>
           <p className="text-2xl font-bold text-text-primary mt-1">{stats.totalAttempts}</p>
-          <span className="text-[11px] text-text-helper">Audited in PostgreSQL</span>
+          <span className="text-[11px] text-text-helper">All time</span>
         </div>
       </div>
 
       {statsError && (
         <Alert variant="warning" title="Delivery Statistics Notice">
-          Push delivery metrics could not be fully aggregated from PostgreSQL: {statsError}
+          Delivery statistics are unavailable right now: {statsError}
         </Alert>
       )}
 
@@ -175,7 +175,7 @@ export function NotificationsClient({
         <div className="border-b border-border-subtle pb-3">
           <h2 className="text-base font-semibold text-text-primary">Dispatch Broadcast Announcement</h2>
           <p className="text-xs text-text-secondary mt-1">
-            Broadcasts appear immediately in the top navigation bell for eligible users and dispatch browser Web Push notifications to active subscribers.
+            Shown in the notification bell and sent as a push notification.
           </p>
         </div>
 

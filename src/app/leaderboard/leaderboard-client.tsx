@@ -87,13 +87,9 @@ export function LeaderboardClient({
             <h1 className="text-2xl font-bold tracking-tight text-text-primary">
               Platform Leaderboard
             </h1>
-            <Badge variant="neutral" size="sm">
-              Dense Ranking
-            </Badge>
           </div>
           <p className="text-sm text-text-secondary mt-1 max-w-3xl">
-            Recognizing verified milestone achievements, round qualifications, and participation across NMIT
-            HackLeague events. Points are verified and dense-ranked platform-wide.
+            Student rankings by verified points.
           </p>
         </div>
       </div>
@@ -186,7 +182,7 @@ export function LeaderboardClient({
             Standings {entries.length > 0 && `(Top ${entries.length})`}
           </CardTitle>
           <span className="text-xs text-text-muted">
-            Tied scores share equal dense rank
+            Tied scores share a rank
           </span>
         </CardHeader>
 
@@ -248,8 +244,8 @@ export function LeaderboardClient({
                             3
                           </span>
                         ) : (
-                          <span className="text-sm font-semibold text-text-secondary">
-                            #{entry.rank}
+                          <span className="inline-flex w-7 justify-center text-sm font-semibold text-text-secondary">
+                            {entry.rank}
                           </span>
                         )}
                       </TableCell>
@@ -291,7 +287,7 @@ export function LeaderboardClient({
                           >
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
-                          {entry.verified_qualifications_count} Rounds
+                          {entry.verified_qualifications_count} {entry.verified_qualifications_count === 1 ? 'round' : 'rounds'}
                         </span>
                       </TableCell>
 

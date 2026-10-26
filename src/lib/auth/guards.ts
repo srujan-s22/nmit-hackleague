@@ -53,6 +53,14 @@ export async function requireStudent(): Promise<{ profile: StudentProfile; user:
   const profile = await getStudentProfile();
 
   if (!profile) {
+    // Administrators have no student profile: keep them out of student onboarding.
+    const supabase = await createClient();
+    const { data: adminRow } = await supabase
+      .from('admin_profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (adminRow) redirect('/admin');
     redirect('/onboarding');
   }
 
@@ -152,7 +160,9 @@ export async function requireAdmin(
 
   if (requiredPermission && !admin.is_super_admin) {
     if (!permissions.includes(requiredPermission)) {
-      redirect('/login');
+      // Signed-in admin without this permission: send them to their dashboard,
+      // not the login page (which would look like they had been signed out).
+      redirect('/admin');
     }
   }
 

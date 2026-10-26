@@ -13,6 +13,7 @@ import {
   purgeOrphanedRoundEvidence,
   createSignedEvidencePreviewUrl,
 } from '@/lib/storage/round-evidence-service';
+import { refreshRoundStatuses } from '@/lib/hackathons/round-status';
 
 export interface SubmitMilestoneActionResult {
   success: boolean;
@@ -70,6 +71,8 @@ export async function submitRoundMilestoneAction(
 
     // Process file upload if provided
     let evidencePath: string | null = null;
+    // The database binds evidence to its server-computed hash; it must be passed through.
+    let evidenceSha256: string | null = null;
     if (evidenceFile && evidenceFile.size > 0) {
       const arrayBuffer = await evidenceFile.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
@@ -89,6 +92,7 @@ export async function submitRoundMilestoneAction(
         };
       }
       evidencePath = uploadResult.path;
+      evidenceSha256 = uploadResult.fileHash ?? null;
       newlyUploadedPath = uploadResult.path;
     }
 
@@ -117,6 +121,9 @@ export async function submitRoundMilestoneAction(
 
     const validData = validationResult.data;
 
+    // Advance round statuses by schedule so an open window is recognised.
+    await refreshRoundStatuses(supabase);
+
     // Call transactional RPC
     const { data: rpcData, error: rpcErr } = await supabase.rpc('submit_round_milestone', {
       p_round_id: validData.roundId,
@@ -126,6 +133,7 @@ export async function submitRoundMilestoneAction(
       p_repo_url: validData.githubUrl || undefined,
       p_demo_url: validData.liveDemoUrl || undefined,
       p_evidence_path: validData.evidencePath || undefined,
+      p_evidence_sha256: evidenceSha256 || undefined,
     });
 
     if (rpcErr) {
@@ -207,6 +215,8 @@ export async function resubmitRoundMilestoneAction(
     }
 
     let evidencePath: string | null = reusedEvidencePath || null;
+    // Only a newly uploaded file needs its hash; reused evidence keeps the prior hash in the database.
+    let evidenceSha256: string | null = null;
 
     // If new file provided, upload and register
     if (evidenceFile && evidenceFile.size > 0) {
@@ -228,6 +238,7 @@ export async function resubmitRoundMilestoneAction(
         };
       }
       evidencePath = uploadResult.path;
+      evidenceSha256 = uploadResult.fileHash ?? null;
       newlyUploadedPath = uploadResult.path;
     }
 
@@ -257,6 +268,9 @@ export async function resubmitRoundMilestoneAction(
 
     const validData = validationResult.data;
 
+    // Advance round statuses by schedule so an open window is recognised.
+    await refreshRoundStatuses(supabase);
+
     // Call transactional RPC
     const { data: rpcData, error: rpcErr } = await supabase.rpc('resubmit_round_milestone', {
       p_prior_submission_id: validData.parentSubmissionId,
@@ -265,6 +279,7 @@ export async function resubmitRoundMilestoneAction(
       p_repo_url: validData.githubUrl || undefined,
       p_demo_url: validData.liveDemoUrl || undefined,
       p_evidence_path: validData.evidencePath || undefined,
+      p_evidence_sha256: evidenceSha256 || undefined,
     });
 
     if (rpcErr) {

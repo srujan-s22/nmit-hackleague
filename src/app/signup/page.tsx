@@ -98,7 +98,7 @@ export default function SignupPage() {
               Student Registration
             </h1>
             <p className="text-xs sm:text-sm text-text-secondary mt-1">
-              Create your NMIT HackLeague account. Institutional eligibility is verified via College ID.
+              Create your NMIT HackLeague account.
             </p>
           </div>
 

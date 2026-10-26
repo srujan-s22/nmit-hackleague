@@ -30,7 +30,7 @@ export interface CompetitionParticipationItem {
   role: 'leader' | 'member';
   internalStatus: string;
   externalStatus: string;
-  externalStatusLabel: 'Verified' | 'Submitted Claim' | 'Not Submitted' | 'Rejected';
+  externalStatusLabel: 'Submitted Claim' | 'Not Submitted' | 'Rejected';
   externalProofSubmittedAt: string | null;
   teammates: TeammateRosterItem[];
   milestones: Array<{
@@ -208,9 +208,7 @@ export async function getStudentParticipationTimeline(): Promise<{
 
     // Determine strict external status label
     let externalStatusLabel: CompetitionParticipationItem['externalStatusLabel'] = 'Not Submitted';
-    if (team.external_status === 'verified') {
-      externalStatusLabel = 'Verified';
-    } else if (team.external_status === 'submitted') {
+    if (team.external_status === 'submitted') {
       externalStatusLabel = 'Submitted Claim';
     } else if (team.external_status === 'rejected') {
       externalStatusLabel = 'Rejected';

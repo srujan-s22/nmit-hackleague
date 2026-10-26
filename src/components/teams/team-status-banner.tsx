@@ -37,7 +37,7 @@ export function TeamStatusBanner({
     if (isForming) {
       return (
         <Badge variant="warning" dot size="sm">
-          Forming Roster
+          Forming team
         </Badge>
       );
     }
@@ -50,16 +50,10 @@ export function TeamStatusBanner({
 
   const getExternalBadge = () => {
     switch (externalStatus) {
-      case 'verified':
-        return (
-          <Badge variant="success" dot size="sm">
-            Registration Approved
-          </Badge>
-        );
       case 'submitted':
         return (
-          <Badge variant="info" dot size="sm">
-            Proof Submitted (Review Pending)
+          <Badge variant="success" dot size="sm">
+            Registration Proof Submitted
           </Badge>
         );
       case 'rejected':

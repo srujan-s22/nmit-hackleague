@@ -83,7 +83,7 @@ export function StudentHackathonsClient({ initialHackathons }: StudentHackathons
             Institutional Hackathons
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Discover upcoming hackathons, form interdisciplinary teams, and showcase your engineering capabilities.
+            Find a hackathon and form your team.
           </p>
         </div>
       </div>

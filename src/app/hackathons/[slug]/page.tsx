@@ -214,12 +214,12 @@ export default async function HackathonDetailsPage({ params }: HackathonDetailsP
           <RegistrationStateBadge state={regState} />
           {timingState === 'TIMING_IN_PROGRESS' && (
             <Badge variant="warning" size="md">
-              ⚡ Event In Progress
+              Event in progress
             </Badge>
           )}
           {timingState === 'TIMING_CONCLUDED' && (
             <Badge variant="neutral" size="md">
-              🏁 Concluded
+              Concluded
             </Badge>
           )}
           {h.status === 'draft' && (
@@ -252,7 +252,7 @@ export default async function HackathonDetailsPage({ params }: HackathonDetailsP
           {h.venue && (
             <div>
               <span className="text-text-muted">Venue:</span>{' '}
-              <strong className="text-text-primary">📍 {h.venue}</strong>
+              <strong className="text-text-primary">{h.venue}</strong>
             </div>
           )}
           <div>
@@ -276,7 +276,7 @@ export default async function HackathonDetailsPage({ params }: HackathonDetailsP
               id="btn-external-registration"
             >
               <span>External Registration Portal</span>
-              <span className="text-[11px]">&nearr;</span>
+              <span className="text-[11px]">↗</span>
             </a>
             <span className="text-xs text-text-muted">
               Official external registration website for participants.
@@ -354,7 +354,7 @@ export default async function HackathonDetailsPage({ params }: HackathonDetailsP
                       <div className="flex items-center gap-1.5">
                         {round.is_final_round && (
                           <Badge variant="warning" size="sm">
-                            🏆 Final Round
+                            Final round
                           </Badge>
                         )}
                         <Badge

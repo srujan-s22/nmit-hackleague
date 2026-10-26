@@ -69,7 +69,7 @@ export function EvidencePreviewModal({
                 className="inline-flex items-center justify-center text-xs font-medium px-3 py-1.5 rounded bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 transition-colors"
                 id="btn-evidence-open-tab"
               >
-                Open Full Size &nearr;
+                Open Full Size ↗
               </a>
             )}
             <Button

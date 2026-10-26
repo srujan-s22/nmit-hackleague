@@ -492,7 +492,7 @@ SELECT lives_ok(
   $$
   SELECT public.record_round_winner_placement(
     '00000000-0000-0000-0000-000000000301',
-    '1st Place Champion',
+    '1st',
     'Exceptional full-stack architecture'
   );
   $$,
@@ -503,7 +503,7 @@ RESET ROLE;
 
 SELECT is(
   (SELECT placement FROM public.results WHERE team_id = '00000000-0000-0000-0000-000000000050' AND milestone_type = 'win_placement'),
-  '1st Place Champion',
+  '1st',
   'TS-RND-08b: Verified winner placement recorded in public.results'
 );
 
@@ -748,7 +748,11 @@ SELECT throws_ok(
   'TS-RND-15c: review_round_submission rejects feedback exceeding 1000 characters'
 );
 
--- 15d: accepted allows optional NULL feedback
+-- 15d: accepted allows optional NULL feedback (one review per reviewer: clear the earlier one)
+SET LOCAL ROLE postgres;
+DELETE FROM public.submission_reviews
+WHERE submission_id = (SELECT id FROM public.submissions WHERE team_id = '00000000-0000-0000-0000-000000000050' AND version = 2);
+SET LOCAL ROLE authenticated;
 SELECT lives_ok(
   $$
   SELECT public.review_round_submission(

@@ -85,9 +85,10 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
   );
   const [prizesSummary, setPrizesSummary] = useState(initialData?.prizesSummary || '');
   const [prizesDetail, setPrizesDetail] = useState<Array<{ placement: string; reward: string; description?: string }>>(
+    // Start with empty tiers (placeholders only) so sample amounts are never published by accident.
     initialData?.prizesDetail || [
-      { placement: '1st Place', reward: '₹25,000 + Trophy', description: 'Grand Champion team' },
-      { placement: '2nd Place', reward: '₹15,000', description: 'Runner up' },
+      { placement: '1st Place', reward: '', description: '' },
+      { placement: '2nd Place', reward: '', description: '' },
     ]
   );
 
@@ -320,7 +321,7 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
         <CardHeader>
           <CardTitle>Institutional Academic Period</CardTitle>
           <p className="text-xs text-text-muted mt-1">
-            Assign the competition to an institutional academic year and semester. This enables leaderboard filtering for points earned during this event. Historical events without an assigned period remain unassigned.
+            Used to filter the leaderboard by academic year and semester.
           </p>
         </CardHeader>
         <div className="p-5">
@@ -521,7 +522,7 @@ export function HackathonForm({ initialData, isEdit = false }: HackathonFormProp
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <Input
               type="url"
-              label={isEdit ? 'External Registration URL' : 'External Registration URL *'}
+              label="External Registration URL"
               value={externalRegistrationUrl}
               onChange={(e) => setExternalRegistrationUrl(e.target.value)}
               placeholder="https://..."

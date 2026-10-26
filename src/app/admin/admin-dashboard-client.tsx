@@ -361,8 +361,8 @@ export function AdminDashboardClient({
               </div>
             </div>
             <div className="mt-3 pt-3 border-t border-border-subtle text-xs text-text-secondary flex justify-between">
-              <span>Verified External: {formatNumber(metrics.teams.verified_external)}</span>
-              <span>Claims: {formatNumber(metrics.teams.submitted_claims)}</span>
+              <span>Registration proofs: {formatNumber(metrics.teams.submitted_claims)}</span>
+              <span>Rejected: {formatNumber(metrics.teams.rejected_external)}</span>
             </div>
           </CardContent>
         </Card>
@@ -389,7 +389,7 @@ export function AdminDashboardClient({
       {/* Institutional Analytics */}
       <div>
         <h2 className="text-lg font-bold text-text-primary">Institutional Analytics</h2>
-        <p className="text-sm text-text-secondary">Key insights into student participation and hackathon activity.</p>
+        <p className="text-sm text-text-secondary">Participation and event activity.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -401,7 +401,7 @@ export function AdminDashboardClient({
                 <IconSwatch>{icons.teams}</IconSwatch>
                 <div>
                   <CardTitle className="text-base">Student Participation</CardTitle>
-                  <p className="text-xs text-text-secondary mt-0.5">Total students participating in hackathons across the platform.</p>
+                  <p className="text-xs text-text-secondary mt-0.5">Approved students in at least one hackathon.</p>
                 </div>
               </div>
             </div>
@@ -456,7 +456,7 @@ export function AdminDashboardClient({
               <IconSwatch>{icons.hackathons}</IconSwatch>
               <div>
                 <CardTitle className="text-base">Hackathon Activity</CardTitle>
-                <p className="text-xs text-text-secondary mt-0.5">Student participation across hackathons in the current scope.</p>
+                <p className="text-xs text-text-secondary mt-0.5">Participants per hackathon.</p>
               </div>
             </div>
           </CardHeader>

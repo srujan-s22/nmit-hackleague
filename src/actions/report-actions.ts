@@ -80,7 +80,6 @@ export interface AdminDashboardMetrics {
     total: number;
     internal_registered: number;
     submitted_claims: number;
-    verified_external: number;
     rejected_external: number;
   };
   submissions: {

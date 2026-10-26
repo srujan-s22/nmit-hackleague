@@ -81,7 +81,7 @@ export function TeamsClient({
       if (t.internal_status === 'complete') complete++;
       else forming++;
 
-      if (t.external_proof_path || t.external_status === 'submitted' || t.external_status === 'verified') {
+      if (t.external_proof_path || t.external_status === 'submitted') {
         proofSubmitted++;
       } else {
         proofMissing++;
@@ -106,14 +106,13 @@ export function TeamsClient({
       if (
         statusFilter === 'proof_submitted' &&
         !t.external_proof_path &&
-        t.external_status !== 'submitted' &&
-        t.external_status !== 'verified'
+        t.external_status !== 'submitted'
       ) {
         return false;
       }
       if (
         statusFilter === 'proof_missing' &&
-        (t.external_proof_path || t.external_status === 'submitted' || t.external_status === 'verified')
+        (t.external_proof_path || t.external_status === 'submitted')
       ) {
         return false;
       }
@@ -193,7 +192,7 @@ export function TeamsClient({
             Registered Teams — {hackathon.title}
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Review registered teams, verified member rosters, and external registration claims for institutional oversight.
+            Registered teams, rosters and registration proofs.
           </p>
         </div>
       </div>
@@ -368,10 +367,8 @@ export function TeamsClient({
                             <div className="flex flex-wrap items-center gap-1.5">
                               <Badge
                                 variant={
-                                  team.external_status === 'verified'
+                                  team.external_status === 'submitted'
                                     ? 'success'
-                                    : team.external_status === 'submitted'
-                                    ? 'info'
                                     : team.external_status === 'rejected'
                                     ? 'error'
                                     : 'neutral'

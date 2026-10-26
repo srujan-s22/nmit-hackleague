@@ -19,6 +19,7 @@ import type {
   PrizeTier,
 } from '@/types/hackathon';
 import { getStudentTeams } from '@/lib/teams/queries';
+import { refreshRoundStatuses } from '@/lib/hackathons/round-status';
 
 interface StudentEventDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -48,6 +49,7 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
   const { profile } = await requireApprovedStudent();
   const { slug } = await params;
   const supabase = await createClient();
+  await refreshRoundStatuses(supabase);
 
   // Queries public view only (drafts are excluded; private fields omitted)
   const { data: hackathon, error: hError } = await supabase
@@ -110,12 +112,12 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
           <RegistrationStateBadge state={regState} />
           {timingState === 'TIMING_IN_PROGRESS' && (
             <Badge variant="warning" size="md">
-              ⚡ Event In Progress
+              Event in progress
             </Badge>
           )}
           {timingState === 'TIMING_CONCLUDED' && (
             <Badge variant="neutral" size="md">
-              🏁 Concluded
+              Concluded
             </Badge>
           )}
         </div>
@@ -138,7 +140,7 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
           {h.venue && (
             <div>
               <span className="text-text-muted">Venue:</span>{' '}
-              <strong className="text-text-primary">📍 {h.venue}</strong>
+              <strong className="text-text-primary">{h.venue}</strong>
             </div>
           )}
           <div>
@@ -165,11 +167,8 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
                 <Badge variant="neutral" size="md">Team Member</Badge>
               )}
 
-              {existingTeam.external_status === 'verified' && (
-                <Badge variant="success" dot size="md">Registration Approved</Badge>
-              )}
               {existingTeam.external_status === 'submitted' && (
-                <Badge variant="info" dot size="md">Proof Under Review</Badge>
+                <Badge variant="success" dot size="md">Registered</Badge>
               )}
               {existingTeam.external_status === 'rejected' && (
                 <Badge variant="error" dot size="md">Proof Rejected</Badge>
@@ -217,7 +216,7 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
               rel="noopener noreferrer"
               className="px-4 py-2.5 rounded-sm text-sm font-medium border border-border-subtle bg-surface-subtle hover:bg-surface-canvas text-text-primary transition-colors flex items-center gap-1.5"
             >
-              💬 Community Group ↗
+              Community group ↗
             </a>
           )}
         </div>
@@ -260,7 +259,7 @@ export default async function StudentEventDetailPage({ params }: StudentEventDet
                           </h4>
                           {round.is_final_round && (
                             <Badge variant="warning" size="sm">
-                              🏆 Grand Finale Round
+                              Final round
                             </Badge>
                           )}
                         </div>

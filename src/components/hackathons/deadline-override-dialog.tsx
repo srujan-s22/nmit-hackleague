@@ -105,8 +105,8 @@ function DeadlineOverrideForm({
       return;
     }
 
-    if (reason.trim().length < 5) {
-      setErrorMessage('A meaningful justification of at least 5 characters is mandatory.');
+    if (reason.trim().length < 10) {
+      setErrorMessage('A reason of at least 10 characters is required.');
       return;
     }
 
@@ -209,7 +209,7 @@ function DeadlineOverrideForm({
           type="submit"
           variant="primary"
           isLoading={isSubmitting}
-          disabled={changeType === 'identical' || reason.trim().length < 5}
+          disabled={changeType === 'identical' || reason.trim().length < 10}
         >
           Apply Deadline Override
         </Button>

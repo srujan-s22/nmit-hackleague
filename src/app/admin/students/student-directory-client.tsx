@@ -599,11 +599,6 @@ export function StudentDirectoryClient({
 
               <StudentCompetitionHistory competitions={detailData.competitions} variant="compact" />
             </div>
-
-            {/* Privacy Compliance Footer */}
-            <p className="text-[11px] text-text-helper pt-2 border-t border-border-subtle">
-              Compliance note: Verified contact details are exposed exclusively within this authorized detail session to administrators with <code>view_student_data</code> authority. Directory listings and participant queries never disclose phone numbers.
-            </p>
           </div>
         )}
       </Dialog>

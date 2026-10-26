@@ -62,7 +62,7 @@ BEGIN
   ) ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.teams (id, hackathon_id, name, leader_id, invitation_code, internal_status, external_status) VALUES
-    (v_team_id, v_hackathon_id, 'Repair Team Alpha', v_student_1, 'INVREPAIR1', 'complete', 'verified')
+    (v_team_id, v_hackathon_id, 'Repair Team Alpha', v_student_1, 'INVREPAIR1', 'complete', 'submitted')
   ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.team_members (id, team_id, student_id, hackathon_id, role) VALUES

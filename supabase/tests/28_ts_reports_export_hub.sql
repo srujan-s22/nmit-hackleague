@@ -90,7 +90,7 @@ BEGIN
   ON CONFLICT (hackathon_id, admin_id) DO NOTHING;
 
   INSERT INTO public.teams (id, hackathon_id, name, leader_id, invitation_code, internal_status, external_status)
-  VALUES (v_team, v_h1, 'Exp Team Alpha', v_student, 'EXPINV0001', 'complete', 'verified')
+  VALUES (v_team, v_h1, 'Exp Team Alpha', v_student, 'EXPINV0001', 'complete', 'submitted')
   ON CONFLICT (id) DO NOTHING;
   INSERT INTO public.team_members (team_id, student_id, hackathon_id, role)
   VALUES (v_team, v_student, v_h1, 'leader') ON CONFLICT DO NOTHING;

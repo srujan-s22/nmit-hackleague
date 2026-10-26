@@ -70,7 +70,7 @@ export default async function AdminNotificationsPage() {
       <div className="space-y-6">
         <PageHeader
           title="Institutional Broadcasts & Announcements"
-          description="Send website announcements and Web Push notifications to participants, organizers, and campus stakeholders."
+          description="Send announcements and push notifications."
           breadcrumbs={[
             { label: 'Admin Workspace', href: '/admin' },
             { label: 'Broadcasts & Alerts' },

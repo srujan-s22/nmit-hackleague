@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireHackathonReviewScope, getCurrentAdminProfile } from '@/lib/auth/guards';
 import { AdminShell } from '@/components/shells/admin-shell';
 import { SubmissionsClient } from './submissions-client';
+import { refreshRoundStatuses } from '@/lib/hackathons/round-status';
 
 export const metadata: Metadata = {
   title: 'Round Submissions Review Queue | NMIT HackLeague Admin',
@@ -20,6 +21,9 @@ export default async function HackathonSubmissionsPage({ params }: SubmissionsPa
   const scope = await requireHackathonReviewScope(id);
   const currentAdmin = await getCurrentAdminProfile();
   const supabase = await createClient();
+  await refreshRoundStatuses(supabase, id);
+  // Pause/resume/reschedule need configuration authority (same check the RPCs enforce).
+  const { data: canManageRounds } = await supabase.rpc('can_admin_manage_hackathon_config', { p_hackathon_id: id });
 
   // Fetch hackathon details
   const { data: hackathon, error: hError } = await supabase
@@ -35,7 +39,7 @@ export default async function HackathonSubmissionsPage({ params }: SubmissionsPa
   // Fetch hackathon rounds
   const { data: rounds } = await supabase
     .from('hackathon_rounds')
-    .select('id, round_number, name, status, start_at, end_at')
+    .select('id, round_number, name, status, start_at, end_at, is_final_round')
     .eq('hackathon_id', id)
     .order('round_number', { ascending: true });
 
@@ -170,6 +174,7 @@ export default async function HackathonSubmissionsPage({ params }: SubmissionsPa
       initialClaims={initialClaims}
       results={(results as any) || []}
       isSuperAdmin={scope.isSuperAdmin}
+      canManageRounds={Boolean(canManageRounds)}
       fetchError={fetchError}
     />
   );

@@ -31,7 +31,7 @@ export default async function NewHackathonPage() {
             Create New Hackathon Draft
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Define event details, registration timeline, and participation guidelines. Rounds can be configured immediately after creating the draft.
+            Add the event details. You can configure rounds after saving the draft.
           </p>
         </div>
 
