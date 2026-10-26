@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RegistrationProofModal } from '@/components/submissions/registration-proof-modal';
 import { formatDateTime } from '@/lib/utils/date-format';
+import { teamRegistrationState } from '@/lib/teams/registration-compliance';
 
 export interface StudentProfileSummary {
   id: string;
@@ -43,6 +44,7 @@ interface TeamsClientProps {
     min_team_size: number;
     max_team_size: number;
     is_solo_allowed: boolean;
+    registration_end_at?: string | null;
   };
   initialTeams: RosterTeamItem[];
   isSuperAdmin: boolean;
@@ -57,7 +59,7 @@ export function TeamsClient({
 }: TeamsClientProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<
-    'all' | 'complete' | 'forming' | 'proof_submitted' | 'proof_missing'
+    'all' | 'complete' | 'forming' | 'proof_submitted' | 'proof_missing' | 'not_registered'
   >('all');
 
   // Proof inspection modal state
@@ -76,8 +78,15 @@ export function TeamsClient({
     let forming = 0;
     let proofSubmitted = 0;
     let proofMissing = 0;
+    let notRegistered = 0;
 
+    // Teams that missed the registration deadline without proof are "not registered":
+    // they are left out of the default roster and counted separately.
     for (const t of initialTeams) {
+      if (teamRegistrationState(t.external_status, hackathon.registration_end_at) === 'not_registered') {
+        notRegistered++;
+        continue;
+      }
       if (t.internal_status === 'complete') complete++;
       else forming++;
 
@@ -89,18 +98,26 @@ export function TeamsClient({
     }
 
     return {
-      total: initialTeams.length,
+      total: initialTeams.length - notRegistered,
       complete,
       forming,
       proofSubmitted,
       proofMissing,
+      notRegistered,
     };
-  }, [initialTeams]);
+  }, [initialTeams, hackathon.registration_end_at]);
 
   // Filter teams based on search query and status tab
   const filteredTeams = useMemo(() => {
     return initialTeams.filter((t) => {
       // 1. Tab filter
+      const notRegistered =
+        teamRegistrationState(t.external_status, hackathon.registration_end_at) === 'not_registered';
+      if (statusFilter === 'not_registered') {
+        if (!notRegistered) return false;
+      } else if (notRegistered) {
+        return false;
+      }
       if (statusFilter === 'complete' && t.internal_status !== 'complete') return false;
       if (statusFilter === 'forming' && t.internal_status !== 'forming') return false;
       if (
@@ -141,7 +158,7 @@ export function TeamsClient({
           m.branch.toLowerCase().includes(query)
       );
     });
-  }, [initialTeams, search, statusFilter]);
+  }, [initialTeams, search, statusFilter, hackathon.registration_end_at]);
 
   const toggleExpandTeam = (teamId: string) => {
     setExpandedTeamId((prev) => (prev === teamId ? null : teamId));
@@ -236,11 +253,14 @@ export function TeamsClient({
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
             {[
-              { key: 'all', label: `All Teams (${metrics.total})` },
+              { key: 'all', label: `Registered & Pending (${metrics.total})` },
               { key: 'complete', label: `Complete (${metrics.complete})` },
               { key: 'forming', label: `Forming (${metrics.forming})` },
               { key: 'proof_submitted', label: `Proof Submitted (${metrics.proofSubmitted})` },
               { key: 'proof_missing', label: `Proof Missing (${metrics.proofMissing})` },
+              ...(metrics.notRegistered > 0
+                ? [{ key: 'not_registered', label: `Not Registered (${metrics.notRegistered})` }]
+                : []),
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -377,7 +397,9 @@ export function TeamsClient({
                                 className="capitalize text-[11px]"
                               >
                                 {team.external_status === 'not_submitted'
-                                  ? 'Not Submitted'
+                                  ? teamRegistrationState(team.external_status, hackathon.registration_end_at) === 'not_registered'
+                                    ? 'Not registered'
+                                    : 'Proof pending'
                                   : team.external_status}
                               </Badge>
 

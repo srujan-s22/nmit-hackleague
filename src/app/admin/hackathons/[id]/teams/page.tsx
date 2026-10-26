@@ -28,7 +28,7 @@ export default async function HackathonTeamsPage({ params }: TeamsPageProps) {
   // 2. Fetch hackathon details
   const { data: hackathon, error: hError } = await supabase
     .from('hackathons')
-    .select('id, title, slug, status, min_team_size, max_team_size, is_solo_allowed')
+    .select('id, title, slug, status, min_team_size, max_team_size, is_solo_allowed, registration_end_at')
     .eq('id', id)
     .single();
 

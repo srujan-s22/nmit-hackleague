@@ -1,7 +1,7 @@
 -- Suite 30: Task Alpha database audit fixes (TS-DBA)
 -- 20261102000001_db_audit_fixes.sql + 20261102000002_db_rule_gaps.sql
 BEGIN;
-SELECT plan(14);
+SELECT plan(18);
 
 DO $$
 DECLARE
@@ -63,8 +63,12 @@ SELECT throws_ok($$ SELECT public.manage_admin_permissions('00000000-0000-0000-0
   '22023', NULL, 'TS-DBA-13: NULL permission element rejected');
 
 RESET ROLE;
+SELECT is(public.team_registration_state('submitted', now() - interval '1 day'), 'registered', 'TS-DBA-15: proof submitted is registered even after the deadline');
+SELECT is(public.team_registration_state('not_submitted', now() + interval '1 day'), 'pending', 'TS-DBA-16: no proof before the deadline is pending');
+SELECT is(public.team_registration_state('not_submitted', now() - interval '1 day'), 'not_registered', 'TS-DBA-17: no proof after the deadline is not registered');
 SELECT is((SELECT name FROM public.hackathon_rounds WHERE id = 'e0300000-0000-0000-0000-000000000010'), 'Other round',
   'TS-DBA-14: the other hackathon''s round was not modified');
+SELECT is(public.team_registration_state('rejected', NULL), 'pending', 'TS-DBA-18: unknown deadline never marks a team not registered');
 
 SELECT * FROM finish();
 ROLLBACK;

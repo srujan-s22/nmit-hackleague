@@ -12,6 +12,7 @@ import { CreateTeamDialog, type HackathonOption } from '@/components/teams/creat
 import { JoinTeamDialog } from '@/components/teams/join-team-dialog';
 import { formatDate } from '@/lib/utils/date-format';
 import type { StudentTeamSummary } from '@/lib/teams/queries';
+import { teamRegistrationState } from '@/lib/teams/registration-compliance';
 
 export interface TeamsClientProps {
   initialTeams: StudentTeamSummary[];
@@ -193,9 +194,9 @@ export function TeamsClient({
                       variant={
                         team.external_status === 'submitted'
                           ? 'success'
-                          : team.external_status === 'rejected'
+                          : team.external_status === 'rejected' || teamRegistrationState(team.external_status, team.hackathon?.registration_end_at) === 'not_registered'
                           ? 'error'
-                          : 'neutral'
+                          : 'warning'
                       }
                       size="sm"
                       dot
@@ -204,7 +205,9 @@ export function TeamsClient({
                         ? 'Submitted'
                         : team.external_status === 'rejected'
                         ? 'Rejected'
-                        : 'Not Submitted'}
+                        : teamRegistrationState(team.external_status, team.hackathon?.registration_end_at) === 'not_registered'
+                        ? 'Not registered'
+                        : 'Required'}
                     </Badge>
                   </div>
 

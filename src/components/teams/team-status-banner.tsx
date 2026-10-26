@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { RegistrationStateBadge } from '@/components/hackathons/registration-state-badge';
 import { formatDateTime } from '@/lib/utils/date-format';
 import type { RegistrationState } from '@/types/hackathon';
+import { Alert } from '@/components/ui/alert';
+import { daysUntilDeadline, teamRegistrationState } from '@/lib/teams/registration-compliance';
 
 export interface TeamStatusBannerProps {
   teamName: string;
@@ -75,6 +77,9 @@ export function TeamStatusBanner({
     ? formatDateTime(registrationEndAt)
     : null;
 
+  const compliance = teamRegistrationState(externalStatus, registrationEndAt);
+  const daysLeft = registrationEndAt ? daysUntilDeadline(registrationEndAt) : null;
+
   return (
     <div className="bg-surface-canvas border border-border-subtle rounded-md p-5 shadow-xs space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -101,6 +106,21 @@ export function TeamStatusBanner({
           {getExternalBadge()}
         </div>
       </div>
+
+      {compliance === 'not_registered' && (
+        <Alert variant="error" title="Not registered">
+          Registration closed on {formattedDeadline} and no registration proof was submitted, so this team can no
+          longer take part. Contact an organiser if you think this is a mistake.
+        </Alert>
+      )}
+      {compliance === 'pending' && (
+        <Alert variant={daysLeft !== null && daysLeft <= 2 ? 'warning' : 'info'} title="Register on the external portal">
+          Registering on the organiser&apos;s portal is required. Upload your registration proof
+          {formattedDeadline ? ` before ${formattedDeadline}` : ''}
+          {daysLeft !== null && daysLeft >= 0 ? ` (${daysLeft === 0 ? 'last day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`})` : ''}
+          {' '}or the team will be marked not registered.
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-border-subtle/60 text-xs">
         <div>
