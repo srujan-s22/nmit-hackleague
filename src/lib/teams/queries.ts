@@ -94,6 +94,7 @@ export interface TeamDetails {
     is_solo_allowed: boolean;
     registration_state: RegistrationState;
     is_round_1_paused: boolean;
+    external_registration_url: string | null;
   } | null;
 }
 
@@ -263,7 +264,8 @@ export async function getTeamDetails(teamId: string): Promise<TeamDetails | null
         registration_end_at,
         min_team_size,
         max_team_size,
-        is_solo_allowed
+        is_solo_allowed,
+        external_registration_url
       )
     `)
     .eq('id', teamId)
@@ -461,6 +463,8 @@ export async function getTeamDetails(teamId: string): Promise<TeamDetails | null
           is_solo_allowed: hackathon.is_solo_allowed,
           registration_state: regState,
           is_round_1_paused: isRound1Paused,
+          // Only leaders register the team externally, so only they get the link.
+          external_registration_url: isLeader ? hackathon.external_registration_url : null,
         }
       : null,
   };

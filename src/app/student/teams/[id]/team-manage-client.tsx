@@ -37,7 +37,17 @@ export function TeamManageClient({ initialTeam, currentUserId }: TeamManageClien
           { label: team.name },
         ]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {isLeader && hackathon?.external_registration_url && (
+              <a
+                href={hackathon.external_registration_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-sm bg-brand-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-colors hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-border-focus"
+              >
+                Register on External Portal &#8599;
+              </a>
+            )}
             {hackathon?.slug && (
               <Link
                 href={`/student/hackathons/${hackathon.slug}`}
